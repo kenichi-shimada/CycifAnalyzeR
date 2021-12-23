@@ -93,3 +93,18 @@ Cycif <- function(filename,suffix="_cellMask") {
       xy_coords = xy_coords,
       segment_property = segment_property)
 }
+
+#' @export
+setMethod("show", "Cycif", function(object) {
+  m <- matrix(abs_list(object)$ab,nrow=3)
+  rownames(m) <- c("R","G","B")
+  colnames(m) <- paste0("Cycle",seq(nCycles(object))-1)
+  m <- data.frame(m)
+  # cat(m)
+  cat(is(object)[[1]], "\n",
+      "Name: ", object@name, "\n",
+      "nCells:  ", object@n_cells, "\n",
+      "nCycles: ", object@n_cycles, "\n",
+      "Abs: \n",sep="")
+  print(m)
+})

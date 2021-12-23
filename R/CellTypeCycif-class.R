@@ -1,4 +1,4 @@
-##
+#' @export
 setClass("CellTypeDef",
          slots = c(
            cell_lineage_df = "data.frame",
@@ -8,6 +8,7 @@ setClass("CellTypeDef",
          )
 )
 
+#' @export
 setClass("CellTypeCycif",contains="CellTypeDef",
          slots = c(
            threshold = "data.frame",
@@ -20,6 +21,7 @@ setClass("CellTypeCycif",contains="CellTypeDef",
          )
 )
 
+#' @export
 setClass("CellTypeCycifStack",contains="CellTypeDef",
          slots = c(
            threshold = "data.frame",
@@ -32,7 +34,7 @@ setClass("CellTypeCycifStack",contains="CellTypeDef",
          )
 )
 
-# helper function - check validity as well
+#' @export
 CellTypeDef <- function(filename) {
   require(openxlsx)
 
@@ -75,6 +77,7 @@ CellTypeDef <- function(filename) {
   )
 }
 
+#' @export
 setMethod("show", "CellTypeDef", function(object) {
   lins <- lineages(object)
   n.lins <- length(lins)
