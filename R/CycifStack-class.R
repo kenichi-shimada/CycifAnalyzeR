@@ -59,3 +59,22 @@ CycifStack <- function(filenames){
       samples = samples
   )
 }
+
+#' @export
+setMethod("show", "CycifStack", function(object) {
+  df <- data.frame(
+    SampleName = object@names,
+    nCycles = object@n_cycles,
+    nCells = object@n_cells)
+  rownames(df) <- c()
+
+  m <- matrix(object@uniq_abs$ab,nrow=3)
+  rownames(m) <- c("R","G","B")
+  colnames(m) <- paste0("Cycle",seq(object@max_cycles)-1)
+  m <- data.frame(m)
+
+  cat(is(object)[[1]], "\n")
+  print(df)
+  cat("Abs:\n")
+  print(m)
+})
