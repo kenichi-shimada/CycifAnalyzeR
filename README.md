@@ -1,2 +1,4 @@
 # CyCIF Data Analysis
-This contains the whole pipeline of CyCIF analysis.
+
+This repository contains R package to do pre-processing of CyCIF data.
+
