@@ -36,18 +36,16 @@ setClass("CellTypeCycifStack",contains="CellTypeDef",
 
 #' @export
 CellTypeDef <- function(filename) {
-  require(openxlsx)
-
   stopifnot(file.exists(filename))
 
-  sheet.names <- getSheetNames(filename)
+  sheet.names <- openxlsx::getSheetNames(filename)
 
   if(!all(c("cell lineage","cell state") %in% sheet.names)){
     stop("Cell type and cell state should be defined in two spreadsheets named 'cell type' and 'cell state', respectively.")
   }
 
-  clineage <- readWorkbook(filename,sheet="cell lineage",colNames=TRUE,rowNames=TRUE)
-  cstate <- readWorkbook(filename,sheet="cell state",colNames=TRUE,rowNames=TRUE)
+  clineage <-  openxlsx::readWorkbook(filename,sheet="cell lineage",colNames=TRUE,rowNames=TRUE)
+  cstate <-  openxlsx::readWorkbook(filename,sheet="cell state",colNames=TRUE,rowNames=TRUE)
 
   r1 <- rownames(clineage)
   r2 <- rownames(cstate)

@@ -3,6 +3,7 @@
 export(CellTypeDef)
 export(Cycif)
 export(CycifStack)
+export(as.Cycif)
 export(as.CycifStack)
 exportClasses(CellTypeCycif)
 exportClasses(CellTypeCycifStack)

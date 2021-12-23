@@ -1,3 +1,4 @@
+#' @include CellType-class.R
 #' @export
 setClass("Cycif",
          slots = c(

@@ -1,3 +1,6 @@
+#' @include Cycif-class.R
+#' @include Cycif-utils.R
+#' @include CycifStack-class.R
 #' @export
 setGeneric("nSamples", function(x)standardGeneric("nSamples"))
 setMethod("nSamples", "CycifStack", function(x) x@n_samples)
@@ -19,6 +22,7 @@ setGeneric("uniq_abs", function(x)standardGeneric("uniq_abs"))
 setMethod("uniq_abs", "CycifStack", function(x) x@uniq_abs)
 
 #' @export
+setGeneric("nCycles", function(x)standardGeneric("nCycles"))
 setMethod("nCycles", "CycifStack", function(x) x@n_cycles)
 
 #' @export

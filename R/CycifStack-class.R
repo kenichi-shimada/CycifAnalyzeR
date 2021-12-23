@@ -1,3 +1,5 @@
+#' @include CellType-class.R
+
 #' @export
 setClass("CycifStack",
          slots = c(
