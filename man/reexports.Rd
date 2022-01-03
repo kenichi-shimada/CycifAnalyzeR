@@ -4,7 +4,7 @@
 \name{reexports}
 \alias{reexports}
 \alias{\%>\%}
-\title{Objects exported from other packages}
+\title{'Pipe function imported from magritter package}
 \keyword{internal}
 \description{
 These objects are imported from other packages. Follow the links
