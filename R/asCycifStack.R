@@ -1,5 +1,12 @@
+#' Converting a list to a CycifStack object
+#'
+#' @param x A list or a Cycif object (if Cycif, the length should be one)
+#'
+#' @return A CycifStack object
 #' @export
-setGeneric("as.CycifStack", function(x,...) standardGeneric("as.CycifStack"))
+#'
+#' @export
+setGeneric("as.CycifStack", function(x) standardGeneric("as.CycifStack"))
 
 setMethod("as.CycifStack", "list",function(x){
   stopifnot(all(sapply(x,class) %in% c("Cycif","CycifStack")))

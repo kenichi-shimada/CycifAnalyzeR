@@ -1,3 +1,12 @@
+#' Subsetting samples from a CycifStack object
+#'
+#' @param x A CycifStack object
+#' @param i A numeric or character vector. If numeric, the values are integers
+#'   representing indices for the Cycif objects. If character, names of the Cycif
+#'   objects.
+#' @param value A Cycif object to be inserted.
+#'
+#' @rdname CycifStack-subset
 #' @export
 setMethod("[",
           "CycifStack",
@@ -27,6 +36,7 @@ setMethod("[",
           }
 )
 
+#' @rdname CycifStack-subset
 #' @export
 setMethod("[[",
           "CycifStack",
@@ -37,6 +47,7 @@ setMethod("[[",
           }
 )
 
+#' @rdname CycifStack-subset
 #' @export
 setMethod("[<-",
           "CycifStack",
@@ -65,6 +76,7 @@ setMethod("[<-",
           }
 )
 
+#' @rdname CycifStack-subset
 #' @export
 setMethod("[[<-",
           "CycifStack",

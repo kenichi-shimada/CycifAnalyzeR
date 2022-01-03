@@ -1,12 +1,16 @@
+#' Show or set a threshold in a Cycif or CycifStack object
+#'
 #' @include Cycif-class.R
 #' @include CycifStack-class.R
 #' @include CellType-class.R
-
+#'
+#' @rdname threshold
 #' @export
 setGeneric("threshold", function(x) standardGeneric("threshold"))
 setMethod("threshold", "Cycif", function(x)x@threshold)
 setMethod("threshold", "CellTypeCycifStack", function(x)x@threshold)
 
+#' @rdname threshold
 #' @export
 setGeneric("threshold<-", function(x,...) standardGeneric("threshold<-"))
 setMethod("threshold<-", "Cycif", function(x,value,strict=FALSE,...){
@@ -28,6 +32,7 @@ setMethod("threshold<-", "Cycif", function(x,value,strict=FALSE,...){
   return(x)
 })
 
+#' @rdname threshold
 #' @export
 setMethod("threshold<-", "CycifStack", function(x,value,strict=FALSE,...){
   thres <- value
@@ -57,6 +62,7 @@ setMethod("threshold<-", "CycifStack", function(x,value,strict=FALSE,...){
   return(x)
 })
 
+#' @rdname threshold
 #' @export
 setMethod("threshold<-", "CellTypeCycifStack", function(x,value,...){
   x@threshold <- value

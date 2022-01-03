@@ -1,8 +1,17 @@
-## used_cells, cumulative to the cycle, output is the table
+#' Show available cells at each cycle
+#'
+#' @param x A Cycif object
+#' @param cumulative logical. If TRUE, available cells through cycles 1 to n are computed.
+#'   If FALSE, available cells at each cycle are computed.
+#' @param ratio Logical. If TRUE, show ratio of available and unavailable cells
+#'  at each cycle. If FALSE, actual actual number is provided.
+#'
+#' @return cumUsedCells() returns a matrix where rows correspond to cells
+#'   and columns correspond to cycles. statUsedCells() returns a table sumarizing
+#'   the numbers of available and unavailable cells at each cycle.
+#'
 #' @export
 setGeneric("cumUsedCells", function(x,...) standardGeneric("cumUsedCells"))
-
-#' @export
 setMethod("cumUsedCells", "Cycif",
           function(x){
             u <- x@used_cells
@@ -14,11 +23,11 @@ setMethod("cumUsedCells", "Cycif",
           }
 )
 
-## used_cells, cumulative to the cycle, output is the table
+#' Summarize available cells at each cycle
+#' @rdname cumUsedCells
+#' @order 2
 #' @export
 setGeneric("statUsedCells", function(x,...) standardGeneric("statUsedCells"))
-
-#' @export
 setMethod("statUsedCells", "Cycif",
           function(x,cumulative=TRUE,ratio=TRUE,...){
             stopifnot(nrow(x@used_cells)>0)

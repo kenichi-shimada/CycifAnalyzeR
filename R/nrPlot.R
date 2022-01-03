@@ -1,3 +1,13 @@
+#' Visualize relationship between raw and normalized expression values
+#'
+#' @param x A Cycif object.
+#' @param ab character. One of the antibodies used in the column names of the
+#'   protein expression matrix.
+#' @param xlog logical. If TRUE, the raw values are also shown in the log scale.
+#' @param p_thres numeric. the parameter specifies what value (between 0 and 1) the
+#'  threshold should be set to. (will be defunct as it should be kept in the Cycif object).
+#' @param main character. Title of the plot.
+#' @param ... passed to plot() function.
 #' @export
 setGeneric("nrPlot", function(x,...) standardGeneric("nrPlot"))
 setMethod("nrPlot", "Cycif",

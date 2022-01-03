@@ -1,7 +1,17 @@
-#' @include CycifStack-class.R
-
+#' Split a string
+#'
+#' @param x An object of Cycif class.
+#' @param show.cycles.in.row logical. FALSE by default. If TRUE, the output plot shows the number
+#'     of cycles each sample was stained for.
+#' @param ... Arguments passed to image() function.
+#'
 #' @export
+#'
+#' @include CycifStack-class.R
 setGeneric("AbsSummary", function(x,...) standardGeneric("AbsSummary"))
+
+#' @rdname AbsSummary
+#' @export
 setMethod("AbsSummary", "CycifStack", function(x,show.cycles.in.row=FALSE,...){
   uniq.abs <- x@uniq_abs$ab
   n1 <- do.call(rbind,lapply(x@samples,function(y){
@@ -31,4 +41,6 @@ setMethod("AbsSummary", "CycifStack", function(x,show.cycles.in.row=FALSE,...){
   par(tcl=0)
   axis(3,at=seq(x@max_cycles)*3-1,labels=col.labs)
   par(tcl=-.5)
+
+  return(invisible(NULL))
 })

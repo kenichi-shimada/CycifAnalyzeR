@@ -1,3 +1,14 @@
+#' Filtering out unavaialble cells based on nuclei staining
+#'
+#' @param x A Cycif object
+
+#' @param manual logical. If TRUE, lower and upper limits of DNA intensity should be chosen
+#'   interactively by clicking the limit values in the heatmap. FALSE by default.
+#' @param ratio logical. If TRUE, the ratio of DNA intensity between each cycle and cycle 0 will be used.
+#'   If FALSE, raw values of DNA intensity will be used.
+#' @param n numeric. The number of breaks in the histogram.
+#' @param n1 numeric. indices from 1 through n1 will be plugged into loess().
+#'
 #' @export
 setGeneric("dnaFilter", function(x,...) standardGeneric("dnaFilter"))
 setMethod("dnaFilter", "Cycif",

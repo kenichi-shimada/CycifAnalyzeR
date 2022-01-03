@@ -1,7 +1,19 @@
-## cell type defining functions
+#' Run visualization with dimensionality reduction (t-SNE and U-MAP) on CyCIF data.
+#'
+#' @param x A Cycif or CycifStack object.
+#' @param type character. It should be "raw" or "normalized", indicating which expression
+#'  values to use for the U-MAP.
+#' @param n.cells numeric. The number of cells sampled from each CyCIF object.
+#' @param n_neighbors numeric. The number of neighbors, passed on to dimensionality reduction function.
+#' @param used.abs A character vector containing a set of antibodies used for UMAP computation.
+#' @param init.seed initial seed to set for computing UMAP.
+#' @param smpls Character vector containign a set of samples to be included inthe UMAP.
+#' @param n.cells.per.smpl A numeric scholar. The number of cells per sample to be set when a CycifStack is run.
+#' @param ... arguments passed to uwot::umap().
 #' @export
 setGeneric("RunUMAP", function(x,...) standardGeneric("RunUMAP"))
 
+#' @rdname RunUMAP
 #' @export
 setMethod("RunUMAP", "Cycif",
           function(x,type=c("raw","normalized"),n.cells,
@@ -65,6 +77,7 @@ setMethod("RunUMAP", "Cycif",
             return(x)
           })
 
+#' @rdname RunUMAP
 #' @export
 setMethod("RunUMAP", "CycifStack",
           function(x,type=c("raw","normalized"),smpls,used.abs,

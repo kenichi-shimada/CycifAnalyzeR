@@ -1,5 +1,12 @@
+#' Converting a list to a Cycif object
+#'
+#' @param x A list object
+#'
+#' @return A Cycif object
 #' @export
-setGeneric("as.Cycif", function(x,...) standardGeneric("as.Cycif"))
+#'
+#' @export
+setGeneric("as.Cycif", function(x) standardGeneric("as.Cycif"))
 setMethod("as.Cycif", "list",function(x){
   slots.in.Cycif <- slotNames(getClassDef("Cycif"))
   stopifnot(all(names(x) %in% slots.in.Cycif))

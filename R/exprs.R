@@ -1,8 +1,18 @@
+#' Show a raw or normalized protein expression matrix
+#'
+#' @param x A Cycif or CycifStack object.
+
+#' @param type type. If "raw", a raw expression matrix is shown. If "normalized",
+#'   a normalized expression matrix will be shown. The method of normalization is
+#'   specified by "log" or "LogTh" in the normalize function provided previously.
+#' @param silent logical. If FALSE, the method of normalization was shown in
+#'  the error prompt.
+#'
 #' @export
 setGeneric("exprs", function(x,...) standardGeneric("exprs"))
 
 #' @export
-setMethod("exprs", "Cycif", function(x,type=c("raw","normalized"),na.rm=TRUE,silent=TRUE){
+setMethod("exprs", "Cycif", function(x,type=c("raw","normalized"),silent=TRUE){
   if(missing(type)){
     # cat("Error: specify type: \"raw\" or \"normalized\"\n")
     # stop()
