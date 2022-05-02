@@ -27,7 +27,7 @@ setMethod("normalize", "Cycif",
     }
 
     ## 'used abs' set already?
-    if("used_abs" %in% slotNames(x)){
+    if("used_abs" %in% slotNames(x) && length(used_abs(x)) > 0){
       used.abs <- used_abs(x)
     }else{
       used.abs <- as.character(abs_list(x)$ab)
@@ -42,6 +42,7 @@ setMethod("normalize", "Cycif",
     if(method=="log"){
       norm <- as.data.frame(
         sapply(used.abs,function(ab){
+#          cat(ab,"\n")
           cycle <- abs_list(x)$cycle[abs_list(x)$ab==ab]
           cycle <- cycle + 1 # 0-origin
           is.used.1 <- is.used[,cycle]
@@ -59,12 +60,13 @@ setMethod("normalize", "Cycif",
       }
 
       thres <- threshold(x)
-      used.abs <- used.abs[!is.na(thres[used.abs])]
+      used.abs <- used.abs[!is.na(thres[used.abs])] # this shouldn't have to be checked.
 
       norm <- as.data.frame(
         sapply(used.abs,function(ab){
           cycle <- abs_list(x)$cycle[abs_list(x)$ab==ab]
-          cycle <- cycle + 1 # 0-origin
+          cycle <- cycle + 1 # 0-origin - confusing
+          warning("cycle should be switched to 1-origin")
           is.used.1 <- is.used[,cycle]
           r <- raw[[ab]]
           n <- rep(NA,length(r))
@@ -90,7 +92,7 @@ setMethod("normalize", "CycifStack",
       normalize(y,method=method,trim=trim,p_thres=p_thres)
     })
 
-    norm <- do.call(rbind,cyApply(xs,function(cy)exprs(cy,type="normalized"),as.CycifStack=FALSE)) %>%
+    norm <- do.call(rbind,cyApply(xs,function(cy)exprs(cy,type="normalized"),as.CycifStack=FALSE))  %>%
       mutate(smpl=rep(names(xs),cyApply(xs,nCells,as.CycifStack=FALSE,simplify=TRUE)))
     xs@normalized <- norm
     xs@normalize.method <- method
@@ -103,24 +105,31 @@ setMethod("normalize", "CycifStack",
 ## transform - at some point I should switch to nls() to apply sigmoidal curve
 #' @rdname normalize
 #' @export
-transform <- function(r,method=c("log","logTh"),th,p_thres=0.5,trim=1e-5){
+transform <- function(r,method=c("log","logTh","Th"),th,p_thres=0.5,trim=1e-5){
   if(missing(method)){
     method <- "logTh"
   }
   # r - raw intensity value (in quantification/*.csv)
 
   ## log-transformation (to be replaced with log with other bases)
-  r1 <- lr <- log1p(r)
-
-  ## trimming outliers
-  qt <- quantile(lr,c(trim,1-trim))
+  if(method=="Th"){
+    r1 <- lr <- r
+    lth <- th
+  }else if(method=="logTh"){ ## when method contains log-transformation
+    r1 <- lr <- log1p(r)
+    lth <- log1p(th)
+  }else if(method=="log"){
+    r1 <- lr <- log1p(r)
+  }
 
   ## method: either 'log' or 'logTh'
   if(method=="log"){
     ## nothing else to do
-  }else if(method=="logTh"){
+  }else if(method %in% c("logTh","Th")){
     stopifnot(!missing(th)) # th is an essential input from user
-    lth <- log1p(th)
+
+    ## trimming outliers
+    qt <- quantile(lr,c(trim,1-trim))
 
     ## if lth is outside [trim, 1-trim], move lth to the bound
     if(lth < qt[1]){
@@ -142,3 +151,15 @@ transform <- function(r,method=c("log","logTh"),th,p_thres=0.5,trim=1e-5){
 
   return(r1)
 }
+
+#' @rdname normalize
+#' @export
+trim_fun <- function(r,trim_th=1e-5){
+  qt <- quantile(r,c(trim_th,1-trim_th),na.rm=T)
+
+  r[r > qt[2]] <- qt[2]
+  r[r < qt[1]] <- qt[1]
+
+  return(r)
+}
+

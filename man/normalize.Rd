@@ -13,7 +13,7 @@ normalize(x, ...)
 
 \S4method{normalize}{CycifStack}(x, method = c("log", "logTh"), trim = 1e-05, p_thres = 0.5)
 
-transform(r, method = c("log", "logTh"), th, p_thres = 0.5, trim = 1e-05)
+transform(r, method = c("log", "logTh", "Th"), th, p_thres = 0.5, trim = 1e-05)
 }
 \arguments{
 \item{x}{A Cycif or CycifStack object.}

@@ -41,6 +41,7 @@ Collate:
     'cycif.R'
     'cycifStack.R'
     'defCellType.R'
+    'defCellType_v2.R'    
     'dep-dimRedPlot.R'
     'dep-segmentHist.R'
     'dep-segmentPlot.R'
@@ -59,3 +60,6 @@ Collate:
     'usedCellPlot.R'
     'used_abs.R'
     'vlnPlot.R'
+Suggests: 
+    testthat (>= 3.0.0)
+Config/testthat/edition: 3

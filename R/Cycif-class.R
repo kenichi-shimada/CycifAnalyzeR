@@ -4,42 +4,42 @@
 #'
 #' @export
 setClass("Cycif",
-         slots = c(
-           ## using qts
-           name = "character",
-           suffix = "character",
+   slots = c(
+     ## using qts
+     name = "character",
+     suffix = "character",
 
-           abs_list = "data.frame",
-           used_abs = "vector",
+     abs_list = "data.frame",
+     used_abs = "character",
 
-           raw = "data.frame",
-           normalized = "data.frame",
-           normalize.method = "character",
-           dna = "data.frame",
+     raw = "data.frame",
+     normalized = "data.frame",
+     normalize.method = "character",
+     dna = "data.frame",
 
-           n_cycles = "numeric",
-           n_cells = "numeric",
+     n_cycles = "numeric",
+     n_cells = "numeric",
 
-           xy_coords = "data.frame",
-           segment_property = "data.frame",
+     xy_coords = "data.frame",
+     segment_property = "data.frame",
 
-           cell_type = "CellTypeCycif",
-           threshold = "numeric", ## this is going to be discontinued
+     cell_type = "CellTypeCycif",
+     threshold = "numeric", ## this is going to be discontinued
 
-           used_cells = "matrix", # matrix
-           dna_thres = "data.frame",
-           area_filter= "vector",
+     used_cells = "matrix", # matrix
+     dna_thres = "data.frame",
+     area_filter= "numeric",
 
-           ld_coords = "data.frame",
-           clusters = "numeric", # numeric
+     ld_coords = "data.frame",
+     clusters = "numeric", # numeric
 
-           tif_files = "data.frame", # full path
-           dim = "data.frame", # size of the tif_file
-           rect = "list",
+     tif_files = "data.frame", # full path
+     dim = "data.frame", # size of the tif_file
+     rect = "list",
 
-           segmentation_masks = "character",
+     segmentation_masks = "character",
 
-           commands = "list"
-         )
+     commands = "list"
+   )
 )
 

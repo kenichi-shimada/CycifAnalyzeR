@@ -15,14 +15,25 @@ CycifStack <- function(filenames,suffix="_cellMask"){
 
   n.samples <- length(filenames)
   samples <- lapply(filenames,function(filename){
-    name <- sub("unmicst-(.+)\\.csv","\\1",filename)
+    if(grepl(suffix,filename)){
+      name <- sub(paste0("unmicst-(.+)",suffix,"\\.csv"),"\\1",filename)
+    }else{
+      name <- sub(paste0("unmicst-(.+)\\.csv"),"\\1",filename)
+    }
     cat("Loading ",name,"...\n",sep="")
     smpl <- Cycif(filename,suffix=suffix)
     return(smpl)
   })
 
-  suffix <- samples[[1]]@suffix
-  nms <- 	names(samples) <- sapply(samples,names)
+  nms <- names(samples) <- sapply(samples,function(x){
+      filename <- names(x)
+      if(grepl(suffix,filename)){
+        name <- sub(paste0("unmicst-(.+)",suffix,"\\.csv"),"\\1",filename)
+      }else{
+        name <- sub(paste0("unmicst-(.+)\\.csv"),"\\1",filename)
+      }
+  })
+
   n_cells <- 	sapply(samples,nCells)
   n_cycles <- sapply(samples,nCycles)
   max_cycles <- max(n_cycles)

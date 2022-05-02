@@ -8,127 +8,180 @@
 #'   If FALSE, raw values of DNA intensity will be used.
 #' @param n numeric. The number of breaks in the histogram.
 #' @param n1 numeric. indices from 1 through n1 will be plugged into loess().
+#' @param show.only logical. If TRUE, only show the summary of the plots but don't attempt to filter cells.
 #'
 #' @export
 setGeneric("dnaFilter", function(x,...) standardGeneric("dnaFilter"))
 setMethod("dnaFilter", "Cycif",
-          function(x,manual=FALSE,ratio=TRUE,n=1000,n1=1000){
-            mat <- x@dna
-            smp <- x@name
+  function(x,manual=TRUE,n=1000,n1=1000,show.only=FALSE){
+    mat <- x@dna
+    smp <- x@name
 
-            dna.list <- names(mat)
-            if(ratio){
-              mat <- as.data.frame(lapply(mat,function(x)log1p(x/mat[[1]])))
-            }else{
-              mat <- log1p(mat)
-            }
+    dna.list <- names(mat)
+    mat <- cbind(log1p(mat[[1]]),as.data.frame(lapply(mat,function(x)log1p(x/mat[[1]])))[-1])
+    names(mat) <- dna.list
 
-            xmax <- ceiling(max(mat)/n)*n
-            xmax <- max(mat)
-            brks <- seq(0,xmax,length=(n+1))
+    dna.thres <- x@dna_thres
+    if(nrow(dna.thres)>0){
+      dna.ths1 <- x@dna_thres$low
+      dna.ths2 <- x@dna_thres$high
+      names(dna.ths1) <- names(dna.ths2) <- dna.list
+    }else{
+      dna.ths1 <- sapply(mat,min)
+      dna.ths2 <- sapply(mat,max)
+      names(dna.ths1) <- names(dna.ths2) <- dna.list
+    }
 
-            dna.ths1 <- rep(0,length(dna.list))
-            dna.ths2 <- rep(Inf,length(dna.list))
-            names(dna.ths1) <- names(dna.ths2) <- dna.list
+    for(i in seq(length(dna.list))){
+        channel <- dna.list[i]
+        m <- mat[[channel]]
 
+        xmax <- max(m)
+
+        if(i==1){
+          ttl <- channel
+          brks <- seq(min(m),max(m),length=(n+1))
+        }else{
+          ttl <- paste0(channel," / ",dna.list[1])
+          brks <- seq(0,xmax,length=(n+1))
+        }
+        a <- hist(m,breaks=brks,main=ttl,freq=FALSE,xlab="",col="grey60",border=NA)
+
+        ## smoothening the trail of histogram
+        loessMod <- loess(a$density[seq(n1)] ~ brks[seq(n1)], span=0.02)
+        smoothed <- predict(loessMod)
+        lines(smoothed, x=brks[seq(n1)], col=1,lwd=2)
+
+        if(nrow(dna.thres)>0 & show.only){
+          cat("Showing current dna_thres\n")
+          abline(v=dna.ths1[i],col=4,lty=2)
+          abline(v=dna.ths2[i],col=2,lty=2)
+        }
+
+        ##
+        if(!show.only){
             cat(paste0("Filtering ",smp,"...\n"))
 
-            ## all DNA channels
-            if(manual){
-              a <- hist(m1[used],breaks=brks,main=channel,freq=FALSE)
+            cat("Showing current dna_thres\n")
+            abline(v=dna.ths1[i],col=4,lty=2)
+            abline(v=dna.ths2[i],col=2,lty=2)
 
-              loessMod <- loess(a$density[seq(n1)] ~ brks[seq(n1)], span=0.02)
-              smoothed <- predict(loessMod)
+            ans <- readline(prompt="Do you want to run auto_filter instead of using existing thresholds?[(y)/n]:")
+            auto_filter <- !grepl("^[nN]",ans)
 
-              lines(smoothed, x=brks[seq(n1)], col=2)
+            if(auto_filter){
+              ## auto_filter thresholding
+              th.up <- quantile(m,.9)
 
-              # points(a$mids[ind.p],a$density[ind.p],pch=20,col=2)
-              # points(a$mids[ind.v],a$density[ind.v],pch=20,col=4)
+              ind.v <- which(diff(sign(diff(smoothed)))>0  & a$mids[c(-1,-n1)] < th.up) # idx of valleys
+              ind.p <- which(diff(sign(diff(smoothed)))<0  & a$mids[c(-1,-n1)] < th.up) # idx of peaks
+              idx <- sort(c(ind.v,ind.p))
 
-              th <- locator(1)$x
-              if(th < 0) th <- 0
-              abline(v=th,col=4)
-              dna.ths1[i] <- th
+              ## if idx is left to idx.lo, remove them (loess gets bumpy at the edge)
+              idx.diff.th <- 13
 
-              th2 <- locator(1)$x
-              if(th2 < 0) th2 <- 0
-              abline(v=th2,col=2)
-              dna.ths2[i] <- th2
-            }else{
-              inds.v <- inds.p <- list()
-              par(mfcol=c(4,2))
-              par(mar=c(3,3,1,1))
-              par(bg="white",fg="black")
+              while(any(diff(idx)<= idx.diff.th)){
+                k <- which.min(diff(idx))
+                idx <- idx[-c(k,k+1)]
+                ind.v <- ind.v[ind.v %in% idx]
+                ind.p <- ind.p[ind.p %in% idx]
+              }
 
-              for(i in 2:length(dna.list)){
-                channel <- dna.list[i]
-                m <- mat[[channel]]
-                xmax <- max(mat)
-                brks <- seq(0,xmax,length=(n+1))
-                a <- hist(m,breaks=brks,main=channel,freq=FALSE)
-
-                loessMod <- loess(a$density[seq(n1)] ~ brks[seq(n1)], span=0.02)
-                smoothed <- predict(loessMod)
-                lines(smoothed, x=brks[seq(n1)], col=2)
-
-                th.up <- quantile(m,.9)
-
-                ind.v <- which(diff(sign(diff(smoothed)))>0  & a$mids[c(-1,-n1)] < th.up)
-                ind.p <- which(diff(sign(diff(smoothed)))<0  & a$mids[c(-1,-n1)] < th.up)
-                idx <- sort(c(ind.v,ind.p))
-
-                idx.adj <- 13
-                idx.hi <- 40
-
-                while(any(diff(idx)<= idx.adj)){
-                  k <- which.min(diff(idx))
-                  idx <- idx[-c(k,k+1)]
-                }
-
-                if(length(ind.v)>0){
-                  ind.v <- ind.v
-                  tmp <- a$mids[max(ind.v)]
-                  if(tmp < 0.25){
-                    x.drop.th <- tmp
-                  }else{
-                    x.drop.th <- 0
-                  }
+              ## identify removed cells
+              if(length(ind.v)>0){
+                ind.v <- ind.v
+                tmp <- a$mids[max(ind.v)]
+                if(tmp < 0.25){
+                  x.drop.th <- tmp
                 }else{
                   x.drop.th <- 0
                 }
-                abline(v=x.drop.th,col=4)
-                dna.ths1[i] <- x.drop.th
-
-                if(length(ind.p)>0){
-                  if(max(ind.p) > idx.hi){
-                    p.max <- max(ind.p)
-                    x.max <- a$mids[p.max]
-                    y.max <- a$density[p.max]
-                    x.half.max <- which.min(abs(a$density - y.max/2)[-seq(p.max)])
-                    x.bunch.th <- a$mids[p.max + x.half.max*2]
-                    dna.ths2[i] <- x.bunch.th
-                    abline(v=x.bunch.th,col=2)
-                  }else{
-                    dna.ths1[i] <- Inf
-                  }
-                }
-
-                inds.v[[i]] <- ind.v <- ind.v[ind.v %in% idx]
-                inds.p[[i]] <- ind.p <- ind.p[ind.p %in% idx]
-
+              }else{
+                x.drop.th <- 0
               }
+
+              dna.ths1[i] <- max(min(m),x.drop.th)
+
+              ## identify bunching cells
+              idx.hi <- 40
+
+              if(length(ind.p)>0){
+                if(max(ind.p) > idx.hi){
+                  p.max <- max(ind.p)
+                  x.max <- a$mids[p.max]
+                  y.max <- a$density[p.max]
+                  dist.half.max <- which.min(abs(a$density - y.max/2)[-seq(p.max)])
+                  x.half.max <- dist.half.max
+                  ind.bu <- p.max + x.half.max*3
+                  if(ind.bu < n){
+                    x.bunch.th <- a$mids[ind.bu]
+                  }else{
+                    x.bunch.th <- Inf
+                  }
+                  abline(v=x.max,col=1)
+                  abline(v=x.half.max,col=1)
+                  abline(v=x.bunch.th,col=2)
+                }else{
+                  x.bunch.th <- Inf
+                }
+              }
+
+              dna.ths2[i] <- min(max(m),x.bunch.th)
+
+              ## show current dna.ths1 and dna.ths2
+              cat("Showing updated threholds for",channel,".\n")
+              abline(v=dna.ths1[i],col=4)
+              abline(v=dna.ths2[i],col=2)
             }
 
-            used.cells <- sapply(names(mat),function(channel){
-              ind <- (mat[[channel]] > dna.ths1[channel]) + (mat[[channel]] > dna.ths2[[channel]])
-              return(ind)
-            })
 
-            used.cells[,1] <- 1		# used.cells[,1] <- TRUE
+            if(manual){
+              cat("Do you want to modify the 'dna.ths'?\n")
+              ans <- "init"
+              lo <- dna.ths1[i]
+              hi <- dna.ths2[i]
+              while(ans!="0"){
+                ans <- readline(prompt="0:no, 1:low, 2:high, 3:both [0]")
+                if(ans=="1"){
+                  lo <- locator(1)$x
+                  abline(v=lo,col=4)
+                }else if(ans=="2"){
+                  hi <- locator(1)$x
+                  abline(v=hi,col=2)
+                }else if(ans=="3"){
+                  bdr <- locator(2)$x
+                  bdr <- sort(bdr,decreasing=F)
+                  lo <- bdr[1]
+                  hi <- bdr[2]
+                  abline(v=lo,col=4)
+                  abline(v=hi,col=2)
+                }
+              }
 
-            x@dna_thres <- data.frame(low=dna.ths1,high=dna.ths2)
-            x@used_cells <- used.cells
-            # validObject(x)
-            return(x)
+              dna.ths1[i] <- lo
+              dna.ths2[i] <- hi
+              #              inds.v[[i]] <- ind.v <- ind.v[ind.v %in% idx]
+              #              inds.p[[i]] <- ind.p <- ind.p[ind.p %in% idx]
+            }
           }
+
+        # ## all DNA channels
+        # inds.v <- inds.p <- list()
+        # par(mar=c(3,3,1,1))
+        # par(bg="white",fg="black")
+        #
+        # xmax <- max(mat)
+        # brks <- seq(0,xmax,length=(n+1))
+      }
+
+    used.cells <- sapply(names(mat),function(channel){
+      ind <- (mat[[channel]] > dna.ths1[channel]) + (mat[[channel]] > dna.ths2[channel])
+      return(ind)
+    })
+
+    x@dna_thres <- data.frame(low=dna.ths1,high=dna.ths2)
+    x@used_cells <- used.cells
+    # validObject(x)
+    return(x)
+  }
 )

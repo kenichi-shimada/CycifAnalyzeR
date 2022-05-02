@@ -2,7 +2,7 @@
 #'
 #' @include Cycif-class.R
 #' @param filename quantification file (.csv)
-#' @param suffix a common suffix of each channel. If applicable, the suffix is
+#' @param suffix a common suffix of each file name or channel. If applicable, the suffix is
 #'   removed from the channel names.
 #' @param object a Cycif object
 #' @rdname Cycif
@@ -10,19 +10,29 @@
 Cycif <- function(filename,suffix="_cellMask") {
   stopifnot(file.exists(filename))
 
-  name <- sub("unmicst-(.+)\\.csv","\\1",filename)
+  if(grepl(suffix,filename)){
+    name <- sub(paste0("unmicst-(.+)",suffix,"\\.csv"),"\\1",filename)
+  }else{
+    name <- sub(paste0("unmicst-(.+)\\.csv"),"\\1",filename)
+  }
 
   txt <- read.csv(filename)
   n.cells <- nrow(txt)
 
   cn <- names(txt)
-  is.ch <- grepl(suffix,cn)
+  #is.ch <- grepl(suffix,cn)
+  is.ch <- !cn %in% c("CellID","X_centroid","Y_centroid","Area","MajorAxisLength","MinorAxisLength",
+    "Eccentricity","Solidity","Extent","Orientation")
   ch.list <- sub(suffix,"",cn[is.ch])
+  if(any(grepl("centroid",ch.list))){
+    ch.list <- ch.list[!grepl("centroid",ch.list)]
+  }
   i.dna <- grep("^DNA",ch.list)
   ab.list <- ch.list[-i.dna]
 
   n.abs <- length(ab.list)
   n.cycles <- (n.abs/3)
+
   abs_list <- data.frame(ab=ab.list,
                          cycle=rep(seq(n.cycles)-1,each=3),
                          channel=rep(1:3,times=n.cycles),

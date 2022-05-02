@@ -18,48 +18,164 @@
 #' @export
 setGeneric("dimPlot", function(x,...) standardGeneric("dimPlot"))
 
+
+#' @rdname dimPlot
+#' @export
+setMethod("dimPlot", "Cycif",
+  function(x,pch=".",type=c("cell_type","exp"),celltype=cts,ab,
+           main,leg=TRUE,p_thres=0.4,...){
+    require(RColorBrewer)
+    ld <- x@ld_coords
+    rn <- as.numeric(rownames(ld))
+    if(type=="cell_type"){
+      dc <- celltype
+      levs <- levels(dc)
+      levs <- levs[levs != "Others"]
+      nlev <- length(levs)
+      uniq.cols <- c(colorRampPalette(brewer.pal(11,"Spectral"))(nlev))
+      cols <- uniq.cols[dc[rn]]
+
+      if(missing(main)){
+        main <- "Cell type"
+      }
+
+      par(mar=c(4,4,4,15))
+      plot(ld,col=cols,pch=pch,main=main,xlab="",ylab="",...)
+
+      if(leg){
+        par(xpd=T)
+        legend(par()$usr[2],par()$usr[4],levs,pch=pch,col=uniq.cols,cex=.9)
+        par(xpd=F)
+      }
+    }else if(type=="exp"){
+      stopifnot(!missing(ab))
+      n <- x@normalized
+      nn <- n[rn,ab]
+
+      # rng <- range(n,na.rm=T)
+      # rng <- range(zlim)
+      # nn <- (n - rng[1])/diff(rng)
+
+      nc <- 100
+      uniq.cols <- rev(RColorBrewer::brewer.pal(11,"RdBu"))
+      idx <-round(transform(seq(nc+1),method="Th",th=round((nc+1)/2),p_thres=p_thres)*nc)+1
+      adj.uniq.cols <- colorRampPalette(uniq.cols)(nc+1)[idx]
+      cols <- adj.uniq.cols[round(nn*nc)+1]
+
+      if(missing(main)){
+      #  main <- paste0(ab, "(expression)")
+        main <- ab
+      }
+
+      def.par <- par(no.readonly = TRUE)
+      # x <- layout(matrix(c(1,2),1,2,byrow=F),widths=c(3,1),heights = 1)
+      # par(mar=c(4,4,4,0))
+      par(mar=c(4,4,4,4))
+      plot(ld,col=cols,pch=pch,main=main,...)
+      # if(leg){
+      #   par(mar=c(4,1,4,7))
+      #   image(1,1:100,t(c(seq(1,50,length=40),seq(51,100,length=60))),
+      #         col=colorRampPalette(uniq.cols)(100),
+      #         axes=F,xlab="",ylab="")
+      #   box()
+      #   axis(4,at=c(1,40,100),labels=c("low","threshold","high"))
+      #   par(def.par)
+      # }
+    }
+  }
+)
+
 #' @rdname dimPlot
 #' @export
 setMethod("dimPlot", "CycifStack",
-          function(x,pch=".",type=c("cell_type","smpl","exp"),celltype=cts,ab,uniq.cols,main,...){
-            require(RColorBrewer)
-            ld <- x@ld_coords
-            rn <- rownames(ld)
-            if(missing(uniq.cols)){
-              uniq.cols <- brewer.pal(11,"Spectral")
-            }
-            if(type=="cell_type"){
-              dc <- do.call(c,cts)
-              uniq.cols <- c(RColorBrewer::brewer.pal(11,"Spectral"),"grey80","black")
-              cols <- uniq.cols[dc[rn]]
-              ttl <- "Cell type"
-            }else if(type=="smpl"){
-              smpls <- factor(sub("\\..+","",rn))
-              # stop(table(smpls))
-              cols <- as.numeric(smpls)+1
-              ttl <- "Samples"
-              pts <- levels(smpls)
-            }else if(type=="exp"){
-              stopifnot(!missing(ab))
-              n <- x@normalized
-              n <- n[rn,ab]
+  function(x,pch=".",type=c("cell_type","smpl","exp"),normMth=c("logTh","log"),
+           celltype,ab,main,leg=TRUE,p_thres=0.4,...){
+    require(RColorBrewer)
+    ld <- x@ld_coords
+    rn <- rownames(ld)
+    if(type=="cell_type"){
+      # celltype <- lapply(celltype,function(x){
+      #   names(x) <- seq(x)
+      #   return(x)
+      # })
+      # dc <- do.call(c,celltype)
+      dc <- factor(celltype[rn])
+      levs <- levels(dc)
+      # levs <- levs[levs != "Others" & levs != "unknown"]
+      nlev <- length(levs)
+      uniq.cols <- c(colorRampPalette(brewer.pal(11,"Spectral"))(nlev))
+      cols <- uniq.cols[dc[rn]]
 
-              rng <- range(n,na.rm=T)
-              nn <- (n - rng[1])/diff(rng)
+      if(missing(main)){
+        main <- "Cell type"
+      }
 
-              nc <- 100
-              uniq.cols <- rev(RColorBrewer::brewer.pal(11,"Spectral"))
-              cols <- colorRampPalette(uniq.cols)(nc+1)[round(nn*nc)+1]
-              ttl <- paste0(ab, "(expression)")
-            }
-            if(missing(main)){
-              main <- ttl
-            }
+      par(mar=c(4,4,4,13))
+      plot(ld,col=cols,pch=pch,main=main,xlab="",ylab="",...)
 
-            par(mar=c(4,4,4,10))
-            plot(ld,col=cols,pch=".",main=main)
-            par(xpd=F)
-            legend(par()$usr[2],par()$usr[4],)
-            par(xpd=T)
-          }
+      if(leg){
+        par(xpd=T)
+        legend(par()$usr[2],par()$usr[4],levs,pch=20,col=uniq.cols,,pt.cex=1)
+        par(xpd=F)
+      }
+
+   }else if(type=="smpl"){
+      smpls <- factor(sub("\\..+","",rn),levels=names(x))
+      set.seed(12345)
+      uniq.cols <- sample(colorRampPalette(brewer.pal(11,"Spectral"))(nlevels(smpls)))
+      cols <- uniq.cols[as.numeric(smpls)]
+      pts <- levels(smpls)
+      nlev <- length(pts)
+
+      if(missing(main)){
+        main <- "Samples"
+      }
+
+      par(mar=c(4,4,4,13))
+      plot(ld,col=cols,pch=pch,main=main,xlab="",ylab="",...)
+
+      if(leg){
+        par(xpd=T)
+        legend(par()$usr[2],par()$usr[4],pts,pch=20,col=uniq.cols,pt.cex=1)
+        par(xpd=F)
+      }
+    }else if(type=="exp"){
+      stopifnot(!missing(ab))
+      n <- x@normalized
+      mth <- x@normalize.method
+      nn <- n[rn,ab]
+
+      if(mth=="log"){
+        rng <- range(nn,na.rm=T)
+        nn <- (nn - rng[1])/diff(rng)
+      }else if(mth=="logTh"){
+        nn <- nn # it's already scaled between 0 and 1
+      }
+
+      nc <- 100
+      uniq.cols <- rev(RColorBrewer::brewer.pal(11,"RdBu"))
+      adj.uniq.cols <- colorRampPalette(uniq.cols)(nc+1)
+      cols <- adj.uniq.cols[round(nn*nc)+1]
+
+      if(missing(main)){
+        #  main <- paste0(ab, "(expression)")
+        main <- ab
+      }
+
+      def.par <- par(no.readonly = TRUE)
+#      x <- layout(matrix(c(1,2),1,2,byrow=F),widths=c(3,1),heights = 1)
+#      par(mar=c(4,4,4,0))
+      par(mar=c(4,4,4,4))
+      plot(ld,col=cols,pch=pch,main=main,...)
+      # if(leg){
+      #   par(mar=c(4,1,4,7))
+      #   image(1,1:100,t(c(seq(1,50,length=40),seq(51,100,length=60))),
+      #         col=colorRampPalette(uniq.cols)(100),
+      #         axes=F,xlab="",ylab="")
+      #   box()
+      #   axis(4,at=c(1,40,100),labels=c("low","threshold","high"),las=1)
+      # }
+#      par(def.par)
+    }
+  }
 )

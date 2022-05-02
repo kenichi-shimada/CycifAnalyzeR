@@ -2,19 +2,33 @@
 % Please edit documentation in R/dimPlot.R
 \name{dimPlot}
 \alias{dimPlot}
+\alias{dimPlot,Cycif-method}
 \alias{dimPlot,CycifStack-method}
 \title{Plot 2D-coordinates computed by UMAP or T-SNE}
 \usage{
 dimPlot(x, ...)
 
+\S4method{dimPlot}{Cycif}(
+  x,
+  pch = ".",
+  type = c("cell_type", "exp"),
+  celltype = cts,
+  ab,
+  main,
+  leg = TRUE,
+  p_thres = 0.4,
+  ...
+)
+
 \S4method{dimPlot}{CycifStack}(
   x,
   pch = ".",
   type = c("cell_type", "smpl", "exp"),
-  celltype = cts,
+  celltype,
   ab,
-  uniq.cols,
   main,
+  leg = TRUE,
+  p_thres = 0.4,
   ...
 )
 }
@@ -36,9 +50,9 @@ elsewhere. This needs to be provided when type is 'cell_type'.}
 \item{ab}{character, indicating one channel/antibody. This needs to be provided when
 type is 'exp'.}
 
-\item{uniq.cols}{color sets used for the plot()}
-
 \item{main}{main passed to plot()}
+
+\item{uniq.cols}{color sets used for the plot()}
 }
 \description{
 Plot 2D-coordinates computed by UMAP or T-SNE

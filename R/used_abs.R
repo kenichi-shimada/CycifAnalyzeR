@@ -1,6 +1,7 @@
 #' @export
 setGeneric("used_abs", function(x) standardGeneric("used_abs"))
 setMethod("used_abs", "Cycif", function(x) x@used_abs)
+setMethod("used_abs", "CycifStack", function(x) x@used_abs)
 setMethod("used_abs", "CellTypeCycifStack", function(x)x@used_abs)
 
 #' @export
@@ -24,7 +25,7 @@ setMethod("used_abs<-", "Cycif", function(x,value,strict=TRUE){
 })
 
 #' @export
-setMethod("used_abs<-", "CycifStack", function(x,value,strict=TRUE){
+setMethod("used_abs<-", "CycifStack", function(x,value,strict=FALSE){
   if(length(x)==1){
     xs <- x[[1]]
     used_abs(xs,strict=strict) <- value
@@ -35,7 +36,7 @@ setMethod("used_abs<-", "CycifStack", function(x,value,strict=TRUE){
       return(y)
     })
   }
-
+  xs@used_abs <- value
   # stopifnot(validObject(xs))
   return(xs)
 })

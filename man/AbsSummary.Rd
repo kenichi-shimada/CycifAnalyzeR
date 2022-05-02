@@ -2,9 +2,12 @@
 % Please edit documentation in R/AbsSummary.R
 \name{AbsSummary}
 \alias{AbsSummary}
+\alias{AbsSummary,CycifStack-method}
 \title{Split a string}
 \usage{
 AbsSummary(x, ...)
+
+\S4method{AbsSummary}{CycifStack}(x, show.cycles.in.row = FALSE, ...)
 }
 \arguments{
 \item{x}{An object of Cycif class.}

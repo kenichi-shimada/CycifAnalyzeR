@@ -31,7 +31,6 @@ setMethod("uniq_abs", "CycifStack", function(x) x@uniq_abs)
 
 #' @rdname CycifStack-slots
 #' @export
-setGeneric("nCycles", function(x)standardGeneric("nCycles"))
 setMethod("nCycles", "CycifStack", function(x) x@n_cycles)
 
 #' @rdname CycifStack-slots

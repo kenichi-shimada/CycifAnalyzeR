@@ -41,7 +41,7 @@ setMethod("defCellType", "Cycif",
 		}else if(method=="logTh"){
 			if(!.hasSlot(x,"threshold")){
 				stop(smpl,": set threshold first.\n")
-			}
+		}
 
 			thres <- threshold(x)
 			used.abs <- used.abs[!is.na(thres[used.abs])]

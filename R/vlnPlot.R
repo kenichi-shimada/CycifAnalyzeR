@@ -2,62 +2,6 @@
 setGeneric("vlnPlot", function(x,...) standardGeneric("vlnPlot"))
 
 #' @export
-setMethod("vlnPlot", "Cycif",
-  function(x,type=c("raw","normalized"),...){
-    require(tidyr)
-    require(ggplot2)
-    if(missing(type)){
-      type <- "raw"
-    }
-
-    smpl <- names(x)
-    thres <- x@threshold
-    used.abs <- names(thres)
-
-    n <- exprs(x,type=type)[,used.abs]
-    df <- n %>% gather(key="channel",value="exprs")
-    df$channel <- factor(df$channel,levels=abs)
-
-    if(type=="raw"){
-      p <- ggplot(df,aes(channel,exprs)) + geom_violin(scale="width") +
-        ggtitle(smpl) +
-        labs(y = paste0("expression (raw)")) + xlab("") +
-        theme(plot.title = element_text(hjust = 0.5))
-      for(ab in abs){
-        if(ab %in% names(thres)){
-          xidx <- match(ab,abs) + c(-.4,.4)
-          p <- p + annotate("segment", x = xidx[1], y = thres[[ab]], xend = xidx[2], yend = thres[[ab]],col=2)
-        }
-      }
-    }else{
-      mth <- x@normalize.method
-      if(mth == "log"){
-        m <- "log"
-      }else if(mth == "logTh"){
-        m <- "log + threshold"
-      }
-      p <- ggplot(df,aes(channel,exprs)) + geom_violin(scale="width") +
-        ggtitle(smpl) +
-        labs(y = paste0("expression (",m,")")) + xlab("") +
-        theme(plot.title = element_text(hjust = 0.5))
-
-      if(mth=="log"){
-        log.thres <- log1p(thres)
-        for(ab in abs){
-          if(ab %in% used.abs){
-            xidx <- match(ab,abs) + c(-.4,.4)
-            p <- p + annotate("segment", x = xidx[1], y = log.thres[[ab]], xend = xidx[2], yend = log.thres[[ab]],col=2)
-          }
-        }
-      }else if(mth=="logTh"){
-        p <- p + geom_hline(yintercept = 0.5,col=2)
-      }
-    }
-    p
-          }
-)
-
-#' @export
 setMethod("vlnPlot", "CycifStack",
   function(x,ab,type=c("raw","normalized"),...){
     require(tidyr)
@@ -105,3 +49,61 @@ setMethod("vlnPlot", "CycifStack",
     p
   }
 )
+
+#' @export
+setMethod("vlnPlot", "CycifStack",
+  function(x,type=c("raw","normalized"), xaxis=c("celltype","smpl"),
+           ab="PDL1", cts, cell_type="all", sample="all", hline=0.4,ttl){
+    require(tidyr)
+    require(ggplot2)
+
+    # x = ln
+    # type="normalized"
+    # xaxis="celltype"
+    # cell_type=levels(dc)[1:15]
+    # # cts=ctypes
+    # cts = dc
+    # ab="HER2"
+
+    if(missing(type)){
+      type <- "normalized"
+    }
+
+    nms <- names(x)
+    df <- exprs(x,type=type) %>% mutate(celltype=factor(cts))
+    thres <- x@threshold[ab,nms]
+
+    df1 <- df
+    if(cell_type[1] != "all"){
+      df1 <- df1 %>%
+        filter(celltype %in% cell_type) %>%
+        mutate(celltype=factor(celltype))
+    }
+    if(sample[1] != "all"){
+      df1 <- df1 %>%
+        filter(smpl %in% sample) %>%
+        mutate(smpl=factor(smpl))
+    }
+    if(missing(ttl)){
+      ttl <- paste0(ab)
+    }
+    if(xaxis=="smpl"){
+      p <- ggplot(df1,aes_string("smpl",ab)) +
+        geom_hline(yintercept = p_thres) +
+        geom_violin(aes(fill = sample)) +
+        theme(legend.position = "none") +
+        theme(axis.text.x = element_text(angle = 90, vjust = 0.5, hjust=1)) +
+        ggtitle(ttl)
+      print(p)
+    }else if(xaxis=="cell_type"){ # not so useful?
+      p <- ggplot(df1,aes_string("celltype",ab)) +
+        geom_hline(yintercept = p_thres) +
+        geom_violin(aes(fill = celltype)) +
+        theme(legend.position = "none") +
+        theme(axis.text.x = element_text(angle = 90, vjust = 0.5, hjust=1)) +
+        ggtitle(ttl) +
+        scale_fill_discrete(drop=FALSE) +
+        scale_x_discrete(drop=FALSE)
+      print(p)
+    }
+})

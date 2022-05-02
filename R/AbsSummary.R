@@ -30,7 +30,7 @@ setMethod("AbsSummary", "CycifStack", function(x,show.cycles.in.row=FALSE,...){
   }else{
     smpl.labs <- x@names
   }
-  col.labs <- paste0("Cycle\n",seq(x@max_cycles)-1)
+  col.labs <- paste0("Cycle\n",seq(x@max_cycles))
   image(seq(ncol(n2)),seq(nrow(n2)),t(n2[rev(seq(nrow(n2))),]),col=pcols,
         xlab="",ylab="",axes=F,...)
   box()
