@@ -20,7 +20,7 @@ setGeneric("normalize", function(x,...) standardGeneric("normalize"))
 #' @rdname normalize
 #' @export
 setMethod("normalize", "Cycif",
-  function(x,method=c("log","logTh"),trim=1e-5,p_thres=0.5){
+  function(x,method=c("log","logTh","exp"),trim=1e-5,p_thres=0.5){
     ## default method is logTh
     if(missing(method)){
       method <- "logTh"
@@ -42,7 +42,6 @@ setMethod("normalize", "Cycif",
     if(method=="log"){
       norm <- as.data.frame(
         sapply(used.abs,function(ab){
-#          cat(ab,"\n")
           cycle <- abs_list(x)$cycle[abs_list(x)$ab==ab]
           cycle <- cycle + 1 # 0-origin
           is.used.1 <- is.used[,cycle]
@@ -54,29 +53,40 @@ setMethod("normalize", "Cycif",
           return(n)
         })
       )
+      x@normalized <- norm
     }else if(method=="logTh"){
       if(!.hasSlot(x,"threshold")){
         stop(smpl,": set threshold first.\n")
       }
 
       thres <- threshold(x)
-      used.abs <- used.abs[!is.na(thres[used.abs])] # this shouldn't have to be checked.
+      used.abs <- names(thres) # used.abs[!is.na(thres[used.abs])]
+
+      warning("cycle should be switched to 1-origin")
+
+      ## change here somehow to convert values of unused abs to NA below:
 
       norm <- as.data.frame(
         sapply(used.abs,function(ab){
-          cycle <- abs_list(x)$cycle[abs_list(x)$ab==ab]
-          cycle <- cycle + 1 # 0-origin - confusing
-          warning("cycle should be switched to 1-origin")
-          is.used.1 <- is.used[,cycle]
-          r <- raw[[ab]]
-          n <- rep(NA,length(r))
-          th <- thres[ab]
-          n[is.used.1] <- transform(r[is.used.1],method="logTh",th=th,trim=trim,p_thres=p_thres)
+          n <- rep(NA,nrow(raw))
+          if(ab %in% used_abs(x)){
+            cycle <- abs_list(x)$cycle[abs_list(x)$ab==ab]
+            cycle <- cycle + 1 # 0-origin - confusing
+            is.used.1 <- is.used[,cycle]
+            r <- raw[[ab]]
+            th <- thres[ab]
+            n[is.used.1] <- transform(r[is.used.1],method="logTh",th=th,trim=trim,p_thres=p_thres)
+          }
           return(n)
         })
       )
+      x@normalized <- norm
+    }else if(method=="exp"){
+      norm <- x@normalized
+      raw <- expm1(norm)
+      x@raw <- raw
     }
-    x@normalized <- norm
+
     return(x)
   }
 )
@@ -84,7 +94,7 @@ setMethod("normalize", "Cycif",
 #' @rdname normalize
 #' @export
 setMethod("normalize", "CycifStack",
-  function(x,method=c("log","logTh"),trim=1e-5,p_thres=0.5){
+  function(x,method=c("log","logTh","exp"),trim=1e-5,p_thres=0.5,nCycle){
     if(missing(method)){
       method <- "logTh"
     }
@@ -92,10 +102,20 @@ setMethod("normalize", "CycifStack",
       normalize(y,method=method,trim=trim,p_thres=p_thres)
     })
 
-    norm <- do.call(rbind,cyApply(xs,function(cy)exprs(cy,type="normalized"),as.CycifStack=FALSE))  %>%
-      mutate(smpl=rep(names(xs),cyApply(xs,nCells,as.CycifStack=FALSE,simplify=TRUE)))
-    xs@normalized <- norm
-    xs@normalize.method <- method
+    if(method %in% c("log")){
+      if(missing(nCycle)){
+        nCycle <- max(cyApply(x,nCycles,simplify=TRUE)) - 1
+      }
+      norm <- do.call(rbind,cyApply(xs,function(cy)exprs(cy,type="normalized")[,seq((nCycle+1)*3)],as.CycifStack=FALSE))  %>%
+        mutate(smpl=rep(names(xs),cyApply(xs,nCells,as.CycifStack=FALSE,simplify=TRUE)))
+      xs@normalized <- norm
+      xs@normalize.method <- method
+    }else if(method %in% c("logTh")){
+      norm <- do.call(rbind,cyApply(xs,function(cy)exprs(cy,type="normalized"),as.CycifStack=FALSE))  %>%
+        mutate(smpl=rep(names(xs),cyApply(xs,nCells,as.CycifStack=FALSE,simplify=TRUE)))
+      xs@normalized <- norm
+      xs@normalize.method <- method
+    }
 
     return(xs)
   }
@@ -105,7 +125,7 @@ setMethod("normalize", "CycifStack",
 ## transform - at some point I should switch to nls() to apply sigmoidal curve
 #' @rdname normalize
 #' @export
-transform <- function(r,method=c("log","logTh","Th"),th,p_thres=0.5,trim=1e-5){
+transform <- function(r,method=c("log","logTh","Th","exp"),th,p_thres=0.5,trim=1e-5){
   if(missing(method)){
     method <- "logTh"
   }
@@ -120,12 +140,12 @@ transform <- function(r,method=c("log","logTh","Th"),th,p_thres=0.5,trim=1e-5){
     lth <- log1p(th)
   }else if(method=="log"){
     r1 <- lr <- log1p(r)
+  }else if(method=="exp"){
+    r1 <- expm1(r)
   }
 
   ## method: either 'log' or 'logTh'
-  if(method=="log"){
-    ## nothing else to do
-  }else if(method %in% c("logTh","Th")){
+  if(method %in% c("logTh","Th")){
     stopifnot(!missing(th)) # th is an essential input from user
 
     ## trimming outliers

@@ -9,7 +9,8 @@ setMethod("plotCellRatio", "Cycif", function(x,cumulative=TRUE,ncycle,mar=c(5,5,
 
 #' @export
 setMethod("plotCellRatio", "CycifStack", function(x,cumulative=TRUE,ncycle,mar=c(5,5,4,10),
-                                                  main="# cells attached on slide",smpl.cols,ncol=1,...){
+                                                  main="# cells attached on slide",smpl.cols,ncol=1,
+                                                  leg.cex=0.8,roi.selected=NULL,...){
   stopifnot(all(cyApply(x,class)=="Cycif"))
   stopifnot(all(unlist(cyApply(x,function(cy)nrow(cy@used_cells))>0)))
   ncycles <- unlist(cyApply(x,nCycles))
@@ -17,8 +18,10 @@ setMethod("plotCellRatio", "CycifStack", function(x,cumulative=TRUE,ncycle,mar=c
     ncycle <- max(ncycles) + 1
   }
 
-  used.ratio <- cyApply(x,function(x){
-    nc.ratio <- statUsedCells(x,cumulative=TRUE,ratio=TRUE)
+  used.ratio <- sapply(names(x),function(n){
+    y <- x[[n]]
+    rs <- roi.selected[[n]]
+    nc.ratio <- statUsedCells(y,roi.selected=rs,cumulative=TRUE,ratio=TRUE)
     if(length(nc.ratio) > ncycle){
       nc.ratio <- nc.ratio[seq(ncycle)]
     }
@@ -52,7 +55,7 @@ setMethod("plotCellRatio", "CycifStack", function(x,cumulative=TRUE,ncycle,mar=c
   }
 
   par(xpd=T)
-  legend(par()$usr[2],par()$usr[4],smpls,lty=1,lwd=2,col=smpl.cols,ncol=ncol)
+  legend(par()$usr[2],par()$usr[4],smpls,lty=1,lwd=2,col=smpl.cols,ncol=ncol,cex=leg.cex)
   par(xpd=F)
 
   return(invisible(used.ratio))

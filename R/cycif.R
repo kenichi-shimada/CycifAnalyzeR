@@ -7,8 +7,8 @@
 #' @param object a Cycif object
 #' @rdname Cycif
 #' @export
-Cycif <- function(filename,suffix="_cellMask") {
-  stopifnot(file.exists(filename))
+Cycif <- function(filename,path,suffix="_cellMask") {
+  stopifnot(file.exists(file.path(path,filename)))
 
   if(grepl(suffix,filename)){
     name <- sub(paste0("unmicst-(.+)",suffix,"\\.csv"),"\\1",filename)
@@ -16,6 +16,9 @@ Cycif <- function(filename,suffix="_cellMask") {
     name <- sub(paste0("unmicst-(.+)\\.csv"),"\\1",filename)
   }
 
+  if(!missing(path)){
+    filename <- file.path(path,filename)
+  }
   txt <- read.csv(filename)
   n.cells <- nrow(txt)
 

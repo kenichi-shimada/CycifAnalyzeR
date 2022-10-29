@@ -94,14 +94,13 @@ setMethod("dimPlot", "CycifStack",
     ld <- x@ld_coords
     rn <- rownames(ld)
     if(type=="cell_type"){
-      # celltype <- lapply(celltype,function(x){
-      #   names(x) <- seq(x)
-      #   return(x)
-      # })
-      # dc <- do.call(c,celltype)
       dc <- factor(celltype[rn])
+      stop(names(celltype))
+      if(is.null(names(celltype))|all(rn %in% names(celltype))){
+        stop("names(celltype) can't be blank")
+      }
+
       levs <- levels(dc)
-      # levs <- levs[levs != "Others" & levs != "unknown"]
       nlev <- length(levs)
       uniq.cols <- c(colorRampPalette(brewer.pal(11,"Spectral"))(nlev))
       cols <- uniq.cols[dc[rn]]
@@ -121,8 +120,9 @@ setMethod("dimPlot", "CycifStack",
 
    }else if(type=="smpl"){
       smpls <- factor(sub("\\..+","",rn),levels=names(x))
-      set.seed(12345)
-      uniq.cols <- sample(colorRampPalette(brewer.pal(11,"Spectral"))(nlevels(smpls)))
+      # set.seed(12345)
+      # uniq.cols <- sample(colorRampPalette(brewer.pal(11,"Spectral"))(nlevels(smpls)))
+      uniq.cols <- colorRampPalette(brewer.pal(11,"Spectral"))(nlevels(smpls))
       cols <- uniq.cols[as.numeric(smpls)]
       pts <- levels(smpls)
       nlev <- length(pts)

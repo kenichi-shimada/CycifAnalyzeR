@@ -16,17 +16,13 @@ setMethod("threshold", "CellTypeCycifStack", function(x)x@threshold)
 setGeneric("threshold<-", function(x,...) standardGeneric("threshold<-"))
 setMethod("threshold<-", "Cycif", function(x,value,strict=FALSE,...){
   thres <- value
-  if(any(is.na(thres))){
-    thres <- thres[rowSums(is.na(thres))==0,colSums(is.na(thres))==0]
-  }
 
   smpl <- names(x)
 
   ## abs
   abs.list <- levels(abs_list(x)$ab)
   used.abs <- names(thres)
-
-  stopifnot(all(used.abs %in% abs.list))
+  used.abs <- used.abs[used.abs %in% abs.list]
 
   x@threshold <- thres
 
@@ -38,6 +34,9 @@ setMethod("threshold<-", "Cycif", function(x,value,strict=FALSE,...){
 #' @export
 setMethod("threshold<-", "CycifStack", function(x,value,strict=FALSE,...){
   thres <- value
+  if(class(thres)!="data.frame"){
+    stop("'threshold' should be a 'data.frame' object.")
+  }
 
   ## samples
   smpls <- colnames(thres)
@@ -55,12 +54,12 @@ setMethod("threshold<-", "CycifStack", function(x,value,strict=FALSE,...){
   x@threshold <- thres
 
   for(smpl in smpls){
-    th <- thres[,smpl]
+    th <- thres[[smpl]]
     names(th) <- used.abs
-    used.abs1 <- used_abs(x[[smpl]])
-    used.abs1 <- intersect(used.abs,used.abs1)
-    th <- th[used.abs1]
-    threshold(x[[smpl]]) <- th
+    # used.abs1 <- used_abs(x[[smpl]])
+    # used.abs1 <- intersect(used.abs,used.abs1)
+    # th <- th[used.abs1]
+    threshold(x[[smpl]],strict=strict) <- th
     # stop("here")
   }
   return(x)

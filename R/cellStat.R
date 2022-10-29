@@ -13,8 +13,11 @@
 #' @export
 setGeneric("cumUsedCells", function(x,...) standardGeneric("cumUsedCells"))
 setMethod("cumUsedCells", "Cycif",
-          function(x){
+          function(x,roi.selected=NULL){
             u <- x@used_cells
+            if(!missing(roi.selected) & !is.null(roi.selected)){
+              u <- u[roi.selected,]
+            }
             u <- sapply(seq(ncol(u)),function(i){
               id <- rowSums(u[,seq(i),drop=F]==1)==i
               return(id)
@@ -29,10 +32,10 @@ setMethod("cumUsedCells", "Cycif",
 #' @export
 setGeneric("statUsedCells", function(x,...) standardGeneric("statUsedCells"))
 setMethod("statUsedCells", "Cycif",
-          function(x,cumulative=TRUE,ratio=TRUE,...){
+          function(x,cumulative=TRUE,ratio=TRUE,roi.selected=NULL,...){
             stopifnot(nrow(x@used_cells)>0)
             if(cumulative){
-              mat <- cumUsedCells(x)
+                mat <- cumUsedCells(x,roi.selected=roi.selected)
             } else{
               mat <- x@used_cells == 1 # 0 - dropped, 1 - alive, 2 - bunched
             }

@@ -1,43 +1,104 @@
 setGeneric("slidePlot", function(x,...) standardGeneric("slidePlot"))
 setMethod("slidePlot", "Cycif",
-	function(x,pch=".",type=c("smpl","cell_type","exp"),ttl,ab,col,uniq.col,...){
-	  stopifnot(!missing(ab))
+	function(x,pch=".",cex=1,type=c("exp","cell_type","custom"),ttl,ab,
+	         uniq.cols,na.col="grey90",cell_type,roi.selected,
+	         legend=FALSE, legend.pos="bottomright",mar=c(3,3,3,3),...){
 	  n <- exprs(x,type="normalized")
 	  smpl <- names(x)
-	  nlev <- 50
-	  if(type[1]=="smpl"){
-  	  if(!ab %in% abs_list(x)$ab){
-  	    stop(ab, " is not available in the sample ", names(x))
+	  if(missing(type)){
+	    stop("need to specify the color_code by 'type' argument")
+	  }
+	  if(type=="exp"){
+	    if(missing(ab) || !ab %in% abs_list(x)$ab){
+  	    stop(ab, " is not specified or available in the sample ", names(x))
   	  }else{
     	  n.ab <- trim_fun(n[[ab]],trim_th=1e-3)
     	  rn <- range(n.ab,na.rm=T)
     	  # stop(sum(is.na(rn)))
         is.na <- is.na(n.ab)
-    	  idx <- round((n.ab[!is.na] - rn[1])/diff(rn)*(nlev-1))+1
+        if(!missing(roi.selected)){
+          is.na <- is.na | !roi.selected
+        }
   	  }
-  	 uniq.cols <- colorRampPalette(rev(brewer.pal(11,"Spectral")))(50)
+	    if(missing(uniq.cols)){
+	      nlev <- 50
 
-  	 cols <- rep("grey80",length(n.ab))
-  	 cols[!is.na] <- uniq.cols[idx]
+	      idx <- round((n.ab[!is.na] - rn[1])/diff(rn)*(nlev-1))+1
+        uniq.cols <- colorRampPalette(rev(brewer.pal(11,"Spectral")))(nlev)
+      	cols <- rep(na.col,length(n.ab))
+      	cols[!is.na] <- uniq.cols[idx]
+	    }else{
+        idx <- n.ab[!is.na]
+        cols <- rep(na.col,length(n.ab))
+        cols[!is.na] <- uniq.cols[idx]
+	    }
+
+  	 if(missing(ttl)){
+  	   ttl <- paste0(smpl,", ",ab)
+  	 }
+	  }else if(type=="cell_type"){
+	    if(missing(cell_type)){
+	      stop("when type='cell_type', argument 'cell_type' can't be missing.")
+	    }
+	    if(missing(uniq.cols)){
+	        nct <- nlevels(cell_type)
+	        if(nct>11){
+  	        uniq.cols <- colorRampPalette(RColorBrewer::brewer.pal(11,"Spectral"))(nct)
+	        }else{
+  	        uniq.cols <- RColorBrewer::brewer.pal(nct,"Spectral")
+	        }
+	        names(uniq.cols) <- levels(cell_type)
+      }
+      cols <- uniq.cols[cell_type]
+      is.na <- is.na(cell_type)
+      if(!missing(roi.selected)){
+        is.na <- is.na | !roi.selected
+      }
+
+	    if(missing(ttl)){
+	      ttl <- paste0(smpl,", cell-types")
+	    }
 	  }
 
-  xy <- xys(x)
-	xy$Y_centroid <- max(xy$Y) - xy$Y
-	if(missing(ttl)){
-	  ttl <- paste0(smpl,", ",ab)
-	}
-	par(mar=c(3,3,3,3))
-	plot(xy$X,xy$Y,main=ttl,asp=1,xlab="",ylab="",type="n")
-	points(xy$X[is.na],xy$Y[is.na],col="grey80",pch=".")
-	points(xy$X[!is.na],xy$Y[!is.na],col=cols[!is.na],pch=".")
-})
+    xy <- xys(x)
+  	xy$Y_centroid <- max(xy$Y) - xy$Y
+
+  	par(mar=mar)
+  	plot(xy$X,xy$Y,main=ttl,asp=1,xlab="",ylab="",type="n",...)
+  	points(xy$X[is.na],xy$Y[is.na],col=na.col,pch=pch,cex=cex*.8)
+  	if(type=="cell_type"){
+  	  points(xy$X[!is.na & cell_type=="_"],xy$Y[!is.na & cell_type=="_"],
+  	         col=cols[!is.na & cell_type=="_"],
+  	         pch=pch,cex=cex)
+  	  points(xy$X[!is.na & cell_type!="_"],
+  	         xy$Y[!is.na & cell_type!="_"],
+  	         col=cols[!is.na & cell_type!="_"],
+  	         pch=pch,cex=cex)
+  	}else{
+  	  points(xy$X[!is.na],xy$Y[!is.na],
+  	         col=cols[!is.na],
+  	         pch=pch,cex=cex)
+  	}
+
+  	if(legend){
+  	  legend(legend.pos,names(uniq.cols),col=uniq.cols,pch=20)
+  	}
+  }
+)
+
+trim_fun <- function(x,trim_th = 1e-3){
+  qts <- quantile(x,c(trim_th,1-trim_th),na.rm=T)
+  x[x < qts[1]] <- qts[1]
+  x[x > qts[2]] <- qts[2]
+  return(x)
+}
 
 
 #' @export
 setGeneric("plotAvailCellOnSlide",function(x,...) standardGeneric("plotAvailCellOnSlide"))
 setMethod("plotAvailCellOnSlide", "Cycif",
 	function(x,upside.down=TRUE,ncycle,mfrow=c(3,3),mar=c(0,0,4,0),legend=TRUE,main=names(x),cex.title=1,
-		uniq.cols=c(lost="grey80",dropped="blue",available="black",bunched="red"),legend.cex=2,...){
+		uniq.cols=c(lost=na.col,dropped="blue",available="black",bunched="red"),legend.cex=2,...){
 	stopifnot(nrow(x@used_cells)>0)
 
 	u <- x@used_cells # not to be replaced with cumUsedCells
