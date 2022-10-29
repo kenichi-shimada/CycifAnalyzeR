@@ -23,9 +23,7 @@ devtools::install_github("kenichi-shimada/CycifDataAnalysis")
 Some software installation outside R is needed prior to running the
 above command.
 
-## Example
-
-TBD.
+## Example - TBD
 
 ``` r
 library(CycifDataAnalysis)

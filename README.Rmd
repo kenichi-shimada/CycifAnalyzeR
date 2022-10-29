@@ -30,16 +30,14 @@ devtools::install_github("kenichi-shimada/CycifDataAnalysis")
 ```
 Some software installation outside R is needed prior to running the above command.
 
-## Example
-
-TBD.
+## Example - TBD
 
 ```{r example}
 library(CycifDataAnalysis)
 ## basic example code
 ```
 
-
+A workflow script will be added shortly...
 <!-- What is special about using `README.Rmd` instead of just `README.md`? You can include R chunks like so: -->
 
 <!-- ```{r cars} -->
