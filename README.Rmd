@@ -32,7 +32,7 @@ Some software installation outside R is needed prior to running the above comman
 
 ## Example
 
-TBD. 
+TBD.
 
 ```{r example}
 library(CycifDataAnalysis)
