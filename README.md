@@ -35,16 +35,9 @@ library(CycifDataAnalysis)
 ## basic example code
 ```
 
-<<<<<<< HEAD
 A workflow script will be added shortly…
-<!-- What is special about using `README.Rmd` instead of just `README.md`? You can include R chunks like so: -->
-
-=======
-Some software installation outside R is needed prior to running the
-above command.
 
 <!-- What is special about using `README.Rmd` instead of just `README.md`? You can include R chunks like so: -->
->>>>>>> cefa371da7a5410f60b7b5d308d5f7ce31087c4d
 <!-- ```{r cars} -->
 <!-- summary(cars) -->
 <!-- ``` -->
@@ -53,4 +46,3 @@ above command.
 <!-- ```{r pressure, echo = FALSE} -->
 <!-- plot(pressure) -->
 <!-- ``` -->
-<!-- In that case, don't forget to commit and push the resulting figure files, so they display on GitHub and CRAN. -->
