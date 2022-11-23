@@ -1,7 +1,7 @@
 setGeneric("slidePlot", function(x,...) standardGeneric("slidePlot"))
 setMethod("slidePlot", "Cycif",
 	function(x,pch=".",cex=1,type=c("exp","cell_type","custom"),ttl,ab,
-	         uniq.cols,na.col="grey90",cell_type,roi.selected,
+	         uniq.cols,na.col="grey90",cell_type,roi.selected,ncells=1e4,
 	         legend=FALSE, legend.pos="bottomright",mar=c(3,3,3,3),...){
 	  n <- exprs(x,type="normalized")
 	  smpl <- names(x)
@@ -63,20 +63,28 @@ setMethod("slidePlot", "Cycif",
     xy <- xys(x)
   	xy$Y_centroid <- max(xy$Y) - xy$Y
 
+  	if(!is.na(ncells) && nrow(xy) > ncells){
+  	  set.seed(123)
+  	  is.used <- seq(nrow(xy)) %in% sort(sample(nrow(xy),ncells))
+  	}else{
+  	  is.used <- rep(TRUE,nrow(xy))
+  	}
   	par(mar=mar)
   	plot(xy$X,xy$Y,main=ttl,asp=1,xlab="",ylab="",type="n",...)
-  	points(xy$X[is.na],xy$Y[is.na],col=na.col,pch=pch,cex=cex*.8)
+  	points(xy$X[is.na & is.used],xy$Y[is.na & is.used],col=na.col,pch=pch,cex=cex*.8)
   	if(type=="cell_type"){
-  	  points(xy$X[!is.na & cell_type=="_"],xy$Y[!is.na & cell_type=="_"],
-  	         col=cols[!is.na & cell_type=="_"],
+  	  points(xy$X[!is.na & cell_type=="_" & is.used],
+  	         xy$Y[!is.na & cell_type=="_" & is.used],
+  	         col=cols[!is.na & cell_type=="_" & is.used],
   	         pch=pch,cex=cex)
-  	  points(xy$X[!is.na & cell_type!="_"],
-  	         xy$Y[!is.na & cell_type!="_"],
-  	         col=cols[!is.na & cell_type!="_"],
+  	  points(xy$X[!is.na & cell_type!="_" & is.used],
+  	         xy$Y[!is.na & cell_type!="_" & is.used],
+  	         col=cols[!is.na & cell_type!="_" & is.used],
   	         pch=pch,cex=cex)
   	}else{
-  	  points(xy$X[!is.na],xy$Y[!is.na],
-  	         col=cols[!is.na],
+  	  points(xy$X[!is.na & is.used],
+  	         xy$Y[!is.na & is.used],
+  	         col=cols[!is.na & is.used],
   	         pch=pch,cex=cex)
   	}
 
@@ -98,7 +106,7 @@ trim_fun <- function(x,trim_th = 1e-3){
 setGeneric("plotAvailCellOnSlide",function(x,...) standardGeneric("plotAvailCellOnSlide"))
 setMethod("plotAvailCellOnSlide", "Cycif",
 	function(x,upside.down=TRUE,ncycle,mfrow=c(3,3),mar=c(0,0,4,0),legend=TRUE,main=names(x),cex.title=1,
-		uniq.cols=c(lost=na.col,dropped="blue",available="black",bunched="red"),legend.cex=2,...){
+		uniq.cols=c(lost="grey90",dropped="blue",available="black",bunched="red"),legend.cex=2,...){
 	stopifnot(nrow(x@used_cells)>0)
 
 	u <- x@used_cells # not to be replaced with cumUsedCells
