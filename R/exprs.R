@@ -12,30 +12,47 @@
 setGeneric("exprs", function(x,...) standardGeneric("exprs"))
 
 #' @export
-setMethod("exprs", "Cycif", function(x,type=c("raw","normalized"),silent=TRUE){
+setMethod("exprs", "Cycif", function(x,type=c("raw","log_normalized","logTh_normalized"),silent=TRUE){
   if(missing(type)){
     # cat("Error: specify type: \"raw\" or \"normalized\"\n")
-    # stop()
-    type <- "normalized"
+    stop("'type'argument should be specified\n")
   }
 
-  if(type=="normalized" && !("normalized" %in% slotNames(x))){
-    stop("Error: slot @normalized not found.\n")
+  if(type=="log_normalized" && !("log_normalized" %in% slotNames(x))){
+    stop("Error: slot @log_normalized not found.\n")
+  }
+
+  if(type=="logTh_normalized" && !("logTh_normalized" %in% slotNames(x))){
+    stop("Error: slot @logTh_normalized not found.\n")
   }
 
   if(type == "raw"){
     return(x@raw)
-  }else if(type == "normalized"){
-    if(!silent){
-      cat(x@normalize.method,"\n")
-    }
-    return(x@normalized)
+  }else if(type == "log_normalized"){
+    return(x@log_normalized)
+  }else if(type == "logTh_normalized"){
+    return(x@logTh_normalized)
   }
 })
 
 #' @export
-setMethod("exprs", "CycifStack",
-          function(x,type="normalized"){
-            return(x@normalized)
-          }
-)
+setMethod("exprs", "CycifStack",function(x,type=c("log_normalized","logTh_normalized")){
+  if(missing(type)){
+    # cat("Error: specify type: \"raw\" or \"normalized\"\n")
+    stop("'type'argument should be specified\n")
+  }
+
+  if(type=="log_normalized" && !("log_normalized" %in% slotNames(x))){
+    stop("Error: slot @log_normalized not found.\n")
+  }
+
+  if(type=="logTh_normalized" && !("logTh_normalized" %in% slotNames(x))){
+    stop("Error: slot @logTh_normalized not found.\n")
+  }
+
+  if(type == "log_normalized"){
+    return(x@log_normalized)
+  }else if(type == "logTh_normalized"){
+    return(x@logTh_normalized)
+  }
+})
