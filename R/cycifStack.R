@@ -9,7 +9,7 @@
 #'
 #' @rdname CycifStack
 #' @export
-CycifStack <- function(filenames,path,suffix="_cellMask"){
+CycifStack <- function(filenames,path,suffix="_cellRing"){
   stopifnot(all(file.exists(file.path(path,filenames))))
   cat("Trying to load ",length(filenames)," samples.\n",sep="")
 
@@ -33,6 +33,7 @@ CycifStack <- function(filenames,path,suffix="_cellMask"){
         name <- sub(paste0("unmicst-(.+)\\.csv"),"\\1",filename)
       }
   })
+  names(nms) <- c()
 
   n_cells <- 	sapply(samples,nCells)
   n_cycles <- sapply(samples,nCycles)
