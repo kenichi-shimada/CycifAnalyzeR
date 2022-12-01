@@ -33,7 +33,7 @@ CycifStack <- function(filenames,path,suffix="_cellRing"){
         name <- sub(paste0("unmicst-(.+)\\.csv"),"\\1",filename)
       }
   })
-  names(nms) <- c()
+  names(nms) <- NULL
 
   n_cells <- 	sapply(samples,nCells)
   n_cycles <- sapply(samples,nCycles)
