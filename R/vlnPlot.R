@@ -1,55 +1,5 @@
 #' @export
 setGeneric("vlnPlot", function(x,...) standardGeneric("vlnPlot"))
-
-#' #' @export
-#' setMethod("vlnPlot", "CycifStack",
-#'   function(x,ab,type=c("raw","normalized"),...){
-#'     require(tidyr)
-#'     require(ggplot2)
-#'
-#'     if(missing(type)){
-#'       type <- "normalized"
-#'     }
-#'
-#'     nms <- names(x)
-#'     n <- exprs(x,type=type)
-#'     thres <- x@threshold[ab,nms]
-#'     if(type=="raw"){
-#'       p <- ggplot(n,aes_string(x="smpl",y=ab),...) +
-#'         ggtitle(ab) +
-#'         geom_violin(scale="width") +
-#'         labs(y = paste0("expression (raw)")) + xlab("") +
-#'         theme(plot.title = element_text(hjust = 0.5))
-#'       for(nm in nms){
-#'         xidx <- match(nm,nms) + c(-.4,.4)
-#'         p <- p + annotate("segment", x = xidx[1], y = thres[[nm]], xend = xidx[2], yend = thres[[nm]],col=2)
-#'       }
-#'     }else if(type=="normalized"){
-#'       mth <- x@normalize.method
-#'       if(mth == "log"){
-#'         m <- "log"
-#'       }else if(mth == "logTh"){
-#'         m <- "log + threshold"
-#'       }
-#'       p <- ggplot(n,aes_string(x="smpl",y=ab),...) +
-#'         ggtitle(ab) +
-#'         geom_violin(scale="width") +
-#'         labs(y = paste0("expression (",m,")")) + xlab("") +
-#'         theme(plot.title = element_text(hjust = 0.5))
-#'       if(x@normalize.method=="log"){
-#'         log.thres <- log1p(thres)
-#'         for(nm in nms){
-#'           xidx <- match(nm,nms) + c(-.4,.4)
-#'           p <- p + annotate("segment", x = xidx[1], y = log.thres[[nm]], xend = xidx[2], yend = log.thres[[nm]],col=2)
-#'         }
-#'       }else if(mth=="logTh"){
-#'         p <- p + geom_hline(yintercept = 0.5,col=2)
-#'       }
-#'     }
-#'     p
-#'   }
-#' )
-
 #' @export
 setMethod("vlnPlot", "CycifStack",
   function(x,type=c("raw","normalized"), xaxis=c("celltype","smpl"),
