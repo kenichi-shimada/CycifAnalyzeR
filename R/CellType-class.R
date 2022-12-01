@@ -1,11 +1,10 @@
-#' A class that defines cell types and antibodies in a CyCIF project
+#' A class that defines cell types and antibodies in a CyCIF project (defunct)
 #'
-#' @export
+#'
 setClass("CellTypeDef",
          slots = c(
            cell_lineage_df = "data.frame",
            cell_state_df = "data.frame",
-           lineages = "character",
            markers = "list"
          )
 )
@@ -14,15 +13,15 @@ setClass("CellTypeDef",
 #'
 #' @export
 setClass("CellTypeCycif",contains="CellTypeDef",
-         slots = c(
-           threshold = "data.frame",
+       slots = c(
+         cell_lineage_df = "data.frame",
+         cell_state_df = "data.frame",
 
-           used_abs = "character", # user-defined value
-           n_cycles = "numeric", # user-defined value, can be used to subset used_abs
+         threshold = "data.frame",
 
-           uniq_abs = "data.frame", # import in a separate function
-           meta = "character"
-         )
+         used_abs = "character", # generated from threshold and lineage
+         cell_types = "character" # generaed from threshold and lineage
+       )
 )
 
 #' A class that defines cell types in CycifStack class, extending CellTypeDef class
@@ -30,13 +29,13 @@ setClass("CellTypeCycif",contains="CellTypeDef",
 #' @export
 setClass("CellTypeCycifStack",contains="CellTypeDef",
          slots = c(
+           cell_lineage_df = "data.frame",
+           cell_state_df = "data.frame",
+
            threshold = "data.frame",
 
            used_abs = "character", # user-defined value
-           n_cycles = "numeric", # user-defined value, can be used to subset used_abs
-
-           uniq_abs = "data.frame", # import in a separate function
-           meta = "character"
+           cell_types = "character"
          )
 )
 
