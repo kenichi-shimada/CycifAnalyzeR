@@ -16,6 +16,8 @@ Cycif <- function(filename,path,suffix="_cellMask") {
     name <- sub(paste0("unmicst-(.+)\\.csv"),"\\1",filename)
   }
 
+  names(name) <- NULL
+
   if(!missing(path)){
     filename <- file.path(path,filename)
   }
