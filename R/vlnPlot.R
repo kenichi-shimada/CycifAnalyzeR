@@ -1,5 +1,8 @@
+#' Violin plots to show protein expressions
 #' @export
 setGeneric("vlnPlot", function(x,...) standardGeneric("vlnPlot"))
+
+#'
 #' @export
 setMethod("vlnPlot", "CycifStack",
   function(x,type=c("raw","normalized"), xaxis=c("celltype","smpl"),
