@@ -13,8 +13,8 @@ setClass("Cycif",
      used_abs = "character",
 
      raw = "data.frame",
-     normalized = "data.frame",
-     normalize.method = "character",
+     log_normalized = "data.frame",
+     logTh_normalized = "data.frame",
      dna = "data.frame",
 
      n_cycles = "numeric",
@@ -39,7 +39,9 @@ setClass("Cycif",
 
      segmentation_masks = "character",
 
-     commands = "list"
+     commands = "list",
+
+     functions = "list"
    )
 )
 

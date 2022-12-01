@@ -53,7 +53,7 @@ setMethod("normalize", "Cycif",
           return(n)
         })
       )
-      x@normalized <- norm
+      x@log_normalized <- norm
     }else if(method=="logTh"){
       if(!.hasSlot(x,"threshold")){
         stop(smpl,": set threshold first.\n")
@@ -62,7 +62,7 @@ setMethod("normalize", "Cycif",
       thres <- threshold(x)
       used.abs <- names(thres) # used.abs[!is.na(thres[used.abs])]
 
-      warning("cycle should be switched to 1-origin")
+      # warning("cycle should be switched to 1-origin")
 
       ## change here somehow to convert values of unused abs to NA below:
 
@@ -80,9 +80,9 @@ setMethod("normalize", "Cycif",
           return(n)
         })
       )
-      x@normalized <- norm
+      x@log_normalized <- norm
     }else if(method=="exp"){
-      norm <- x@normalized
+      norm <- x@log_normalized
       raw <- expm1(norm)
       x@raw <- raw
     }
@@ -106,15 +106,13 @@ setMethod("normalize", "CycifStack",
       if(missing(nCycle)){
         nCycle <- max(cyApply(x,nCycles,simplify=TRUE)) - 1
       }
-      norm <- do.call(rbind,cyApply(xs,function(cy)exprs(cy,type="normalized")[,seq((nCycle+1)*3)],as.CycifStack=FALSE))  %>%
+      norm <- do.call(rbind,cyApply(xs,function(cy)exprs(cy,type="log_normalized")[,seq((nCycle+1)*3)],as.CycifStack=FALSE))  %>%
         mutate(smpl=rep(names(xs),cyApply(xs,nCells,as.CycifStack=FALSE,simplify=TRUE)))
-      xs@normalized <- norm
-      xs@normalize.method <- method
+      xs@log_normalized <- norm
     }else if(method %in% c("logTh")){
-      norm <- do.call(rbind,cyApply(xs,function(cy)exprs(cy,type="normalized"),as.CycifStack=FALSE))  %>%
+      norm <- do.call(rbind,cyApply(xs,function(cy)exprs(cy,type="logTh_normalized"),as.CycifStack=FALSE))  %>%
         mutate(smpl=rep(names(xs),cyApply(xs,nCells,as.CycifStack=FALSE,simplify=TRUE)))
-      xs@normalized <- norm
-      xs@normalize.method <- method
+      xs@logTh_normalized <- norm
     }
 
     return(xs)
