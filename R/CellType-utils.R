@@ -4,8 +4,8 @@
 #'
 #' @rdname CellTypeDef-slots
 #' @export
-setGeneric("lineages", function(x) standardGeneric("lineages"))
-setMethod("lineages", "CellTypeDef", function(x)x@lineages)
+setGeneric("cellTypes", function(x) standardGeneric("cellTypes"))
+setMethod("cellTypes", "CellTypeCycif", function(x)x@CellTypeCycif)
 
 #' @rdname CellTypeDef-slots
 #' @export
