@@ -11,7 +11,7 @@ Description: Cyclic Immunofluorescence (CyCIF) is a recently developed technolog
 License: MIT + file LICENSE
 Encoding: UTF-8
 Roxygen: list(markdown = TRUE)
-RoxygenNote: 7.1.2
+RoxygenNote: 7.2.1
 Depends:
     methods
 Imports: 
@@ -51,9 +51,9 @@ Collate:
     'findCluster.R'
     'normalize.R'
     'nrPlot.R'
+    'pData.R'
     'pipe.R'
-    'pData.R'    
-    'roiFilter.R'    
+    'roiFilter.R'
     'slidePlot.R'
     'threshold.R'
     'usedCellPlot.R'
