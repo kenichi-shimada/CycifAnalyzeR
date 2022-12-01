@@ -52,6 +52,7 @@ Collate:
     'normalize.R'
     'nrPlot.R'
     'pipe.R'
+    'pData.R'    
     'roiFilter.R'    
     'slidePlot.R'
     'threshold.R'
