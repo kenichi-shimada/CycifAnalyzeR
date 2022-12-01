@@ -5,17 +5,14 @@
 \alias{show,Cycif-method}
 \title{Instantiate and show a Cycif object}
 \usage{
-Cycif(filename, file.suffix = "", col.suffix = "_cellMask")
+Cycif(filename, path, suffix = "_cellMask")
 
 \S4method{show}{Cycif}(object)
 }
 \arguments{
 \item{filename}{quantification file (.csv)}
 
-\item{file.suffix}{a common suffix in each file name. If applicable, the suffix is
-removed from the channel names.}
-
-\item{col.suffix}{a common suffix of each channel. If applicable, the suffix is
+\item{suffix}{a common suffix of each file name or channel. If applicable, the suffix is
 removed from the channel names.}
 
 \item{object}{a Cycif object}

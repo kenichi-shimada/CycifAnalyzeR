@@ -5,17 +5,17 @@
 \alias{show,CycifStack-method}
 \title{Instantiate and show a CycifStack object}
 \usage{
-CycifStack(filenames, col.suffix = "_cellMask", file.suffix = "")
+CycifStack(filenames, path, suffix = "_cellMask")
 
 \S4method{show}{CycifStack}(object)
 }
 \arguments{
 \item{filenames}{quantification file (.csv)}
 
-\item{object}{a CycifStack object}
-
 \item{suffix}{a common suffix of each channel. If applicable, the suffix is
 removed from the channel names.}
+
+\item{object}{a CycifStack object}
 }
 \description{
 Instantiate and show a CycifStack object

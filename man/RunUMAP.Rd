@@ -25,6 +25,7 @@ RunUMAP(x, ...)
   smpls,
   used.abs,
   celltype,
+  removed_ct = "",
   n.cells.per.smpl,
   n_neighbors = 20,
   init.seed = 12345,

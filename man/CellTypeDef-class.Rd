@@ -3,7 +3,7 @@
 \docType{class}
 \name{CellTypeDef-class}
 \alias{CellTypeDef-class}
-\title{A class that defines cell types and antibodies in a CyCIF project}
+\title{A class that defines cell types and antibodies in a CyCIF project (defunct)}
 \description{
-A class that defines cell types and antibodies in a CyCIF project
+A class that defines cell types and antibodies in a CyCIF project (defunct)
 }

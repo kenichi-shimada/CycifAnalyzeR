@@ -24,6 +24,7 @@ dimPlot(x, ...)
   x,
   pch = ".",
   type = c("cell_type", "smpl", "exp"),
+  normMth = c("logTh", "log"),
   celltype,
   ab,
   main,
