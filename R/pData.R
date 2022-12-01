@@ -1,12 +1,8 @@
-#' Show metadata, such as phenotypes, of samples
-#'
 #' @param x A Cycif object
 #' @export
 setGeneric("pData", function(x) standardGeneric("pData"))
 setMethod("pData", "CycifStack", function(x) x@phenoData)
 
-#' Insert metadata into a Cycif object
-#'
 #' @param x A Cycif object
 #' @param value input value of a data frame object
 #' @param by the column name in the value. The variable should contain the sample names, which can be assessed by `names(x)`. The column name should be set as The variable is set as the 'id'.
