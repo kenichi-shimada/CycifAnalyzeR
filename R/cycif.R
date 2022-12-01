@@ -7,7 +7,7 @@
 #' @param object a Cycif object
 #' @rdname Cycif
 #' @export
-Cycif <- function(filename,path,suffix="_cellMask") {
+Cycif <- function(filename,path,suffix="_cellRing") {
   stopifnot(file.exists(file.path(path,filename)))
 
   if(grepl(suffix,filename)){
@@ -21,6 +21,7 @@ Cycif <- function(filename,path,suffix="_cellMask") {
   if(!missing(path)){
     filename <- file.path(path,filename)
   }
+
   txt <- read.csv(filename)
   n.cells <- nrow(txt)
 
