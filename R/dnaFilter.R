@@ -53,7 +53,10 @@ setMethod("dnaFilter", "Cycif",
 
         l <- layout(matrix(c(2,1),nrow=2),heights=c(2,3))
         slidePlot(x,type="dna",ab="DNA3",mar=c(3,3,0,3),ttl="")
-        smoothened <- hist_fun(x=m,n=n1,ths=c(dna.ths1[i],dna.ths2[i]),brks1=brks,ttl1=ttl)
+        hst <- hist_fun(x=m,n=n1,ths=c(dna.ths1[i],dna.ths2[i]),brks1=brks,ttl1=ttl)
+
+        smoothened <- hst$smoothened
+        a <- hst$a
 
         ##
         if(!show.only){
@@ -206,5 +209,5 @@ hist_fun <- function(x,n,ths,mar=c(3,4,4,2)+.1,brks1,ttl1,...){
   abline(v=ths[1],col=4,lty=2)
   abline(v=ths[2],col=2,lty=2)
   par(mar=omar)
-  invisible(smoothened)
+  invisible(list(a=a,smoothened=smoothened))
 }
