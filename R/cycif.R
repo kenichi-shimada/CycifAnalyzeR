@@ -84,11 +84,19 @@ setMethod("show", "Cycif", function(object) {
   rownames(m) <- c("R","G","B")
   colnames(m) <- paste0("Cycle",seq(nCycles(object)))
   m <- data.frame(m)
+  nd <- nrow(dna_thres(x)) > 0
+  nln <- nrow(x@log_normalized) > 0
+  nltn <- nrow(x@logTh_normalized) > 0
+  nct <- length(x@cell_type@cell_types) > 0
   # cat(m)
   cat(is(object)[[1]], "\n",
       "Name: ", object@name, "\n",
       "nCells:  ", object@n_cells, "\n",
-      "nCycles: ", object@n_cycles, "\n",
+      "nCycles: ", object@n_cycles, "\n\n",
+      "DNA filtered: ", nd, "\n",
+      "Log-normalized: ", nln, "\n",
+      "LogTh-normalized: ", nltn, "\n",
+      "CellType-idenitified: ", nct, "\n\n",
       "Abs: \n",sep="")
   print(m)
 })

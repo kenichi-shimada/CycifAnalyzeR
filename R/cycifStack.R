@@ -70,7 +70,7 @@ setMethod("show", "CycifStack", function(object) {
 
   m <- matrix(object@uniq_abs$ab,nrow=3)
   rownames(m) <- c("R","G","B")
-  colnames(m) <- paste0("Cycle",seq(object@max_cycles)-1)
+  colnames(m) <- paste0("Cycle",seq(object@max_cycles))
   m <- data.frame(m)
 
   cat(is(object)[[1]], "\n")
