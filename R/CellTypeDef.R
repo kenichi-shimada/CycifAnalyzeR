@@ -110,9 +110,9 @@ CellTypeDef <- function(x,ctype,cstate){
     all(mks %in% levels(cy@abs_list$ab))
   })
 
-  if(!all(mks %in% )){
-    stop("Cell types in `ctype' and `cstate' shoud be identical.")
-  }
+  # if(!all(mks %in% )){
+  #   stop("Cell types in `ctype' and `cstate' shoud be identical.")
+  # }
 
   if(!all(c("cell lineage","cell state") %in% sheet.names)){
     stop("Cell type and cell state should be defined in two spreadsheets named 'cell type' and 'cell state', respectively.")
