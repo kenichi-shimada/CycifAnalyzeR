@@ -53,7 +53,7 @@ setMethod("dnaFilter", "Cycif",
 
         l <- layout(matrix(c(2,1),nrow=2),heights=c(2,3))
         slidePlot(x,type="dna",ab="DNA3",mar=c(3,3,0,3),ttl="")
-        hist_fun(x=m,n=n1,ths=c(dna.ths1[i],dna.ths2[i]),brks1=brks,ttl1=ttl)
+        smoothened <- hist_fun(x=m,n=n1,ths=c(dna.ths1[i],dna.ths2[i]),brks1=brks,ttl1=ttl)
 
         ##
         if(!show.only){
@@ -66,8 +66,8 @@ setMethod("dnaFilter", "Cycif",
                 ## auto_filter thresholding
                 th.up <- quantile(m,.9)
 
-                ind.v <- which(diff(sign(diff(smoothed)))>0  & a$mids[c(-1,-n1)] < th.up) # idx of valleys
-                ind.p <- which(diff(sign(diff(smoothed)))<0  & a$mids[c(-1,-n1)] < th.up) # idx of peaks
+                ind.v <- which(diff(sign(diff(smoothened)))>0  & a$mids[c(-1,-n1)] < th.up) # idx of valleys
+                ind.p <- which(diff(sign(diff(smoothened)))<0  & a$mids[c(-1,-n1)] < th.up) # idx of peaks
                 idx <- sort(c(ind.v,ind.p))
 
                 ## if idx is left to idx.lo, remove them (loess gets bumpy at the edge)
@@ -199,11 +199,12 @@ hist_fun <- function(x,n,ths,mar=c(3,4,4,2)+.1,brks1,ttl1,...){
 
   ## smoothening the trail of histogram
   loessMod <- loess(a$density[seq(n)] ~ brks1[seq(n)], span=0.02)
-  smoothed <- predict(loessMod)
-  lines(smoothed, x=brks1[seq(n)], col=1,lwd=2)
+  smoothened <- predict(loessMod)
+  lines(smoothened, x=brks1[seq(n)], col=1,lwd=2)
 
   # cat("Showing current dna_thres\n")
   abline(v=ths[1],col=4,lty=2)
   abline(v=ths[2],col=2,lty=2)
   par(mar=omar)
+  invisible(smoothened)
 }
