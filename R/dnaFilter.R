@@ -166,7 +166,7 @@ setMethod("dnaFilter", "Cycif",
                               uniq.cols=c("blue","grey80","red"),
                               cex=2,
                               mar=c(3,3,0,3),ttl="")
-                    hist_fun(x=m,ths=c(lo,hi))
+                    hist_fun(x=m,ths=c(lo,hi),brks1=brks,ttl1=ttl)
                   }else if(ans=="4"){
                     slidePlot(x,type="dna",ab=channel,mar=c(3,3,0,3),ttl="")
                     hist_fun(x=m,ths=c(lo,hi),brks1=brks,ttl1=ttl)
