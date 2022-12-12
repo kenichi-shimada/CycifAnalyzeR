@@ -27,6 +27,7 @@ setClass("Cycif",
      threshold = "numeric", ## this is going to be discontinued
 
      used_cells = "matrix", # matrix
+     within_rois = "matrix", # matrix
      dna_thres = "data.frame",
      area_filter= "numeric",
 

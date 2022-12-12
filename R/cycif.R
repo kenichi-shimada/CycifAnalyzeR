@@ -40,7 +40,7 @@ Cycif <- function(filename,path,suffix="_cellRing") {
   n.cycles <- (n.abs/3)
 
   abs_list <- data.frame(ab=ab.list,
-                         cycle=rep(seq(n.cycles)-1,each=3),
+                         cycle=rep(seq(n.cycles),each=3),
                          channel=rep(1:3,times=n.cycles),
                          stringsAsFactors=TRUE)
 

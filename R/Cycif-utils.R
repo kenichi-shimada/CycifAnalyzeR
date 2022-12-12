@@ -30,11 +30,6 @@ setMethod("dna", "Cycif", function(x) x@dna)
 
 #' @rdname Cycif-slots
 #' @export
-setGeneric("nCycles", function(x) standardGeneric("nCycles"))
-setMethod("nCycles", "Cycif", function(x) x@n_cycles)
-
-#' @rdname Cycif-slots
-#' @export
 setGeneric("nCells", function(x) standardGeneric("nCells"))
 setMethod("nCells", "Cycif", function(x) x@n_cells)
 
@@ -55,8 +50,29 @@ setMethod("dna_thres", "Cycif", function(x) x@dna_thres)
 
 #' @rdname Cycif-slots
 #' @export
+setGeneric("used_cells", function(x) standardGeneric("used_cells"))
+setMethod("used_cells", "Cycif", function(x) x@used_cells)
+
+#' @rdname Cycif-slots
+#' @export
+setGeneric("within_rois", function(x) standardGeneric("within_rois"))
+setMethod("within_rois", "Cycif", function(x) x@within_rois)
+
+#' @rdname Cycif-slots
+#' @export
+setGeneric("within_rois<-", function(x,...) standardGeneric("within_rois<-"))
+setMethod("within_rois<-", "Cycif", function(x,value){
+  stopifnot(!missing(value))
+  x@within_rois <- value
+  validObject(x)
+  return(x)
+})
+
+#' @rdname Cycif-slots
+#' @export
 setGeneric("cell_type", function(x) standardGeneric("cell_type"))
 setMethod("cell_type", "Cycif", function(x)x@cell_type)
+setMethod("cell_type", "CycifStack", function(x)x@cell_type)
 
 #' @rdname Cycif-slots
 #' @export

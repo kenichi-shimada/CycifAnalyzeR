@@ -2,40 +2,36 @@
 #'
 #'
 setClass("CellTypeDef",
-         slots = c(
-           cell_lineage_df = "data.frame",
-           cell_state_df = "data.frame",
-           markers = "list"
-         )
+   slots = c(
+     cell_lineage_df = "data.frame",
+     cell_state_mks = "character",
+     markers = "list"
+   )
 )
 
 #' A class that defines cell types in Cycif class, extending CellTypeDef class
 #'
 #' @export
 setClass("CellTypeCycif",contains="CellTypeDef",
-       slots = c(
-         cell_lineage_df = "data.frame",
-         cell_state_df = "data.frame",
+   slots = c(
+     cell_lineage_df = "data.frame",
+     cell_state_mks = "character",
 
-         threshold = "data.frame",
-
-         used_abs = "character", # generated from threshold and lineage
-         cell_types = "character" # generaed from threshold and lineage
-       )
+     threshold = "numeric",
+     cell_types = "character" # generaed from threshold and lineage
+   )
 )
 
 #' A class that defines cell types in CycifStack class, extending CellTypeDef class
 #'
 #' @export
 setClass("CellTypeCycifStack",contains="CellTypeDef",
-         slots = c(
-           cell_lineage_df = "data.frame",
-           cell_state_df = "data.frame",
+   slots = c(
+     cell_lineage_df = "data.frame",
+     cell_state_mks = "character",
 
-           threshold = "data.frame",
-
-           used_abs = "character", # user-defined value
-           cell_types = "character"
-         )
+     threshold = "data.frame",
+     cell_types = "character"
+   )
 )
 
