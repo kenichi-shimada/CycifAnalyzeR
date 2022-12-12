@@ -1,9 +1,9 @@
 #' @export
-setGeneric("plotUsedCellRatio",function(x,...) standardGeneric("plotCellRatio"))
-setMethod("plotCellRatio", "Cycif", function(x,cumulative=TRUE,ncycle,mar=c(5,5,4,10),
+setGeneric("plotUsedCellRatio",function(x,...) standardGeneric("plotUsedCellRatio"))
+setMethod("plotUsedCellRatio", "Cycif", function(x,cumulative=TRUE,ncycle,mar=c(5,5,4,10),
                                              main="# cells attached on slide",...){
   x <- as.CycifStack(list(x))
-  ret <- plotCellRatio(x,cumulative=cumulative,ncycle=ncycle,mar=mar,main=main,...)
+  ret <- plotUsedCellRatio(x,cumulative=cumulative,ncycle=ncycle,mar=mar,main=main,...)
   return(invisible(ret))
 })
 

@@ -9,7 +9,7 @@ setMethod("nCycles", "CycifStack", function(x) x@n_cycles)
 
 #' @rdname Cycif-slots
 #' @export
-setGeneric("nCycles<-", function(x) standardGeneric("nCycles<-"))
+setGeneric("nCycles<-", function(x,...) standardGeneric("nCycles<-"))
 setMethod("nCycles<-", "Cycif", function(x,value){
   if(!is.numeric(value)){
     stop("value should be numeric")
