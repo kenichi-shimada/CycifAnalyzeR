@@ -27,11 +27,11 @@ setMethod("as.CycifStack", "list",function(x){
 
   idx <- which(n_cycles == max_cycles)[1]
   uniq_abs <- abs_list(xs[[idx]])
-  thres <- as.data.frame(sapply(xs,function(y){
-    if(.hasSlot(y,"threshold")){
-      thres <- y@threshold
-    }
-  }))
+  # thres <- as.data.frame(sapply(xs,function(y){
+  #   if(.hasSlot(y,"threshold")){
+  #     thres <- y@threshold
+  #   }
+  # }))
   new("CycifStack",
       n_samples = n.samples,
       names = nms,
@@ -40,8 +40,8 @@ setMethod("as.CycifStack", "list",function(x){
       max_cycles = max_cycles,
       n_cells = n_cells,
       samples = xs,
-      suffix = suffix,
-      threshold = thres
+      suffix = suffix
+      # threshold = thres
   )
 })
 

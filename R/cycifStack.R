@@ -13,6 +13,7 @@ CycifStack <- function(filenames,path,suffix="_cellRing"){
   stopifnot(all(file.exists(file.path(path,filenames))))
   cat("Trying to load ",length(filenames)," samples.\n",sep="")
 
+
   n.samples <- length(filenames)
   samples <- lapply(filenames,function(filename){
     if(grepl(suffix,filename)){
