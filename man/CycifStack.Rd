@@ -5,7 +5,7 @@
 \alias{show,CycifStack-method}
 \title{Instantiate and show a CycifStack object}
 \usage{
-CycifStack(filenames, path, suffix = "_cellMask")
+CycifStack(filenames, path, suffix = "_cellRing")
 
 \S4method{show}{CycifStack}(object)
 }

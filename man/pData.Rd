@@ -2,7 +2,7 @@
 % Please edit documentation in R/pData.R
 \name{pData}
 \alias{pData}
-\title{Show metadata, such as phenotypes, of samples}
+\title{Show sample metadata}
 \usage{
 pData(x)
 }
@@ -10,5 +10,5 @@ pData(x)
 \item{x}{A Cycif object}
 }
 \description{
-Show metadata, such as phenotypes, of samples
+Show sample metadata
 }

@@ -2,7 +2,7 @@
 % Please edit documentation in R/pData.R
 \name{pData<-}
 \alias{pData<-}
-\title{Insert metadata into a Cycif object}
+\title{Insert sample metadata into a cycif object}
 \usage{
 pData(x, ...) <- value
 }
@@ -14,5 +14,5 @@ pData(x, ...) <- value
 \item{by}{the column name in the value. The variable should contain the sample names, which can be assessed by \code{names(x)}. The column name should be set as The variable is set as the 'id'.}
 }
 \description{
-Insert metadata into a Cycif object
+Insert sample metadata into a cycif object
 }

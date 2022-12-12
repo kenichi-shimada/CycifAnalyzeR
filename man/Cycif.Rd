@@ -5,7 +5,7 @@
 \alias{show,Cycif-method}
 \title{Instantiate and show a Cycif object}
 \usage{
-Cycif(filename, path, suffix = "_cellMask")
+Cycif(filename, path, suffix = "_cellRing")
 
 \S4method{show}{Cycif}(object)
 }
