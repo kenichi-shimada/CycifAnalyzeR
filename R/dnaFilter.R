@@ -193,7 +193,7 @@ setMethod("dnaFilter", "Cycif",
 
 #'@export
 #'
-hist_fun <- function(x,n=1000,ths,mar=c(3,4,4,2)+.1,brks1,ttl1,...){
+hist_fun <- function(x,n=1000,ths,mar=c(3,4,4,2)+.1,brks1,ttl1){
   omar <- par()$mar
   par(mar=mar)
   a <- hist(x,breaks=brks1,main=ttl1,freq=FALSE,xlab="",col="grey60",border=NA)
