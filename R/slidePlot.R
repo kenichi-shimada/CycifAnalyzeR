@@ -1,3 +1,5 @@
+#' @export
+#'
 setGeneric("slidePlot", function(x,...) standardGeneric("slidePlot"))
 setMethod("slidePlot", "Cycif",
 	function(x,pch=".",cex=1,type=c("dna","exp","cell_type","filter"),ttl,ab,
