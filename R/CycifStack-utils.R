@@ -31,10 +31,6 @@ setMethod("uniq_abs", "CycifStack", function(x) x@uniq_abs)
 
 #' @rdname CycifStack-slots
 #' @export
-setMethod("nCycles", "CycifStack", function(x) x@n_cycles)
-
-#' @rdname CycifStack-slots
-#' @export
 setGeneric("maxCycles", function(x)standardGeneric("maxCycles"))
 setMethod("maxCycles", "CycifStack", function(x) x@max_cycles)
 
