@@ -14,12 +14,9 @@
 setGeneric("dnaFilter", function(x,...) standardGeneric("dnaFilter"))
 setMethod("dnaFilter", "Cycif",
   function(x,show.only=FALSE){
-    n=1000
-    n1=1000
-    manual=TRUE
-
     mat <- x@dna
     smpl <- x@name
+    n <- n1 <- 1000
 
     dna.list <- names(mat)
     mat <- cbind(log1p(mat[[1]]),as.data.frame(lapply(mat,function(x)log1p(x/mat[[1]])))[-1])
@@ -53,7 +50,7 @@ setMethod("dnaFilter", "Cycif",
 
         l <- layout(matrix(c(2,1),nrow=2),heights=c(2,3))
         slidePlot(x,type="dna",ab="DNA3",mar=c(3,3,0,3),ttl="")
-        hst <- hist_fun(x=m,n=n1,ths=c(dna.ths1[i],dna.ths2[i]),brks1=brks,ttl1=ttl)
+        hst <- hist_fun(x=m,ths=c(dna.ths1[i],dna.ths2[i]),brks1=brks,ttl1=ttl)
 
         smoothened <- hst$smoothened
         a <- hst$a
@@ -132,11 +129,12 @@ setMethod("dnaFilter", "Cycif",
                           uniq.cols=c("blue","grey80","red"),
                           cex=2,
                           mar=c(3,3,0,3),ttl="")
-                hist_fun(x=m,n=n1,ths=c(dna.ths1[i],dna.ths2[i]),brks1=brks,ttl1=ttl)
+                hist_fun(x=m,ths=c(dna.ths1[i],dna.ths2[i]),brks1=brks,ttl1=ttl)
 
             }
 
-            if(manual){
+            # if(manual){
+            if(TRUE){
                 cat("How do you want to modify the 'dna.ths'?\n")
                 ans <- "init"
                 lo <- dna.ths1[i]
@@ -168,10 +166,10 @@ setMethod("dnaFilter", "Cycif",
                               uniq.cols=c("blue","grey80","red"),
                               cex=2,
                               mar=c(3,3,0,3),ttl="")
-                    hist_fun(x=m,n=n1,ths=c(lo,hi))
+                    hist_fun(x=m,ths=c(lo,hi))
                   }else if(ans=="4"){
                     slidePlot(x,type="dna",ab=channel,mar=c(3,3,0,3),ttl="")
-                    hist_fun(x=m,n=n1,ths=c(lo,hi),brks1=brks,ttl1=ttl)
+                    hist_fun(x=m,ths=c(lo,hi),brks1=brks,ttl1=ttl)
                   }
                 }
                 dna.ths1[i] <- lo
@@ -195,7 +193,7 @@ setMethod("dnaFilter", "Cycif",
 
 #'@export
 #'
-hist_fun <- function(x,n,ths,mar=c(3,4,4,2)+.1,brks1,ttl1,...){
+hist_fun <- function(x,n=1000,ths,mar=c(3,4,4,2)+.1,brks1,ttl1,...){
   omar <- par()$mar
   par(mar=mar)
   a <- hist(x,breaks=brks1,main=ttl1,freq=FALSE,xlab="",col="grey60",border=NA)
