@@ -52,7 +52,6 @@ Collate:
     'pData.R'
     'pipe.R'
     'plotUsedCellRatio.R'
-    'positiveROI.R'
     'slidePlot.R'
     'statUsedCells.R'
     'threshold.R'
