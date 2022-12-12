@@ -13,7 +13,11 @@
 #' @export
 setGeneric("dnaFilter", function(x,...) standardGeneric("dnaFilter"))
 setMethod("dnaFilter", "Cycif",
-  function(x,manual=TRUE,n=1000,n1=1000,show.only=FALSE){
+  function(x,show.only=FALSE){
+    n=1000
+    n1=1000
+    manual=TRUE
+
     mat <- x@dna
     smpl <- x@name
 
@@ -194,9 +198,9 @@ hist_fun <- function(x,n,ths,mar=c(3,4,4,2)+.1,brks1,ttl1,...){
   a <- hist(x,breaks=brks1,main=ttl1,freq=FALSE,xlab="",col="grey60",border=NA)
 
   ## smoothening the trail of histogram
-  loessMod <- loess(a$density[seq(n)] ~ brks[seq(n)], span=0.02)
+  loessMod <- loess(a$density[seq(n)] ~ brks1[seq(n)], span=0.02)
   smoothed <- predict(loessMod)
-  lines(smoothed, x=brks[seq(n)], col=1,lwd=2)
+  lines(smoothed, x=brks1[seq(n)], col=1,lwd=2)
 
   # cat("Showing current dna_thres\n")
   abline(v=ths[1],col=4,lty=2)
