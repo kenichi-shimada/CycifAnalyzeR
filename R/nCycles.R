@@ -24,7 +24,7 @@ setMethod("nCycles<-", "Cycif", function(x,value){
   value <- as.integer(value)
 
   current.nc <- nCycles(x)
-  if(value > current.nc){
+  if(any(value > current.nc)){
     stop("New max n_cycles should be less than or equal to the current max n_cycles.")
   }
 
@@ -64,8 +64,6 @@ setMethod("nCycles<-", "CycifStack", function(x,value){
   if(!identical(smpls,names(value))){
     stop("Input should be a vector whose names are identical to sample names. If fewer samples are selected for analysis, first subset samples with [] then use this func.")
   }
-
-  value <- as.integer(value)
 
   x <- cyApply(x,function(this){
     # return(class(this))
