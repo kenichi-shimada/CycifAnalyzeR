@@ -49,7 +49,7 @@ setMethod("dnaFilter", "Cycif",
 
         l <- layout(matrix(c(2,1),nrow=2),heights=c(2,3))
         slidePlot(x,type="dna",ab="DNA3",mar=c(3,3,0,3),ttl="")
-        hist_fun(x=m,n=n1,ths=c(dna.ths1[i],dna.ths2[i]))
+        hist_fun(x=m,n=n1,ths=c(dna.ths1[i],dna.ths2[i]),brks1=brks,ttl1=ttl)
 
         ##
         if(!show.only){
@@ -125,7 +125,8 @@ setMethod("dnaFilter", "Cycif",
                           uniq.cols=c("blue","grey80","red"),
                           cex=2,
                           mar=c(3,3,0,3),ttl="")
-                hist_fun(x=m,n=n1,ths=c(dna.ths1[i],dna.ths2[i]))
+                hist_fun(x=m,n=n1,ths=c(dna.ths1[i],dna.ths2[i]),brks1=brks,ttl1=ttl)
+
             }
 
             if(manual){
@@ -163,7 +164,7 @@ setMethod("dnaFilter", "Cycif",
                     hist_fun(x=m,n=n1,ths=c(lo,hi))
                   }else if(ans=="4"){
                     slidePlot(x,type="dna",ab=channel,mar=c(3,3,0,3),ttl="")
-                    hist_fun(x=m,n=n1,ths=c(lo,hi))
+                    hist_fun(x=m,n=n1,ths=c(lo,hi),brks1=brks,ttl1=ttl)
                   }
                 }
                 dna.ths1[i] <- lo
@@ -187,10 +188,10 @@ setMethod("dnaFilter", "Cycif",
 
 #'@export
 #'
-hist_fun <- function(x,n,ths,mar=c(3,4,4,2)+.1,...){
+hist_fun <- function(x,n,ths,mar=c(3,4,4,2)+.1,brks1,ttl1,...){
   omar <- par()$mar
   par(mar=mar)
-  a <- hist(x,breaks=brks,main=ttl,freq=FALSE,xlab="",col="grey60",border=NA)
+  a <- hist(x,breaks=brks1,main=ttl1,freq=FALSE,xlab="",col="grey60",border=NA)
 
   ## smoothening the trail of histogram
   loessMod <- loess(a$density[seq(n)] ~ brks[seq(n)], span=0.02)
