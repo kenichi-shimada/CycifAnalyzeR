@@ -58,9 +58,9 @@ setMethod("dnaFilter", "Cycif",
         ##
         if(!show.only){
             cat(paste0("Filtering ",smpl,"...\n"))
-            cat("Do you want to see the auto_filters?")
-            ans <- readline(prompt="Y/N [N]:")
-            auto_filter <- grepl("^[yY]",ans)
+            # cat("Do you want to see the auto_filters?")
+            # ans <- readline(prompt="Y/N [N]:")
+            auto_filter <- FALSE
 
             if(auto_filter){
                 ## auto_filter thresholding
@@ -122,15 +122,17 @@ setMethod("dnaFilter", "Cycif",
                 dna.ths2[i] <- min(max(m),x.bunch.th)
 
             }
-            ## show current dna.ths1 and dna.ths2
-            in.rng <- factor((m > dna.ths1[i]) + (m > dna.ths2[i]) + 1,levels=c(1:3))
-            cexs <- c(1,20)[(in.rng %in% as.character(c(1,3)))+1]
+            if(0){
+              ## show current dna.ths1 and dna.ths2
+              in.rng <- factor((m > dna.ths1[i]) + (m > dna.ths2[i]) + 1,levels=c(1:3))
+              cexs <- c(1,20)[(in.rng %in% as.character(c(1,3)))+1]
 
-            slidePlot(x,type="filter",cell_type=in.rng,
-                      uniq.cols=c("blue","grey80","red"),
-                      cex=2,
-                      mar=c(3,3,0,3),ttl="")
-            hist_fun(x=m,ths=c(dna.ths1[i],dna.ths2[i]),brks1=brks,ttl1=ttl)
+              slidePlot(x,type="filter",cell_type=in.rng,
+                        uniq.cols=c("blue","grey80","red"),
+                        cex=2,
+                        mar=c(3,3,0,3),ttl="")
+              hist_fun(x=m,ths=c(dna.ths1[i],dna.ths2[i]),brks1=brks,ttl1=ttl)
+            }
 
             # if(manual){
             if(TRUE){
@@ -139,9 +141,9 @@ setMethod("dnaFilter", "Cycif",
                 lo <- dna.ths1[i]
                 hi <- dna.ths2[i]
                 while(ans!="0"){
-                  ans <- readline(prompt="0:none, 1:lower th, 2:higher th, 3:both ths, 4:check fl dist [0-4]")
+                  ans <- readline(prompt="0:none, 1:lower th, 2:higher th, 3:both ths, 4:check fl dist, 5: check current ths [0-5]")
                   ans <- sub("^(.).*","\\1",ans)
-                  if(ans %in% as.character(1:3)){
+                  if(ans %in% as.character(c(1:3,5))){
                     if(ans=="1"){
                       lo <- locator(1)$x
                       abline(v=lo,col=4)
@@ -193,12 +195,11 @@ setMethod("dnaFilter", "Cycif",
       return(uc1)
     })
     ret <- rowSums(ucs)
-    uniq.cols <-
 
     x@dna_thres <- data.frame(low=dna.ths1,high=dna.ths2)
     x@used_cells <- used.cells
 
-    ## final
+    ## final after dnaFitlter
     nc <- ncol(ucs)
     uniq.cols <- brewer.pal(nc+2,"YlGnBu")[-(nc+(0:1))]
     cat("Cell retention through each cycle:\n")
@@ -213,11 +214,11 @@ setMethod("dnaFilter", "Cycif",
     cat("Do you want to select ROIs?\n")
     ans <- readline(prompt="Y/N [Y]")
     pos.rois <- list()
-    cnt <- 1
     while(!grepl("^[nN]",ans)){
-      cat("Select 10 points to set a polygon\n")
-      xys1 <- locator(10)
-      lines(xys1$x[c(seq(xys1$x),1)],xys1$y[c(seq(xys1$x),1)],col=1,lty=2,lwd=2)
+      ns <- as.integer(readline(prompt="How many points?"))
+      cat(paste0("Select ",ns," points to set a polygon\n"))
+      xys1 <- locator(ns)
+      lines(xys1$x[c(seq(xys1$x),1)],xys1$y[c(seq(xys1$x),1)],col=2,lty=2,lwd=2)
       check <- readline(prompt="satisfied with the ROI? (Y/N) [Y]")
       if(grepl("^[nN]",check)){
         next
@@ -225,19 +226,19 @@ setMethod("dnaFilter", "Cycif",
       pos.rois <- c(pos.rois,list(xys1))
       cat("Do you want to set more ROIs?")
       ans <- readline(prompt="(Y/N) [Y]")
-    }
-    ##
-    crds <- xys(x)
-    within.rois <- sapply(pos.rois,function(xys2){
-      within.rois <- sp::point.in.polygon(crds$X,max(crds$Y)-crds$Y,xys2$x,xys2$y)==1
-    })
-    if(is.matrix(within.rois)){
-      within.rois <- apply(within.rois,1,any)
-    }
 
-    # x@positive_rois <- pos.rois
-    x@within_rois <- within.rois
+      ##
+      crds <- xys(x)
+      within.rois <- sapply(pos.rois,function(xys2){
+        within.rois <- sp::point.in.polygon(crds$X,max(crds$Y)-crds$Y,xys2$x,xys2$y)==1
+      })
+      if(is.matrix(within.rois)){
+        within.rois <- apply(within.rois,1,any)
+      }
 
+      x@positive_rois <- pos.rois
+      x@within_rois <- within.rois
+    }
     return(x)
   }
 )
