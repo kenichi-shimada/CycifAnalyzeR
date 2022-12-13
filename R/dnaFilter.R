@@ -209,7 +209,37 @@ setMethod("dnaFilter", "Cycif",
               cex=2,
               mar=c(3,3,0,3),ttl="")
 
+    ## choose ROI
+    cat("Do you want to select ROIs?\n")
+    ans <- readline(prompt="Y/N [Y]")
+    pos.rois <- list()
+    cnt <- 1
+    while(!grepl("^[nN]",ans)){
+      cat("Select 10 points to set a polygon\n")
+      xys1 <- locator(10)
+      lines(xys1$x[c(seq(xys1$x),1)],xys1$y[c(seq(xys1$x),1)],col=1,lty=2,lwd=2)
+      check <- readline(prompt="satisfied with the ROI? (Y/N) [Y]")
+      if(grepl("^[nN]",check)){
+        next
+      }
+      pos.rois <- c(pos.rois,list(xys1))
+      cat("Do you want to set more ROIs?")
+      ans <- readline(prompt="(Y/N) [Y]")
+    }
+    ##
+    crds <- xys(x)
+    within.rois <- sapply(pos.rois,function(xys2){
+      within.rois <- sp::point.in.polygon(crds$X,max(crds$Y)-crds$Y,xys2$x,xys2$y)==1
+    })
+    if(is.matrix(within.rois)){
+      within.rois <- apply(within.rois,1,any)
+    }
+
+    # x@positive_rois <- pos.rois
+    x@within_rois <- within.rois
+
     return(x)
+    }
   }
 )
 
