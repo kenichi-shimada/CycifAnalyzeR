@@ -239,7 +239,6 @@ setMethod("dnaFilter", "Cycif",
     x@within_rois <- within.rois
 
     return(x)
-    }
   }
 )
 
