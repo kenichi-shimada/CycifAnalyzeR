@@ -49,7 +49,7 @@ setMethod("dnaFilter", "Cycif",
         }
 
         l <- layout(matrix(c(2,1),nrow=2),heights=c(2,3))
-        slidePlot(x,type="dna",ab="DNA3",mar=c(3,3,0,3),ttl="")
+        slidePlot(x,type="dna",ab=channel,mar=c(3,3,0,3),ttl="")
         hst <- hist_fun(x=m,ths=c(dna.ths1[i],dna.ths2[i]),brks1=brks,ttl1=ttl)
 
         smoothened <- hst$smoothened
@@ -58,9 +58,9 @@ setMethod("dnaFilter", "Cycif",
         ##
         if(!show.only){
             cat(paste0("Filtering ",smpl,"...\n"))
-
-            ans <- readline(prompt="Do you want to run auto_filter instead of using existing thresholds?[(y)/n]:")
-            auto_filter <- !grepl("^[nN]",ans)
+            cat("Do you want to see the auto_filters?")
+            ans <- readline(prompt="Y/N [N]:")
+            auto_filter <- grepl("^[yY]",ans)
 
             if(auto_filter){
                 ## auto_filter thresholding
@@ -121,17 +121,16 @@ setMethod("dnaFilter", "Cycif",
 
                 dna.ths2[i] <- min(max(m),x.bunch.th)
 
-                in.rng <- factor((m > dna.ths1[i]) + (m > dna.ths2[i]) + 1,levels=c(1:3))
-                cexs <- c(1,20)[(in.rng %in% as.character(c(1,3)))+1]
-
-                ## show current dna.ths1 and dna.ths2
-                slidePlot(x,type="filter",cell_type=in.rng,
-                          uniq.cols=c("blue","grey80","red"),
-                          cex=2,
-                          mar=c(3,3,0,3),ttl="")
-                hist_fun(x=m,ths=c(dna.ths1[i],dna.ths2[i]),brks1=brks,ttl1=ttl)
-
             }
+            ## show current dna.ths1 and dna.ths2
+            in.rng <- factor((m > dna.ths1[i]) + (m > dna.ths2[i]) + 1,levels=c(1:3))
+            cexs <- c(1,20)[(in.rng %in% as.character(c(1,3)))+1]
+
+            slidePlot(x,type="filter",cell_type=in.rng,
+                      uniq.cols=c("blue","grey80","red"),
+                      cex=2,
+                      mar=c(3,3,0,3),ttl="")
+            hist_fun(x=m,ths=c(dna.ths1[i],dna.ths2[i]),brks1=brks,ttl1=ttl)
 
             # if(manual){
             if(TRUE){
@@ -184,9 +183,32 @@ setMethod("dnaFilter", "Cycif",
       return(ind)
     })
 
+    ## summarise used.cells
+    uc <- used.cells==1
+    ucs <- sapply(seq(ncol(used.cells)),function(i){
+      uc1 <- rep(1,nrow(uc))
+      for(j in seq(i)){
+        uc1 <- uc1 * uc[,j]
+      }
+      return(uc1)
+    })
+    ret <- rowSums(ucs)
+    uniq.cols <-
+
     x@dna_thres <- data.frame(low=dna.ths1,high=dna.ths2)
     x@used_cells <- used.cells
-    # validObject(x)
+
+    ## final
+    nc <- ncol(ucs)
+    uniq.cols <- brewer.pal(nc+2,"YlGnBu")[-(nc+(0:1))]
+    cat("Cell retention through each cycle:\n")
+    l <- layout(matrix(c(1,2),nrow=2),heights=c(2,3))
+    plotUsedCellRatio(x)
+    slidePlot(x,type="filter",cell_type=ret,
+              uniq.cols=uniq.cols,
+              cex=2,
+              mar=c(3,3,0,3),ttl="")
+
     return(x)
   }
 )
@@ -196,7 +218,14 @@ setMethod("dnaFilter", "Cycif",
 hist_fun <- function(x,n=1000,ths,mar=c(3,4,4,2)+.1,brks1,ttl1){
   omar <- par()$mar
   par(mar=mar)
-  a <- hist(x,breaks=brks1,main=ttl1,freq=FALSE,xlab="",col="grey60",border=NA)
+
+  n.ab <- trim_fun(x,trim_th=1e-2)
+  min.i <- which.min(abs(brks1-min(n.ab)))
+  max.i <- which.min(abs(brks1-max(n.ab)))
+
+  uniq.cols <- colorRampPalette(rev(RColorBrewer::brewer.pal(11,"Spectral")))(max.i-min.i+1)
+  cols <- c(rep(uniq.cols[1],min.i-1),uniq.cols,rep(rev(uniq.cols)[1],n-max.i))
+  a <- hist(x,breaks=brks1,main=ttl1,freq=FALSE,xlab="",col=cols,border=NA)
 
   ## smoothening the trail of histogram
   loessMod <- loess(a$density[seq(n)] ~ brks1[seq(n)], span=0.02)
@@ -204,8 +233,8 @@ hist_fun <- function(x,n=1000,ths,mar=c(3,4,4,2)+.1,brks1,ttl1){
   lines(smoothened, x=brks1[seq(n)], col=1,lwd=2)
 
   # cat("Showing current dna_thres\n")
-  abline(v=ths[1],col=4,lty=2)
-  abline(v=ths[2],col=2,lty=2)
+  abline(v=ths[1],col=4,lty=2,lwd=2)
+  abline(v=ths[2],col=2,lty=2,lwd=2)
   par(mar=omar)
   invisible(list(a=a,smoothened=smoothened))
 }

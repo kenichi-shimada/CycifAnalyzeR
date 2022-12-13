@@ -15,10 +15,10 @@ setMethod("plotUsedCellRatio", "CycifStack", function(x,cumulative=TRUE,ncycle,m
   stopifnot(all(unlist(cyApply(x,function(cy)nrow(cy@used_cells))>0)))
   ncycles <- unlist(cyApply(x,nCycles))
   if(missing(ncycle)){
-    ncycle <- max(ncycles) + 1
+    ncycle <- max(ncycles)
   }
 
-  used.ratio <- sapply(names(x),function(n){
+  used.ratio <- data.frame(sapply(names(x),function(n){
     y <- x[[n]]
     rs <- roi.selected[[n]]
     nc.ratio <- statUsedCells(y,roi.selected=rs,cumulative=TRUE,ratio=TRUE)
@@ -26,7 +26,7 @@ setMethod("plotUsedCellRatio", "CycifStack", function(x,cumulative=TRUE,ncycle,m
       nc.ratio <- nc.ratio[seq(ncycle)]
     }
     return(nc.ratio)
-  })
+  }))
 
   smpls <- names(x)
   if(missing(smpl.cols)){
@@ -40,7 +40,7 @@ setMethod("plotUsedCellRatio", "CycifStack", function(x,cumulative=TRUE,ncycle,m
        ylab="Relative # cells on slide",
        axes=F,main=main,...)
   box()
-  axis(1,at=seq(ncycle),labels=seq(ncycle)-1)
+  axis(1,at=seq(ncycle),labels=seq(ncycle))
   axis(2)
 
   abline(h=seq(0.2,0.8,length=4),lty=1,col="grey90")
