@@ -42,3 +42,6 @@ setMethod("nCells", "CycifStack", function(x) x@n_cells)
 #' @export
 setMethod("length","CycifStack",function(x)length(x@samples))
 
+
+
+
