@@ -124,11 +124,11 @@ setMethod("dnaFilter", "Cycif",
             }
             if(0){
               ## show current dna.ths1 and dna.ths2
-              in.rng <- factor((m > dna.ths1[i]) + (m > dna.ths2[i]) + 1,levels=c(1:3))
+              in.rng <- factor((m > dna.ths1[i]) + (m > dna.ths2[i]) + 1,levels=c(2,1,3))
               cexs <- c(1,20)[(in.rng %in% as.character(c(1,3)))+1]
 
               slidePlot(x,type="filter",cell_type=in.rng,
-                        uniq.cols=c("blue","grey80","red"),
+                        uniq.cols=c("grey80","blue","red"),
                         cex=2,
                         mar=c(3,3,0,3),ttl="")
               hist_fun(x=m,ths=c(dna.ths1[i],dna.ths2[i]),brks1=brks,ttl1=ttl)
@@ -159,12 +159,12 @@ setMethod("dnaFilter", "Cycif",
                       abline(v=hi,col=2)
                     }
 
-                    in.rng <- factor((m > lo) + (m > hi) + 1,levels=c(1:3))
+                    in.rng <- factor((m > lo) + (m > hi) + 1,levels=c(2,1,3))
                     cexs <- c(1,20)[(in.rng %in% as.character(c(1,3)))+1]
 
                     ## update
                     slidePlot(x,type="filter",cell_type=in.rng,
-                              uniq.cols=c("blue","grey80","red"),
+                              uniq.cols=c("grey80","blue","red"),
                               cex=2,
                               mar=c(3,3,0,3),ttl="")
                     hist_fun(x=m,ths=c(lo,hi),brks1=brks,ttl1=ttl)
@@ -207,7 +207,7 @@ setMethod("dnaFilter", "Cycif",
     plotUsedCellRatio(x)
     slidePlot(x,type="filter",cell_type=ret,
               uniq.cols=uniq.cols,
-              cex=2,
+              cex=2,ncells=1e4,
               mar=c(3,3,0,3),ttl="")
 
     ## choose ROI
@@ -252,9 +252,10 @@ hist_fun <- function(x,n=1000,ths,mar=c(3,4,4,2)+.1,brks1,ttl1){
   n.ab <- trim_fun(x,trim_th=1e-2)
   min.i <- which.min(abs(brks1-min(n.ab)))
   max.i <- which.min(abs(brks1-max(n.ab)))
-
+  # stop(list(min.i,max.i))
   uniq.cols <- colorRampPalette(rev(RColorBrewer::brewer.pal(11,"Spectral")))(max.i-min.i+1)
-  cols <- c(rep(uniq.cols[1],min.i-1),uniq.cols,rep(rev(uniq.cols)[1],n-max.i))
+  # stop(length(uniq.cols))
+  cols <- c(rep(uniq.cols[1],min.i-1),uniq.cols,rep(rev(uniq.cols)[1],n-max.i+1))
   a <- hist(x,breaks=brks1,main=ttl1,freq=FALSE,xlab="",col=cols,border=NA)
 
   ## smoothening the trail of histogram
