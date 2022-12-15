@@ -23,6 +23,6 @@ CellTypeDef <- function(x,lineage_df,state_df){
   new("CellTypeDef",
       cell_lineage_df = lineage_df,
       cell_state_mks = state_df,
-      markers = "
+      markers = mks
   )
 }

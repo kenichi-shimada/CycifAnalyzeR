@@ -23,6 +23,7 @@ Collate:
     'CycifStack-class.R'
     'AbsSummary.R'
     'CellType-utils.R'
+    'CellTypeDef.R'
     'Cycif-class.R'
     'Cycif-utils.R'
     'CycifStack-subset.R'
