@@ -24,7 +24,6 @@ setClass("Cycif",
      segment_property = "data.frame",
 
      cell_type = "CellTypeCycif",
-     threshold = "numeric", ## this is going to be discontinued
 
      used_cells = "matrix", # matrix
      within_rois = "logical", # matrix

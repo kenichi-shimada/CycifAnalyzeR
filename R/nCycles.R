@@ -13,6 +13,8 @@ setMethod("nCycles", "CycifStack", function(x){
   }
 })
 
+#' Set nCycles - note this should run before cell type calling
+#'
 #' @rdname Cycif-slots
 #' @export
 setGeneric("nCycles<-", function(x,...) standardGeneric("nCycles<-"))
@@ -42,10 +44,6 @@ setMethod("nCycles<-", "Cycif", function(x,value){
   x@dna <- x@dna[paste0("DNA",seq(value))]
 
   x@n_cycles <- value
-
-  if(all(this.abs %in% names(x@threshold))){
-    x@threshold <- x@threshold[this.abs]
-  }
 
   if(nrow(x@used_cells)>0){
     x@used_cells <- x@used_cells[,seq(value)]
