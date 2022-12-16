@@ -1,7 +1,25 @@
 #' @export
-defCellType <- function(cy,ctype,p_thres=0.5,strict=FALSE){
-  uniq.ctypes <- rownames(ctype)
-  ab.used <- colnames(ctype) %in% used_abs(cy)
+CellTypeCalling <- function(cy,ctype,p_thres=0.5,strict=FALSE){
+  ctlevs <- CellTypeGraph(cy,ctype,plot=F)
+  for(l in seq(length(ctlevs)-1)){
+    pa <- ctlevs[[l]]
+    ch <- ctlevs[[l+1]]
+    ctype %>% filter(Parent %in% pa & Child %in% ch)
+  }
+
+  if(names(which.max(ctlevs))!="all"){
+    stop("lineage_df: top level cell type should be 'all'\n")
+  }
+
+  for(l in uniq.levs[-1]){
+
+
+  }
+
+
+  uniq.ctypes <- ctype$Child
+  ab.used <- colnames(ctype)[-(1:2)] %in% abs_list(cy)$ab
+
   ctype1 <- ctype[,ab.used]
   ctype.used <- apply(!is.na(ctype1),1,any)
   ctype1 <- ctype1[ctype.used,]
