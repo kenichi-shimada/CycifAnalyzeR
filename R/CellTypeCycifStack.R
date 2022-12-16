@@ -18,7 +18,7 @@ CellTypeCycifStack <- function(x,lineage_df,state_df,gates.df){
   smpl <- names(x)[min.i]
   x1 <- x[[smpl]]
 
-  ctc <- CellTypeCycif(x1,lineage_df,state_df,gates.df)
+  ctc <- x1@cell_type
 
   lmks <- colnames(lineage_df)[-c(1:2)]
   smks <- colnames(state_df)
@@ -26,7 +26,6 @@ CellTypeCycifStack <- function(x,lineage_df,state_df,gates.df){
   mks <- c(lmks,smks)
   gs <- data.frame(array(NA,dim=c(length(mks),nSamples(x)),dimnames=list(mks,names(x))))
   names(gs) <- sub("^X","",names(gs))
-  cts <- cyApply(x,function(x)CellTypeCycif(cy,lineage_df,state_df,gates.df)@cell_types)
 
   if(any(ungated)){
     warning("some samples are not gated:",paste(names(gs)[ungated],collapse=","))
@@ -79,6 +78,7 @@ setMethod("show", "CellTypeCycifStack", function(object){
       "# cell lineage markers:",nlin,"\n",
       "# stratifying markers:\t",nstr,"\n",
       "# cell state markers:\t",nst,"\n\n",
+
       "lineage markers:",
       paste(nty$lin,collapse=", "),"\n",
       "stratifying markers:",

@@ -12,7 +12,7 @@ CellTypeCycif <- function(x,lineage_df,state_df,gates.df){
   unused.abs1 <- lmks[!lmks %in% abs$ab]
   used1 <- lineage_df[,used.abs1]
   unused1 <- lineage_df[,unused.abs1]
-  used.cts <- !apply(unused=="AND",1,any)
+  used.cts <- !apply(unused1=="AND",1,any)
 
   smks <- colnames(state_df)
   used.abs2 <- smks[smks %in% abs$ab]
@@ -29,17 +29,13 @@ CellTypeCycif <- function(x,lineage_df,state_df,gates.df){
   smpl <- names(x)
   g[] <- gates.df[mks,smpl]
 
-  ##
-  cts <- CellTypeCalling(x,ctd@cell_lineage_df,ctd@cell_state_df,g)
-
   new("CellTypeCycif",
       name = x@name,
       n_cycles = x@n_cycles,
       cell_lineage_df = ctd@cell_lineage_df,
       cell_state_df = ctd@cell_state_df,
       markers = ctd@markers,
-      gates = g,
-      cell_types = cts
+      gates = g
   )
 }
 
@@ -70,12 +66,12 @@ setMethod("show", "CellTypeCycif", function(object){
       "# cycles:\t",object@n_cycles,"\n\n",
       "# cell types:\t",nct,"\n",
       paste(cts,collapse=", "),"\n\n",
-      "# cells per cell type:\t",cts,"\n\n",
 
       "# markers in total:\t", nmk,"\n",
       "# cell lineage markers:",nlin,"\n",
       "# stratifying markers:\t",nstr,"\n",
       "# cell state markers:\t",nst,"\n\n",
+
       "lineage markers:",
       paste(nty$lin,collapse=", "),"\n",
       "stratifying markers:",

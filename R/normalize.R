@@ -20,7 +20,7 @@ setGeneric("normalize", function(x,...) standardGeneric("normalize"))
 #' @rdname normalize
 #' @export
 setMethod("normalize", "Cycif",
-  function(x,method=c("log","logTh","exp"),trim=1e-5,p_thres=0.5){
+  function(x,method=c("log","logTh","exp"),trim=1e-3,p_thres=0.5){
     ## default method is logTh
     if(missing(method)){
       method <- "logTh"
@@ -89,7 +89,7 @@ setMethod("normalize", "Cycif",
 #' @rdname normalize
 #' @export
 setMethod("normalize", "CycifStack",
-  function(x,method=c("log","logTh","exp"),trim=1e-5,p_thres=0.5,nCycle){
+  function(x,method=c("log","logTh","exp"),trim=1e-3,p_thres=0.5,nCycle){
     if(missing(method)){
       method <- "logTh"
     }
@@ -118,7 +118,7 @@ setMethod("normalize", "CycifStack",
 ## transform - at some point I should switch to nls() to apply sigmoidal curve
 #' @rdname normalize
 #' @export
-transform <- function(r,method=c("log","logTh","Th","exp"),th,p_thres=0.5,trim=1e-5){
+transform <- function(r,method=c("log","logTh","Th","exp"),th,p_thres=0.5,trim=1e-3){
   if(missing(method)){
     method <- "logTh"
   }
@@ -167,7 +167,7 @@ transform <- function(r,method=c("log","logTh","Th","exp"),th,p_thres=0.5,trim=1
 
 #' @rdname normalize
 #' @export
-trim_fun <- function(r,trim_th=1e-5){
+trim_fun <- function(r,trim_th=1e-3){
   qt <- quantile(r,c(trim_th,1-trim_th),na.rm=T)
 
   r[r > qt[2]] <- qt[2]

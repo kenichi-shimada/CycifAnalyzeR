@@ -1,6 +1,11 @@
 #' @export
 CellTypeCalling <- function(cy,ctype,p_thres=0.5,strict=FALSE){
+  # return a character vector containing 'cell_types'
   # cy <- x[[1]]
+  lth <- exprs(x[[1]],type="logTh_normalized")
+  if(nrow(lth)==0){
+    stop("run normalize() before CellTypeCalling()")
+  }
 
   ctlevs <- CellTypeGraph(cy,ctype,plot=F)
   for(l in seq(length(ctlevs)-1)){
