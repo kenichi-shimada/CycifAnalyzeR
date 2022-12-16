@@ -20,25 +20,28 @@ setGeneric("normalize", function(x,...) standardGeneric("normalize"))
 #' @rdname normalize
 #' @export
 setMethod("normalize", "Cycif",
-  function(x,method=c("log","logTh","exp"),trim=1e-3,p_thres=0.5){
+  function(x,method=c("log","logTh","invlog"),trim=1e-3,p_thres=0.5){
     ## default method is logTh
     if(missing(method)){
-      method <- "logTh"
+      stop("normalize() should specify method: log, logTh, or invlog")
+    }
+    if(length(x@cell_type@name)==0){
+      stop("CellTypeCycif() should be run first")
     }
 
     used.abs <- as.character(abs_list(x)$ab)
 
-    smpl <- names(x)
+    smpl <- x@name
     raw <- x@raw
     is.used <- cumUsedCells(x)
-    x@normalize.method <- method
+
+    ctc <- x@cell_type
 
     ## treatment is different between methods
     if(method=="log"){
       norm <- as.data.frame(
         sapply(used.abs,function(ab){
           cycle <- abs_list(x)$cycle[abs_list(x)$ab==ab]
-          cycle <- cycle + 1 # 0-origin
           is.used.1 <- is.used[,cycle]
 
           r <- raw[[ab]]
@@ -50,23 +53,15 @@ setMethod("normalize", "Cycif",
       )
       x@log_normalized <- norm
     }else if(method=="logTh"){
-      if(!.hasSlot(x,"threshold")){
-        stop(smpl,": set threshold first.\n")
-      }
-
-      thres <- threshold(x)
-      used.abs <- names(thres) # used.abs[!is.na(thres[used.abs])]
-
-      # warning("cycle should be switched to 1-origin")
-
-      ## change here somehow to convert values of unused abs to NA below:
+      log_thres <- gates(ctc)
+      thres <- expm1(log_thres)
+      used.abs <- names(which(!is.na(thres)))
 
       norm <- as.data.frame(
         sapply(used.abs,function(ab){
           n <- rep(NA,nrow(raw))
-          if(ab %in% used_abs(x)){
+          if(ab %in% used.abs){
             cycle <- abs_list(x)$cycle[abs_list(x)$ab==ab]
-            cycle <- cycle + 1 # 0-origin - confusing
             is.used.1 <- is.used[,cycle]
             r <- raw[[ab]]
             th <- thres[ab]
@@ -75,8 +70,8 @@ setMethod("normalize", "Cycif",
           return(n)
         })
       )
-      x@log_normalized <- norm
-    }else if(method=="exp"){
+      x@logTh_normalized <- norm
+    }else if(method=="invlog"){
       norm <- x@log_normalized
       raw <- expm1(norm)
       x@raw <- raw
@@ -86,42 +81,14 @@ setMethod("normalize", "Cycif",
   }
 )
 
-#' @rdname normalize
-#' @export
-setMethod("normalize", "CycifStack",
-  function(x,method=c("log","logTh","exp"),trim=1e-3,p_thres=0.5,nCycle){
-    if(missing(method)){
-      method <- "logTh"
-    }
-    xs <- cyApply(x,function(y){
-      normalize(y,method=method,trim=trim,p_thres=p_thres)
-    })
-
-    if(method %in% c("log")){
-      if(missing(nCycle)){
-        nCycle <- max(cyApply(x,nCycles,simplify=TRUE)) - 1
-      }
-      norm <- do.call(rbind,cyApply(xs,function(cy)exprs(cy,type="log_normalized")[,seq((nCycle+1)*3)],as.CycifStack=FALSE))  %>%
-        mutate(smpl=rep(names(xs),cyApply(xs,nCells,as.CycifStack=FALSE,simplify=TRUE)))
-      xs@log_normalized <- norm
-    }else if(method %in% c("logTh")){
-      norm <- do.call(rbind,cyApply(xs,function(cy)exprs(cy,type="logTh_normalized"),as.CycifStack=FALSE))  %>%
-        mutate(smpl=rep(names(xs),cyApply(xs,nCells,as.CycifStack=FALSE,simplify=TRUE)))
-      xs@logTh_normalized <- norm
-    }
-
-    return(xs)
-  }
-)
-
-
 ## transform - at some point I should switch to nls() to apply sigmoidal curve
 #' @rdname normalize
 #' @export
-transform <- function(r,method=c("log","logTh","Th","exp"),th,p_thres=0.5,trim=1e-3){
+transform <- function(r,method=c("log","logTh","Th","invlog"),th,p_thres=0.5,trim=1e-3){
   if(missing(method)){
-    method <- "logTh"
+    stop("normalize() should specify method: log, logTh, or invlog")
   }
+
   # r - raw intensity value (in quantification/*.csv)
 
   ## log-transformation (to be replaced with log with other bases)
@@ -133,13 +100,15 @@ transform <- function(r,method=c("log","logTh","Th","exp"),th,p_thres=0.5,trim=1
     lth <- log1p(th)
   }else if(method=="log"){
     r1 <- lr <- log1p(r)
-  }else if(method=="exp"){
+  }else if(method=="invlog"){
     r1 <- expm1(r)
   }
 
   ## method: either 'log' or 'logTh'
   if(method %in% c("logTh","Th")){
-    stopifnot(!missing(th)) # th is an essential input from user
+    if(missing(th)){
+      stop("'th' should be specified for this normalization method")
+    } # th is an essential input from user
 
     ## trimming outliers
     qt <- quantile(lr,c(trim,1-trim))
@@ -163,16 +132,5 @@ transform <- function(r,method=c("log","logTh","Th","exp"),th,p_thres=0.5,trim=1
   }
 
   return(r1)
-}
-
-#' @rdname normalize
-#' @export
-trim_fun <- function(r,trim_th=1e-3){
-  qt <- quantile(r,c(trim_th,1-trim_th),na.rm=T)
-
-  r[r > qt[2]] <- qt[2]
-  r[r < qt[1]] <- qt[1]
-
-  return(r)
 }
 

@@ -1,13 +1,15 @@
 #' @export
-CellTypeCalling <- function(cy,ctype,p_thres=0.5,strict=FALSE){
+CellTypeCalling <- function(cy,p_thres=0.5,strict=FALSE){
   # return a character vector containing 'cell_types'
   # cy <- x[[1]]
   lth <- exprs(x[[1]],type="logTh_normalized")
   if(nrow(lth)==0){
-    stop("run normalize() before CellTypeCalling()")
+    stop("run normalize(method=\"logTh\") before CellTypeCalling()")
   }
-
+  ctc <- cy@cell_type
+  ctype <- ctc@cell_lineage_df
   ctlevs <- CellTypeGraph(ctype,plot=F)
+
   for(l in seq(length(ctlevs)-1)){
     pa <- ctlevs[[l]]
     ch <- ctlevs[[l+1]]
@@ -38,12 +40,6 @@ CellTypeCalling <- function(cy,ctype,p_thres=0.5,strict=FALSE){
   ctdef <- apply(ctype1,1,function(x){
     thisdef <- x[!is.na(x)] =="AND"
   })
-  if(0){
-    used.abs <- used_abs(cy)
-    is.def <- sapply(ctdef,function(x){
-      all(names(x) %in% used.abs)
-    })
-  }
 
   def1 <- sapply(ctdef,function(def){
     cat("*")
@@ -83,66 +79,4 @@ CellTypeCalling <- function(cy,ctype,p_thres=0.5,strict=FALSE){
   names(cts) <- rownames(norm)
   return(cts)
 }
-# setGeneric("defCellType", function(x,...) standardGeneric("defCellType"))
-# setMethod("defCellType", "Cycif",
-#
-#   # this is not done yet.
-#
-# 	function(x,ctype.def,trim=1e-5,method="logTh",...){
-# 		## default method is logTh
-# 		if(missing(method)){
-# 			method <- "logTh"
-# 		}
-#
-# 		## 'used abs' set already?
-# 		if("used_abs" %in% slotNames(x)){
-# 			used.abs <- used_abs(x)
-# 		}else{
-# 			used.abs <- as.character(abs_list(x)$ab)
-# 		}
-#
-# 		smpl <- names(x)
-# 		raw <- x@raw
-# 		is.used <- cumUsedCells(x)
-# 		x@normalize.method <- method
-#
-# 		## treatment is different between methods
-# 		if(method=="log"){
-# 			norm <- as.data.frame(
-# 				sapply(used.abs,function(ab){
-# 					cycle <- abs_list(x)$cycle[abs_list(x)$ab==ab]
-# 					cycle <- cycle + 1 # 0-origin
-# 					is.used.1 <- is.used[,cycle]
-#
-# 					r <- raw[[ab]]
-# 					n <- rep(NA,length(r))
-#
-# 					n[is.used.1] <- transform(r[is.used.1],method="log",trim=trim)
-# 					return(n)
-# 				})
-# 			)
-# 		}else if(method=="logTh"){
-# 			if(!.hasSlot(x,"threshold")){
-# 				stop(smpl,": set threshold first.\n")
-# 		}
-#
-# 			thres <- threshold(x)
-# 			used.abs <- used.abs[!is.na(thres[used.abs])]
-#
-# 			norm <- as.data.frame(
-# 				sapply(used.abs,function(ab){
-# 					cycle <- abs_list(x)$cycle[abs_list(x)$ab==ab]
-# 					cycle <- cycle + 1 # 0-origin
-# 					is.used.1 <- is.used[,cycle]
-# 					r <- raw[[ab]]
-# 					n <- rep(NA,length(r))
-# 					th <- thres[ab]
-# 					n[is.used.1] <- transform(r[is.used.1],method="logTh",th=th,trim=trim)
-# 					return(n)
-# 				})
-# 			)
-# 		}
-# 		x@normalized <- norm
-# 		return(x)
-# 	}
-# )
+

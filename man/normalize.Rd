@@ -3,32 +3,20 @@
 \name{normalize}
 \alias{normalize}
 \alias{normalize,Cycif-method}
-\alias{normalize,CycifStack-method}
 \alias{transform}
-\alias{trim_fun}
 \title{Show a raw or normalized protein expression matrix}
 \usage{
 normalize(x, ...)
 
-\S4method{normalize}{Cycif}(x, method = c("log", "logTh", "exp"), trim = 0.001, p_thres = 0.5)
-
-\S4method{normalize}{CycifStack}(
-  x,
-  method = c("log", "logTh", "exp"),
-  trim = 0.001,
-  p_thres = 0.5,
-  nCycle
-)
+\S4method{normalize}{Cycif}(x, method = c("log", "logTh", "invlog"), trim = 0.001, p_thres = 0.5)
 
 transform(
   r,
-  method = c("log", "logTh", "Th", "exp"),
+  method = c("log", "logTh", "Th", "invlog"),
   th,
   p_thres = 0.5,
   trim = 0.001
 )
-
-trim_fun(x, trim_th = 0.001)
 }
 \arguments{
 \item{x}{A Cycif or CycifStack object.}
