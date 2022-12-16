@@ -3,7 +3,7 @@
 \docType{class}
 \name{CellTypeCycifStack-class}
 \alias{CellTypeCycifStack-class}
-\title{A class that defines cell types in CycifStack class, extending CellTypeDef class}
+\title{A class that defines cell types in CycifStack class, extending CellTypeDefault class}
 \description{
-A class that defines cell types in CycifStack class, extending CellTypeDef class
+A class that defines cell types in CycifStack class, extending CellTypeDefault class
 }
