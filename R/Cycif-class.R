@@ -10,7 +10,6 @@ setClass("Cycif",
      suffix = "character",
 
      abs_list = "data.frame",
-     used_abs = "character",
 
      raw = "data.frame",
      log_normalized = "data.frame",

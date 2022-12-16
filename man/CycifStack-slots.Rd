@@ -3,7 +3,7 @@
 \name{nSamples}
 \alias{nSamples}
 \alias{names,CycifStack-method}
-\alias{uniq_abs}
+\alias{abs_list,CycifStack-method}
 \alias{maxCycles}
 \alias{nCells,CycifStack-method}
 \alias{length,CycifStack-method}
@@ -14,7 +14,7 @@ nSamples(x)
 
 \S4method{names}{CycifStack}(x)
 
-uniq_abs(x)
+\S4method{abs_list}{CycifStack}(x)
 
 maxCycles(x)
 

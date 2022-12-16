@@ -19,7 +19,7 @@ cell_lineage_df(x)
 cell_state_df(x)
 }
 \arguments{
-\item{x}{A CellTypeDef object}
+\item{x}{A CellTypeDefault object}
 }
 \description{
 Accessing slots in CellType* class

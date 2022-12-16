@@ -8,7 +8,6 @@ setClass("CycifStack",
        suffix = "character",
 
        abs_list = "data.frame",
-       used_abs = "character",
 
        n_samples = "numeric",
        n_cycles = "numeric",

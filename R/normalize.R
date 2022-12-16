@@ -26,12 +26,7 @@ setMethod("normalize", "Cycif",
       method <- "logTh"
     }
 
-    ## 'used abs' set already?
-    if("used_abs" %in% slotNames(x) && length(used_abs(x)) > 0){
-      used.abs <- used_abs(x)
-    }else{
-      used.abs <- as.character(abs_list(x)$ab)
-    }
+    used.abs <- as.character(abs_list(x)$ab)
 
     smpl <- names(x)
     raw <- x@raw

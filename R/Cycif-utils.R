@@ -68,25 +68,24 @@ setMethod("within_rois<-", "Cycif", function(x,value){
   return(x)
 })
 
-#' @rdname Cycif-slots
-#' @export
-setGeneric("cell_type", function(x) standardGeneric("cell_type"))
-setMethod("cell_type", "Cycif", function(x)x@cell_type)
-setMethod("cell_type", "CycifStack", function(x)x@cell_type)
-
-#' @rdname Cycif-slots
-#' @export
-setGeneric("cell_type<-", function(x,...) standardGeneric("cell_type<-"))
-setMethod("cell_type<-", "Cycif", function(x,value,...){
-  if(!class(value)=="CellType"){
-    stop("cell_type should be CellType")
-  }
-
-  x@cell_type <- value
-  ## check n_cycle, used_abs, etc
-
-  return(x)
-})
+#' #' @rdname Cycif-slots
+#' #' @export
+#' setGeneric("cell_type", function(x) standardGeneric("cell_type"))
+#' setMethod("cell_type", "Cycif", function(x)x@cell_type)
+#' setMethod("cell_type", "CycifStack", function(x)x@cell_type)
+#'
+#' #' @rdname Cycif-slots
+#' #' @export
+#' setGeneric("cell_type<-", function(x,...) standardGeneric("cell_type<-"))
+#' setMethod("cell_type<-", "Cycif", function(x,value,...){
+#'   if(!class(value)=="CellType"){
+#'     stop("cell_type should be CellType")
+#'   }
+#'
+#'   x@cell_type <- value
+#'
+#'   return(x)
+#' })
 
 
 

@@ -1,5 +1,7 @@
 #' @export
 CellTypeCalling <- function(cy,ctype,p_thres=0.5,strict=FALSE){
+  # cy <- x[[1]]
+
   ctlevs <- CellTypeGraph(cy,ctype,plot=F)
   for(l in seq(length(ctlevs)-1)){
     pa <- ctlevs[[l]]

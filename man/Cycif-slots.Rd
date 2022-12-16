@@ -13,8 +13,6 @@
 \alias{used_cells}
 \alias{within_rois}
 \alias{within_rois<-}
-\alias{cell_type}
-\alias{cell_type<-}
 \alias{nCycles}
 \alias{nCycles<-}
 \title{Set nCycles - note this should run before cell type calling}
@@ -42,10 +40,6 @@ used_cells(x)
 within_rois(x)
 
 within_rois(x, ...) <- value
-
-cell_type(x)
-
-cell_type(x, ...) <- value
 
 nCycles(x)
 

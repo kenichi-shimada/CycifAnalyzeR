@@ -27,11 +27,7 @@ setMethod("RunUMAP", "Cycif",
 
     ## used.abs
     if(missing(used.abs)){
-      if(.hasSlot(x,"used_abs")){
-        used.abs <- used_abs(x)
-      }else{
-        stop("'used_abs' should be defined first (have you set threshold?).")
-      }
+        stop("'used.abs' should be defined first (have you set threshold?).")
     }
 
     ## how many cycles to be used
@@ -109,13 +105,7 @@ setMethod("RunUMAP", "CycifStack",
 
             ## used.abs
             if(missing(used.abs)){
-              list.used.abs <- cyApply(x,function(y){
-                if(.hasSlot(y,"used_abs")){
-                  return(used_abs(y))
-                }else{
-                  return(abs_list(y))
-                }
-              })
+              list.used.abs <- cyApply(x,function(y)abs_list(y))
               tab.used.abs <- table(unlist(list.used.abs))
               used.abs <- names(which(tab.used.abs == length(smpls)))
             }

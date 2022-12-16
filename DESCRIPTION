@@ -58,7 +58,6 @@ Collate:
     'plotUsedCellRatio.R'
     'slidePlot.R'
     'statUsedCells.R'
-    'used_abs.R'
     'vlnPlot.R'
 Suggests: 
     testthat (>= 3.0.0)
