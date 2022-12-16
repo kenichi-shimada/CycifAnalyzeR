@@ -7,7 +7,7 @@ CellTypeCalling <- function(cy,ctype,p_thres=0.5,strict=FALSE){
     stop("run normalize() before CellTypeCalling()")
   }
 
-  ctlevs <- CellTypeGraph(cy,ctype,plot=F)
+  ctlevs <- CellTypeGraph(ctype,plot=F)
   for(l in seq(length(ctlevs)-1)){
     pa <- ctlevs[[l]]
     ch <- ctlevs[[l+1]]

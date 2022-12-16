@@ -1,22 +1,21 @@
 #' Perform a cell type calling function and set cell types in a Cycif or CycifStack object
 #'
-#' @rdname findCellTypes
+#' @rdname defineCellTypes
 #' @export
-setGeneric("findCellTypes", function(x,...) standardGeneric("findCellTypes"))
-setMethod("findCellTypes", "Cycif", function(x,ctype,cstate,gates,...){
+setGeneric("defineCellTypes", function(x,...) standardGeneric("defineCellTypes"))
+setMethod("defineCellTypes", "Cycif", function(x,ctype,cstate,gates,...){
   # ctype and cstate is input
   ## run CellTypeCycif
-  ctc <- CellTypeCycif(x[[1]],ctype,cstate,gates)
+  ctc <- CellTypeCycif(x,ctype,cstate,gates)
   ## normalize - should be done within CellTypeCycif
-
 
   ## set CellTypeCycif object in the cell_type slot
   x@cell_type <- ctc
   return(x)
 })
 
-setMethod("findCellTypes", "CycifStack", function(x,ctype,cstate,gates,...){
-  cys <- cyApply(x,findCellTypes,ctype=ctype,cstate=cstate)
+setMethod("defineCellTypes", "CycifStack", function(x,ctype,cstate,gates,...){
+  cys <- cyApply(x,defineCellTypes,ctype=ctype,cstate=cstate)
   ctcs <- CellTypeCycifStack(x,ctype,cstate,gates)
   cys@cell_type <-ctcs
 
