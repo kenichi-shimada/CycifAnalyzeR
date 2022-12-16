@@ -29,13 +29,17 @@ CellTypeCycif <- function(x,lineage_df,state_df,gates.df){
   smpl <- names(x)
   g[] <- gates.df[mks,smpl]
 
+  ##
+  cts <- CellTypeCalling(x,ctd@cell_lineage_df,ctd@cell_state_df,g)
+
   new("CellTypeCycif",
       name = x@name,
       n_cycles = x@n_cycles,
       cell_lineage_df = ctd@cell_lineage_df,
       cell_state_df = ctd@cell_state_df,
       markers = ctd@markers,
-      gates = g
+      gates = g,
+      cell_types = cts
   )
 }
 
@@ -66,6 +70,7 @@ setMethod("show", "CellTypeCycif", function(object){
       "# cycles:\t",object@n_cycles,"\n\n",
       "# cell types:\t",nct,"\n",
       paste(cts,collapse=", "),"\n\n",
+      "# cells per cell type:\t",cts,"\n\n",
 
       "# markers in total:\t", nmk,"\n",
       "# cell lineage markers:",nlin,"\n",

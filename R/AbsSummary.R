@@ -13,7 +13,7 @@ setGeneric("AbsSummary", function(x,...) standardGeneric("AbsSummary"))
 #' @rdname AbsSummary
 #' @export
 setMethod("AbsSummary", "CycifStack", function(x,show.cycles.in.row=FALSE,...){
-  uniq.abs <- x@uniq_abs$ab
+  uniq.abs <- x@abs_list$ab
   n1 <- do.call(rbind,lapply(x@samples,function(y){
     this.abs <- abs_list(y)$ab
     tested <- uniq.abs %in% this.abs

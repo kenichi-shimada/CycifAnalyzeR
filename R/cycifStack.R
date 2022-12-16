@@ -13,7 +13,6 @@ CycifStack <- function(filenames,path,suffix="_cellRing"){
   stopifnot(all(file.exists(file.path(path,filenames))))
   cat("Trying to load ",length(filenames)," samples.\n",sep="")
 
-
   n.samples <- length(filenames)
   samples <- lapply(filenames,function(filename){
     if(grepl(suffix,filename)){
@@ -41,16 +40,16 @@ CycifStack <- function(filenames,path,suffix="_cellRing"){
   max_cycles <- max(n_cycles)
 
   if(0){
-    ###### "Validate if samples with max_cycles use uniq_abs."
+    ###### "Validate if samples with max_cycles use abs_list."
   }else{
     idx <- which(n_cycles == max_cycles)[1]
   }
 
-  uniq_abs <- abs_list(samples[[idx]])
+  abs_list <- abs_list(samples[[idx]])
   new("CycifStack",
       names = nms,
       suffix = suffix,
-      uniq_abs = uniq_abs,
+      abs_list = abs_list,
       n_samples = n.samples,
       n_cycles = n_cycles,
       max_cycles = max_cycles,
@@ -68,7 +67,7 @@ setMethod("show", "CycifStack", function(object) {
     nCells = object@n_cells)
   rownames(df) <- c()
 
-  m <- matrix(object@uniq_abs$ab,nrow=3)
+  m <- matrix(object@abs_list$ab,nrow=3)
   rownames(m) <- c("R","G","B")
   colnames(m) <- paste0("Cycle",seq(object@max_cycles))
   m <- data.frame(m)

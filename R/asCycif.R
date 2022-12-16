@@ -26,11 +26,11 @@ setMethod("as.Cycif", "list",function(x){
   max_cycles <- max(n_cycles)
 
   idx <- which(n_cycles == max_cycles)[1]
-  uniq_abs <- abs_list(xs[[idx]])
+  abs_list <- abs_list(xs[[idx]])
   new("Cycif",
       n_samples = n.samples,
       names = nms,
-      uniq_abs = uniq_abs,
+      abs_list = abs_list,
       n_cycles = n_cycles,
       max_cycles = max_cycles,
       n_cells = n_cells,

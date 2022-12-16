@@ -26,8 +26,7 @@ setMethod("names<-", "CycifStack", function(x,value){
 
 #' @rdname CycifStack-slots
 #' @export
-setGeneric("uniq_abs", function(x)standardGeneric("uniq_abs"))
-setMethod("uniq_abs", "CycifStack", function(x) x@uniq_abs)
+setMethod("abs_list", "CycifStack", function(x) x@abs_list)
 
 #' @rdname CycifStack-slots
 #' @export

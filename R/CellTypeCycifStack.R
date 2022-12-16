@@ -1,41 +1,37 @@
 CellTypeCycifStack <- function(x,lineage_df,state_df,gates.df){
   require(dplyr)
   if(class(x)=="CycifStack"){
-    abs <- uniq_abs(x)
+    abs <- abs_list(x)
     used.abs <- as.character(abs$ab)
   }else{
     stop("1st argument should be a CycifStack object")
   }
-  
+
+  gates.smpls <- names(gates.df)
   smpls <- names(x)
-  
-  n <- length(x)
+  if(!all(smpls %in% gates.smpls)){
+    stop("All the samples should be gated before cell type calling")
+  }
+
   nc <- nCycles(x)
   min.i <- min(which(nc==max(nc)))
   smpl <- names(x)[min.i]
   x1 <- x[[smpl]]
-  
+
   ctc <- CellTypeCycif(x1,lineage_df,state_df,gates.df)
-  
+
   lmks <- colnames(lineage_df)[-c(1:2)]
   smks <- colnames(state_df)
-  
+
   mks <- c(lmks,smks)
   gs <- data.frame(array(NA,dim=c(length(mks),nSamples(x)),dimnames=list(mks,names(x))))
   names(gs) <- sub("^X","",names(gs))
-  for(ncy in smpls){
-    cy <- x[[ncy]]
-    used.mks <- mks[mks %in% abs_list(cy)$ab]
-    gs[used.mks,ncy] <- gates.df[used.mks,ncy]
-  }
-  
-  ungated <- sapply(gs,function(g){
-    all(is.na(g))
-  })
+  cts <- cyApply(x,function(x)CellTypeCycif(cy,lineage_df,state_df,gates.df)@cell_types)
+
   if(any(ungated)){
     warning("some samples are not gated:",paste(names(gs)[ungated],collapse=","))
   }
-  
+
   new("CellTypeCycifStack",
       n_samples = x@n_samples,
       max_cycles = x@max_cycles,
@@ -62,23 +58,23 @@ setMethod("show", "CellTypeCycifStack", function(object){
   })
   nty <- tapply(names(mty),mty,identity)
   mst <- colnames(object@cell_state_df)
-  
+
   nlin <- length(nty$lin)
   nstr <- length(nty$str)
   nst <- length(mst)
-  
+
   is.gated <- sapply(object@gates,function(g){
     any(!is.na(g))
   })
-  
+
   # cat(m)
   cat("[",is(object)[[1]],"]\n",
       "# samples:\t",object@n_samples,
       paste0("(",sum(is.gated)," gated)"),"\n",
-      "# max cycles:\t",object@max_cycles,"\n\n",      
+      "# max cycles:\t",object@max_cycles,"\n\n",
       "# cell types:\t",nct,"\n",
       paste(cts,collapse=", "),"\n\n",
-      
+
       "# markers in total:\t", nmk,"\n",
       "# cell lineage markers:",nlin,"\n",
       "# stratifying markers:\t",nstr,"\n",

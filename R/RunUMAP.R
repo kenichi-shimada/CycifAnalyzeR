@@ -121,7 +121,7 @@ setMethod("RunUMAP", "CycifStack",
             }
 
             ## how many cycles to be used
-            ab.cycle <- max((uniq_abs(x) %>% filter(ab %in% used.abs))$cycle) + 1 # note we use non-zero origin
+            ab.cycle <- max((abs_list(x) %>% filter(ab %in% used.abs))$cycle) + 1 # note we use non-zero origin
 
             ## is.used
             if(!missing(celltype)){

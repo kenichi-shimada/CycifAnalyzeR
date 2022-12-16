@@ -7,7 +7,7 @@ setClass("CycifStack",
        names = "character",
        suffix = "character",
 
-       uniq_abs = "data.frame",
+       abs_list = "data.frame",
        used_abs = "character",
 
        n_samples = "numeric",

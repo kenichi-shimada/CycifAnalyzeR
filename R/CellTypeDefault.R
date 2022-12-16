@@ -1,10 +1,7 @@
 CellTypeDefault <- function(x,lineage_df,state_df){
   require(dplyr)
-  if(class(x)=="Cycif"){
+  if(class(x) %in% c("Cycif","CycifStack")){
     abs <- abs_list(x)
-    used.abs <- as.character(abs$ab)
-  }else if(class(x)=="CycifStack"){
-    abs <- uniq_abs(x)
     used.abs <- as.character(abs$ab)
   }else{
     stop("1st argument should be either a Cycif or CycifStack object")

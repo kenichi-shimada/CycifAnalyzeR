@@ -23,10 +23,10 @@ setMethod("[",
               max_cycles <- max(n_cycles)
 
               idx <- which(n_cycles == max_cycles)[1]
-              uniq_abs <- abs_list(x@samples[[idx]])
+              abs_list <- abs_list(x@samples[[idx]])
 
               x@names <- nms
-              x@uniq_abs <- uniq_abs
+              x@abs_list <- abs_list
               x@n_samples <- n_samples
               x@n_cycles <- n_cycles
               x@max_cycles <- max_cycles
@@ -62,10 +62,10 @@ setMethod("[<-",
             max_cycles <- max(n_cycles)
 
             idx <- which(n_cycles == max_cycles)[1]
-            uniq_abs <- abs_list(x@samples[[idx]])
+            abs_list <- abs_list(x@samples[[idx]])
 
             x@names <- nms
-            x@uniq_abs <- uniq_abs
+            x@abs_list <- abs_list
             x@n_samples <- x@n_samples
             x@n_cycles <- n_cycles
             x@max_cycles <- max_cycles
@@ -91,10 +91,10 @@ setMethod("[[<-",
             max_cycles <- max(n_cycles)
 
             idx <- which(n_cycles == max_cycles)[1]
-            uniq_abs <- abs_list(x@samples[[idx]])
+            abs_list <- abs_list(x@samples[[idx]])
 
             x@names <- nms
-            x@uniq_abs <- uniq_abs
+            x@abs_list <- abs_list
             x@n_samples <- x@n_samples
             x@n_cycles <- n_cycles
             x@max_cycles <- max_cycles

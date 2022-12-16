@@ -74,13 +74,13 @@ setMethod("nCycles<-", "CycifStack", function(x,value){
   x@max_cycles <- max(value)
 
   if(0){
-    ###### "Validate if samples with max_cycles use uniq_abs."
+    ###### "Validate if samples with max_cycles use abs_list."
   }else{
     idx <- which(x@n_cycles == x@max_cycles)[1]
   }
 
-  x@uniq_abs <- abs_list(x[[idx]])
-  this.abs <- uniq_abs(cs1)$ab
+  x@abs_list <- abs_list(x[[idx]])
+  this.abs <- abs_list(cs1)$ab
 
   if(nrow(x@raw)>0){
     x@raw <- x@raw[this.abs]
