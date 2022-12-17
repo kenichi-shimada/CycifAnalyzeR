@@ -47,6 +47,7 @@ Collate:
     'dep-slideColor.R'
     'dimPlot.R'
     'dnaFilter.R'
+    'expandLineageDef.R'
     'exprs.R'
     'findCluster.R'
     'gates.R'
