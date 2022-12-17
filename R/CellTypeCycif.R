@@ -34,6 +34,8 @@ CellTypeCycif <- function(x,lineage_df,state_df,gates.df){
       n_cycles = x@n_cycles,
       cell_lineage_df = ctd@cell_lineage_df,
       cell_state_df = ctd@cell_state_df,
+      expanded_lineage_df = ctd@expanded_lineage_df,
+      expanded_state_df = ctd@expanded_state_df,
       markers = ctd@markers,
       gates = g
   )
