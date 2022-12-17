@@ -5,7 +5,9 @@ setClass("CellTypeDefault",
    slots = c(
      markers = "data.frame",
      cell_lineage_df = "data.frame",
-     cell_state_df = "data.frame"
+     cell_state_df = "data.frame",
+     expanded_lineage_df = "data.frame",
+     expanded_state_df = "data.frame"
    )
 )
 
@@ -17,9 +19,8 @@ setClass("CellTypeCycif",contains="CellTypeDefault",
      name = "character",
      n_cycles = "numeric",
      gates = "numeric",
-     cell_lineage_df_full = "data.frame",
-     cell_state_df_full = "data.frame",
-     cell_types = "character" # generated from gates and lineage
+     cell_types = "character", # generated from gates and lineage
+     cell_types_full = "character"
    )
 )
 
@@ -31,9 +32,8 @@ setClass("CellTypeCycifStack",contains="CellTypeDefault",
      n_samples = "numeric",
      max_cycles = "numeric",
      gates = "data.frame",
-     cell_lineage_df_full = "data.frame",
-     cell_state_df_full = "data.frame",
-     cell_types = "character"
+     cell_types = "character",
+     cell_types_full = "character"
    )
 )
 

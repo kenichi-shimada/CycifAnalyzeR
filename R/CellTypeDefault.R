@@ -25,9 +25,17 @@ CellTypeDefault <- function(x,lineage_df,state_df){
   }else{
     mks.info <- abs %>% filter(ab %in% mks)
   }
+
+  elin <- expandLineageDef(lineage_df)
+
+  est <- state_df[elin$names$idx,]
+  rownames(est) <- elin$names$expanded
+
   new("CellTypeDefault",
       cell_lineage_df = lineage_df,
       cell_state_df = state_df,
+      expanded_lineage_df = elin$lineage_df,
+      expanded_state_df = est,
       markers = mks.info
   )
 }
