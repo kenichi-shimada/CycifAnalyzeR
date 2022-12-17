@@ -1,19 +1,60 @@
 #' @export
-CellTypeCalling <- function(cy,p_thres=0.5,strict=FALSE){
+CellTypeCalling <- function(cy,p_thres=0.5,strict=FALSE,expanded_df=TRUE){
   # return a character vector containing 'cell_types'
   # cy <- x[[1]]
-  lth <- exprs(x[[1]],type="logTh_normalized")
-  if(nrow(lth)==0){
+  lth <- exprs(cy,type="logTh_normalized")
+  if (nrow(lth)==0) {
     stop("run normalize(method=\"logTh\") before CellTypeCalling()")
   }
+
   ctc <- cy@cell_type
-  ctype <- ctc@cell_lineage_df
+  if(expanded_df){
+    ctype <- ctc@expanded_lineage_df
+  }else{
+    ctype <- ctc@cell_lineage_df
+  }
+
   ctlevs <- CellTypeGraph(ctype,plot=F)
 
   for(l in seq(length(ctlevs)-1)){
-    pa <- ctlevs[[l]]
-    ch <- ctlevs[[l+1]]
-    ctype %>% filter(Parent %in% pa & Child %in% ch)
+    pas <- ctlevs[[l]]
+    chs <- ctlevs[[l+1]]
+    ct <- ctype %>% filter(Parent %in% pas & Child %in% chs)
+    prs <- sapply(chs,function(ch){
+      tmp <- unlist(ct %>% filter(Child == x))[-(1:2)]
+      abs.and <- names(which(tmp=="AND"))
+      abs.or <- names(which(tmp=="OR"))
+      abs.not <- names(which(tmp=="NOT"))
+      if(length(abs.and)>0 & length(abs.or)>0){
+        a <- apply(lth[abs.and],1,min)
+        b <- apply(lth[abs.or],1,max)
+        pos.out <- pmin(a,b)
+      }else if(length(abs.and)>0){
+        pos.out <- apply(lth[abs.and],1,min)
+      }else if(length(abs.or)>0){
+        pos.out <- apply(lth[abs.or],1,max)
+      }else{
+        pos.out <- NA
+      }
+
+      if(length(abs.not)>0){
+        neg.out <- apply(lth[abs.not],1,max)
+      }else{
+        neg.out <- NA
+      }
+
+      if(!all(is.na(pos.out)) & !all(is.na(neg.out))){
+        this.ct <- pos.out
+        this.ct[neg.out < p_thres] <- 0
+      }else if(!all(is.na(pos.out))){
+        this.ct <- pos.out
+      }else if(!all(is.na(pos.out))){
+        this.ct <- as.numeric(neg.out < p_thres)
+      }else{
+        stop(ch,": cell type definition is insufficient")
+      }
+      return(this.ct)
+    })
   }
 
   if(names(which.max(ctlevs))!="all"){
@@ -21,7 +62,6 @@ CellTypeCalling <- function(cy,p_thres=0.5,strict=FALSE){
   }
 
   for(l in uniq.levs[-1]){
-
 
   }
 
