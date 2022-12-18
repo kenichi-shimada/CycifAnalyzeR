@@ -19,8 +19,8 @@ setClass("CellTypeCycif",contains="CellTypeDefault",
      name = "character",
      n_cycles = "numeric",
      gates = "numeric",
-     cell_types = "character", # generated from gates and lineage
-     cell_types_full = "character"
+     cell_types = "factor", # generated from gates and lineage
+     cell_types_full = "factor"
    )
 )
 
@@ -32,8 +32,8 @@ setClass("CellTypeCycifStack",contains="CellTypeDefault",
      n_samples = "numeric",
      max_cycles = "numeric",
      gates = "data.frame",
-     cell_types = "character",
-     cell_types_full = "character"
+     cell_types = "factor",
+     cell_types_full = "factor"
    )
 )
 
