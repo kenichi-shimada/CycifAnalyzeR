@@ -1,3 +1,4 @@
+#'@export
 CellTypeCycifStack <- function(x,lineage_df,state_df,gates.df){
   require(dplyr)
   if(class(x)=="CycifStack"){
