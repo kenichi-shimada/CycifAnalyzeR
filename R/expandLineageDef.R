@@ -1,5 +1,4 @@
 #'@export
-#'
 expandLineageDef <- function(ctype){
   if(!is.data.frame(ctype)){
     stop("ctype should be data.frame")
@@ -7,6 +6,7 @@ expandLineageDef <- function(ctype){
   uniq.cts <- ctype$Child
   uniq.abs <- colnames(ctype)[-c(1:2)]
   is.str <- sapply(ctype[uniq.abs],function(x)any(x=="CAN"))
+  lin.abs <- uniq.abs[!is.str]
   str.abs <- uniq.abs[is.str]
   is.pd <- any(str.abs %in% c("PDL1","PD1"))
   str.abs <- c(str.abs[!is.pd],str.abs[is.pd])
@@ -28,15 +28,24 @@ expandLineageDef <- function(ctype){
     is.can <- (ct[[ab]]=="CAN")
     i <- rep(which(is.can),each=2)
     ct1 <- ct[i,]
+
+    ## replace "AND","NOT","OR" in lin.abs in ct1
+    tmp.lin <- ct1[lin.abs]
+    for(lab in c("AND","OR","NOT")){
+      tmp.lin[tmp.lin==lab] <- ""
+    }
+    ct1[lin.abs] <- tmp.lin
+
+    ## update Parent and Child cell types
     ct1$Parent <- ct1$Child
     ct1$Child <- paste0(ct1$Child,",",ab,c("+","-"))
     ct1[[ab]] <- rep(c("AND","NOT"),sum(is.can))
-    
+
     ## replace "CAN" with ""
-    tmp <- ct[is.can,]
-    tmp[tmp=="CAN"] <- ""
-    ct[is.can,] <- tmp
-    
+    tmp.can <- ct[is.can,]
+    tmp.can[tmp.can=="CAN"] <- ""
+    ct[is.can,] <- tmp.can
+
     ct <- rbind(ct,ct1)
   }
 
@@ -56,7 +65,7 @@ expandLineageDef <- function(ctype){
     non.leaf1 <- ct$Child[ct$Child %in% ct$Parent]
     non.leaf1 <- non.leaf1[!non.leaf1 %in% chs] ## remove non-leaf that did't exist originally
   }
-  
+
   # CellTypeGraph(ct,plot=T,transpose=T)
   # CellTypeGraph(ctype,plot=T,transpose = T)
   pas1 <- ct$Parent
@@ -67,6 +76,6 @@ expandLineageDef <- function(ctype){
   }
   idx <- match(pas1,chs)
   cts.conv <- data.frame(idx=idx,original=pas1,expanded=chs1)
-    
+
   return(list(lineage_df=ct,names=cts.conv))
 }

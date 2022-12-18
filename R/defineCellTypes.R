@@ -11,7 +11,7 @@ setMethod("defineCellTypes", "Cycif", function(x,ctype,cstate,gates,p_thres=0.5,
   x <- normalize(x,method="logTh",p_thres=p_thres)
 
   ## set CellTypeCycif object in the cell_type slot
-  CellTypeCalling(x,)
+  cts <- CellTypeCalling(x,p_thres=p_thres,strict=FALSE,expanded_df=TRUE)
   return(x)
 })
 
