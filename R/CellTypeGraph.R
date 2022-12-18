@@ -1,3 +1,4 @@
+#'@export
 CellTypeGraph <- function(ctype,plot=F,transpose=T){
   uniq.cts <- c("all",ctype$Child)
   ctgraph <- ctype[c("Parent","Child")]
