@@ -20,11 +20,10 @@ CellTypeCalling <- function(cy,p_thres=0.5,strict=FALSE,expanded_df=TRUE){
   ctlevs <- CellTypeGraph(ctype,plot=F)
 
   cell.types <- rep("all",nrow(lth))
-  for(l in seq(length(ctlevs)-1)[1]){
-    #l=1
+  for(l in seq(length(ctlevs)-1)){
     pas <- ctlevs[[l]]
     chs <- ctlevs[[l+1]]
-    i.others <- chs %in% "unknown" | grepl("_other",chs)
+    i.others <- chs %in% "unknown" | grepl("_other$",chs)
     chs1 <- chs[!i.others]
 
     ct <- ctype %>% filter(Parent %in% pas & Child %in% chs1)
@@ -50,7 +49,7 @@ CellTypeCalling <- function(cy,p_thres=0.5,strict=FALSE,expanded_df=TRUE){
           pos.out <- apply(lth[abs.or],1,max,na.rm=T)
           pos.out[pos.out==-Inf] <- NA
         }else{
-          stop(ch," should have either AND or OR in the definition")
+          pos.out <- rep(1,nrow(lth))
         }
 
         this.ct <- pos.out
@@ -64,32 +63,33 @@ CellTypeCalling <- function(cy,p_thres=0.5,strict=FALSE,expanded_df=TRUE){
       return(this.ct)
     })
 
-    # i0 <- which(cell.types=="dropped")
     for(pa in uniq.pas){
       this.ind <- cell.types==pa
       this.chs <- (ct %>% filter(Parent==pa))$Child
       this.chs <- colnames(prs)[colnames(prs) %in% this.chs]
       cell.types[this.ind] <- apply(prs[this.ind,this.chs,drop=F],1,function(pr){
-        if(all(is.na(pr))){
-          return(pa)
-        }
-        ind <- which(pr==max(pr,na.rm=T))
-        if(length(ind)>1){
-          return(pa)
-        }
-        if(pr[ind] > p_thres){
-          return(colnames(prs)[ind])
-        }else{
-          ch1 <- paste0(pa,"_other")
-          if(ch1 == "all_other"){
-            ch1 <- "unknown"
+          if(all(is.na(pr))){
+            return(pa)
           }
-          return(ch1)
-        }
-      })
-    }
+          ind <- which(pr==max(pr,na.rm=T))
+          if(length(ind)>1){
+            return(pa)
+          }
+          if(pr[ind] > p_thres){
+            return(this.chs[ind])
+          }else{
+            ch1 <- paste0(pa,"_other")
+            if(ch1 == "all_other"){
+              ch1 <- "unknown"
+            }
+            return(ch1)
+          }
+        })
+      }
   }
   ## convert to factor: Q: how to order cell types from ctype df?
-  return(cell.types)
+  uniq.cts <- c("all",ctype$Child)
+  cts <- factor(cts,levels=uniq.cts)
+  return(cts)
 }
 
