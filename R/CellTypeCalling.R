@@ -89,7 +89,7 @@ CellTypeCalling <- function(cy,p_thres=0.5,strict=FALSE,expanded_df=TRUE){
   }
   ## convert to factor: Q: how to order cell types from ctype df?
   uniq.cts <- c("all",ctype$Child)
-  cts <- factor(cts,levels=uniq.cts)
+  cts <- factor(cell.types,levels=uniq.cts)
   return(cts)
 }
 

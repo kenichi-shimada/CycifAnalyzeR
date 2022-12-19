@@ -1,6 +1,8 @@
 #' @rdname CellTypeDefault-slots
 #' @export
 setGeneric("cell_types", function(x,...) standardGeneric("cell_types"))
+
+#' @export
 setMethod("cell_types", "CellTypeCycif", function(x,full=TRUE,leaves.only=TRUE,within.rois=TRUE){
   if(full){
     cts <- x@cell_types_full
@@ -15,6 +17,8 @@ setMethod("cell_types", "CellTypeCycif", function(x,full=TRUE,leaves.only=TRUE,w
   }
   return(cts)
 })
+
+#' @export
 setMethod("cell_types", "Cycif", function(x,full=TRUE,leaves.only=TRUE,within.rois=TRUE){
   cts <- cell_types(x@cell_type,full=full,leaves.only=leaves.only,within.rois=within.rois)
   return(cts)
