@@ -24,6 +24,16 @@ setMethod("cell_types", "Cycif", function(x,full=TRUE,leaves.only=TRUE,within.ro
   return(cts)
 })
 
+#' @export
+setMethod("cell_types", "CycifStack", function(x,full=TRUE,leaves.only=TRUE,within.rois=TRUE){
+  if(full){
+    cts <- x@cell_type@cell_types_full
+  }else{
+    cts <- x@cell_type@cell_types
+  }
+  return(cts)
+})
+
 #' #' @rdname CellTypeDefault-slots
 #' #' @export
 #' setGeneric("markers", function(x) standardGeneric("markers"))
