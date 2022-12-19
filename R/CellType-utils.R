@@ -1,3 +1,4 @@
+#' @rdname CellTypeDefault-slots
 #' @export
 setGeneric("cell_types", function(x,...) standardGeneric("cell_types"))
 setMethod("cell_types", "CellTypeCycif", function(x,full=TRUE,leaves.only=TRUE,within.rois=TRUE){
@@ -19,22 +20,22 @@ setMethod("cell_types", "Cycif", function(x,full=TRUE,leaves.only=TRUE,within.ro
   return(cts)
 })
 
-#' @rdname CellTypeDefault-slots
-#' @export
-setGeneric("markers", function(x) standardGeneric("markers"))
-setMethod("markers", "CellTypeDefault", function(x)x@markers)
-
-#' @rdname CellTypeDefault-slots
-#' @export
-setGeneric("cell_lineages", function(x) standardGeneric("cell_lineages"))
-setMethod("cell_lineages", "CellTypeDefault", function(x)rownames(x@cell_lineage))
-
-#' @rdname CellTypeDefault-slots
-#' @export
-setGeneric("cell_lineage_df", function(x) standardGeneric("cell_lineage_df"))
-setMethod("cell_lineage_df", "CellTypeDefault", function(x)x@cell_lineage_df)
-
-#' @rdname CellTypeDefault-slots
-#' @export
-setGeneric("cell_state_df", function(x) standardGeneric("cell_state_df"))
-setMethod("cell_state_df", "CellTypeDefault", function(x)x@cell_state_df)
+#' #' @rdname CellTypeDefault-slots
+#' #' @export
+#' setGeneric("markers", function(x) standardGeneric("markers"))
+#' setMethod("markers", "CellTypeDefault", function(x)x@markers)
+#'
+#' #' @rdname CellTypeDefault-slots
+#' #' @export
+#' setGeneric("cell_lineages", function(x) standardGeneric("cell_lineages"))
+#' setMethod("cell_lineages", "CellTypeDefault", function(x)rownames(x@cell_lineage))
+#'
+#' #' @rdname CellTypeDefault-slots
+#' #' @export
+#' setGeneric("cell_lineage_df", function(x) standardGeneric("cell_lineage_df"))
+#' setMethod("cell_lineage_df", "CellTypeDefault", function(x)x@cell_lineage_df)
+#'
+#' #' @rdname CellTypeDefault-slots
+#' #' @export
+#' setGeneric("cell_state_df", function(x) standardGeneric("cell_state_df"))
+#' setMethod("cell_state_df", "CellTypeDefault", function(x)x@cell_state_df)
