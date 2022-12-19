@@ -4,8 +4,25 @@
 #'
 #' @rdname CellTypeDefault-slots
 #' @export
-setGeneric("cellTypes", function(x) standardGeneric("cellTypes"))
-setMethod("cellTypes", "CellTypeCycif", function(x)x@CellTypeCycif)
+setGeneric("cell_types", function(x,...) standardGeneric("cell_types"))
+setMethod("cell_types", "CellTypeCycif", function(x,full=TRUE,leaves.only=TRUE,within.rois=TRUE){
+  if(full){
+    cts <- x@cell_types_full
+    ctype <- x@expanded_lineage_df
+  }else{
+    cts <- x@cell_types
+    ctype <- x@cell_lineage_df
+  }
+  if(leaves.only){
+    leaves <- ctype$Child[!ctype$Child %in% ctype$Parent]
+    cts <- factor(cts,levels=leaves)
+  }
+  return(cts)
+})
+setMethod("cell_types", "Cycif", function(x,full=TRUE,leaves.only=TRUE,within.rois=TRUE){
+  cts <- cell_types(x@cell_type,full=full,leaves.only=leaves.only,within.rois=within.rois)
+  return(cts)
+})
 
 #' @rdname CellTypeDefault-slots
 #' @export

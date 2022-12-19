@@ -42,12 +42,7 @@ Cycif <- function(filename,path,suffix="_cellRing") {
   abs_list <- data.frame(ab=ab.list,
                          cycle=rep(seq(n.cycles),each=3),
                          channel=rep(1:3,times=n.cycles),
-                         stringsAsFactors=TRUE)
-
-  abs_params <- data.frame(ab=ab.list,
-                           low=rep(-Inf,n.abs),
-                           high=rep(Inf,n.abs),
-                           use=rep(TRUE,n.abs))
+                         stringsAsFactors=FALSE)
 
   dna.list <- ch.list[i.dna]
 

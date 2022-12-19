@@ -11,8 +11,8 @@ CellTypeCycif <- function(x,lineage_df,state_df,gates.df){
   lmks <- colnames(lineage_df)[-c(1:2)]
   used.abs1 <- lmks[lmks %in% abs$ab]
   unused.abs1 <- lmks[!lmks %in% abs$ab]
-  used1 <- lineage_df[,used.abs1]
-  unused1 <- lineage_df[,unused.abs1]
+  used1 <- lineage_df[,used.abs1,drop=F]
+  unused1 <- lineage_df[,unused.abs1,drop=F]
   used.cts <- !apply(unused1=="AND",1,any)
 
   smks <- colnames(state_df)

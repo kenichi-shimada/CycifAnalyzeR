@@ -10,21 +10,6 @@ setMethod("abs_list", "Cycif", function(x) x@abs_list)
 
 #' @rdname Cycif-slots
 #' @export
-setGeneric("abs_params", function(x) standardGeneric("abs_params"))
-setMethod("abs_params", "Cycif", function(x) x@abs_params)
-
-#' @rdname Cycif-slots
-#' @export
-setGeneric("abs_params<-", function(x,...) standardGeneric("abs_params<-"))
-setMethod("abs_params<-", "Cycif", function(x,value){
-  stopifnot(!missing(value))
-  x@abs_params <- value
-  validObject(x)
-  return(x)
-})
-
-#' @rdname Cycif-slots
-#' @export
 setGeneric("dna", function(x) standardGeneric("dna"))
 setMethod("dna", "Cycif", function(x) x@dna)
 
