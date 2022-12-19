@@ -4,66 +4,78 @@ setGeneric("vlnPlot", function(x,...) standardGeneric("vlnPlot"))
 
 #' @export
 setMethod("vlnPlot", "CycifStack",
-  function(x,type=c("raw","normalized"), xaxis=c("celltype","smpl"),
-           ab="PDL1", cts, ctype="all", sample="all",ttl){
+  function(x,type=c("raw","log_normalized"), xaxis=c("celltype","smpl"),
+           ab="PDL1", ctype=c("short","long"),uniq.cts,uniq.smpls){
     require(tidyr)
     require(ggplot2)
 
-    # x = ln
-    # type="normalized"
-    # xaxis="celltype"
-    # celltype=levels(dc2)
-    # # cts=ctypes
-    # cts = dc2
-    # ab=used.abs[1]
-
     if(missing(type)){
-      type <- "normalized"
+      type <- "log_normalized"
     }
 
-    nms <- names(x)
-    df <- exprs(x,type=type) %>%
-      mutate(celltype=factor(cts))
+    if(missing(ctype)){
+      ctype <- "short"
+    }
+
+    if(ctype=="short"){
+      cts <- cell_types(x,full=FALSE,leaves.only=TRUE)
+    }else if(ctype=="long"){
+      cts <- cell_types(x,full=TRUE,leaves.only=TRUE)
+    }
+
+    df <- exprs(x,type=type) %>%  mutate(celltype=factor(cts))
     df <- df %>%
       mutate(smpl = factor(sub("\\.[0-9]+$","",rownames(df))))
+      # select(c(one_of(ab),celltype,smpl))
 
-    ab_thres <- log1p(x@threshold[ab,nms])
+    ab_thres <- x@cell_type@gates[ab,]
 
-    df1 <- df
+    if(missing(uniq.smpls)){
+      uniq.smpls <- levels(df$smpl)
+    }
+    if(missing(uniq.cts)){
+      uniq.cts <- levels(df$celltype)
+    }
 
-    if(ctype[1] != "all"){
-      df1 <- df1 %>%
-        mutate(celltype=factor(celltype,levels=ctype)) %>%
-        filter(!is.na(celltype))
-      # stop(length(levels(df1$celltype)))
-    }
-    if(sample[1] != "all"){
-      df1 <- df1 %>%
-        filter(smpl %in% sample) %>%
-        mutate(smpl=factor(smpl))
-    }
-    if(missing(ttl)){
-      ttl <- paste0(ab)
-    }
     if(xaxis=="smpl"){
-      df_thres <- data.frame(smpl=names(ab_thres),th=unlist(ab_thres))
-      p <- ggplot(df1,aes_string("smpl",paste0("`",ab,"`"))) +
-        geom_violin(aes(fill = sample)) +
+      ab <- "gH2AX"
+      uniq.smpls <- levels(df$smpl)
+      df1 <- df %>%
+        filter(smpl %in% uniq.smpls) %>%
+        filter(celltype %in% "Tumor") %>%
+        mutate(smpl=factor(smpl))
+      ttl <- paste0(ab,",Tumor")
+      p <- ggplot(df1,aes_string("smpl",ab)) +
+        geom_violin(aes(fill = smpl)) +
         theme(legend.position = "none") +
         theme(axis.text.x = element_text(angle = 90, vjust = 0.5, hjust=1)) +
         ggtitle(ttl)
-      # for(smpl in smpls){
-      #   i <- match(smpl,smpls)
-      #   amt <- 0.2
-      #   th <- ab_thres[[smpl]]
-      #   p <- p +  geom_segment(aes(x=i-amt/2,xend=i+amt/2,y=th,yend=th))
-      # }
+      print(p)
+
+      df_thres <- data.frame(smpl=factor(names(ab_thres)),th=unlist(ab_thres))
+      for(smpl in df_thres$smpl){
+        i <- match(smpl,df_thres$smpl)
+        amt <- 0.2
+        th <- ab_thres[[smpl]]
+        p <- p +  geom_segment(aes(x=i-amt/2,xend=i+amt/2,y=th,yend=th))
+      }
 
       # stop(names(df_thres))
       print(p)
     }else if(xaxis=="celltype"){ # not so useful?
-      p <- ggplot(df1,aes_string("celltype",paste0("`",ab,"`"))) +
-        geom_hline(yintercept = ab_thres[[smpl]]) +
+      ab <- "pTBK1"
+      ab <- "gH2AX"
+      ab <- "pERK"
+      ab <- "pAKT"
+      smpl <- uniq.smpls <- "13693"
+      df1 <- df %>%
+        mutate(celltype=factor(celltype,levels=uniq.cts)) %>%
+        filter(smpl %in% uniq.smpls) %>%
+        filter(!is.na(celltype))
+
+      ttl <- smpl
+      p <- ggplot(df1,aes_string("celltype",ab)) +
+        # geom_hline(yintercept = ab_thres[[smpl]]) +
         geom_violin(aes(fill = celltype)) +
         theme(legend.position = "none") +
         theme(axis.text.x = element_text(angle = 90, vjust = 0.5, hjust=1)) +

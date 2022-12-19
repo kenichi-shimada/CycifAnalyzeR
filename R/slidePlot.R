@@ -3,7 +3,7 @@
 setGeneric("slidePlot", function(x,...) standardGeneric("slidePlot"))
 setMethod("slidePlot", "Cycif",
 	function(x,pch=".",cex=1,type=c("dna","exp","cell_type","filter"),ttl,ab,
-	         uniq.cols,na.col="grey90",cell_type,roi.selected,ncells=1e4,
+	         uniq.cols,na.col="grey80",uniq.cts=roi.selected,ncells=1e4,
 	         legend=FALSE, legend.pos="bottomright",mar=c(3,3,3,3),...){
 	  n <- exprs(x,type="normalized")
 	  smpl <- names(x)
