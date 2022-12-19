@@ -3,8 +3,6 @@
 \name{names,Cycif-method}
 \alias{names,Cycif-method}
 \alias{abs_list}
-\alias{abs_params}
-\alias{abs_params<-}
 \alias{dna}
 \alias{nCells}
 \alias{xys}
@@ -20,10 +18,6 @@
 \S4method{names}{Cycif}(x)
 
 abs_list(x)
-
-abs_params(x)
-
-abs_params(x, ...) <- value
 
 dna(x)
 

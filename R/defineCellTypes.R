@@ -19,7 +19,7 @@ setMethod("defineCellTypes", "Cycif", function(x,ctype,cstate,gates,p_thres=0.5,
 })
 
 setMethod("defineCellTypes", "CycifStack", function(x,ctype,cstate,gates,p_thres=0.5,...){
-  cys <- cyApply(x,defineCellTypes,ctype=ctype,cstate=cstate)
+  cys <- cyApply(x,defineCellTypes,ctype=ctype,cstate=cstate,gates=gates,p_thres=p_thres)
   ctcs <- CellTypeCycifStack(x,ctype,cstate,gates)
   cys@cell_type <-ctcs
 

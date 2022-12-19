@@ -1,8 +1,3 @@
-#' Accessing slots in CellType* class
-#'
-#' @param x A CellTypeDefault object
-#'
-#' @rdname CellTypeDefault-slots
 #' @export
 setGeneric("cell_types", function(x,...) standardGeneric("cell_types"))
 setMethod("cell_types", "CellTypeCycif", function(x,full=TRUE,leaves.only=TRUE,within.rois=TRUE){
