@@ -25,11 +25,15 @@ CellTypeCycifStack <- function(x,lineage_df,state_df,gates.df){
   smks <- colnames(state_df)
 
   mks <- c(lmks,smks)
-  gs <- data.frame(array(NA,dim=c(length(mks),nSamples(x)),dimnames=list(mks,names(x))))
-  names(gs) <- sub("^X","",names(gs))
+  gates.list <- as.data.frame(cyApply(x,function(cy){
+    ctc <- CellTypeCycif(cy,lineage_df,state_df,gates.df)
+    ctc@gates[mks]
+  },simplify=TRUE))
 
-  if(any(ungated)){
-    warning("some samples are not gated:",paste(names(gs)[ungated],collapse=","))
+  is.ungated <- sapply(gates.list,function(g)all(is.na(g)))
+
+  if(any(is.ungated)){
+    warning("some samples are not gated:",paste(smpls[is.ungated],collapse=","))
   }
 
   new("CellTypeCycifStack",

@@ -16,9 +16,6 @@ setClass("CycifStack",
 
        cell_type = "CellTypeCycifStack",
 
-       raw = "data.frame",
-       log_normalized = "data.frame",
-       logTh_normalized = "data.frame",
        ld_coords = "data.frame",
        samples = "list",
 

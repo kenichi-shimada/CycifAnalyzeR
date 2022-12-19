@@ -104,7 +104,14 @@ transform <- function(r,method=c("log","logTh","Th","invlog"),th,p_thres=0.5,tri
     r1 <- expm1(r)
   }
 
-  ## method: either 'log' or 'logTh'
+  ## method: either 'log'
+  if(method=="log"){
+    qt <- quantile(lr,c(trim,1-trim))
+    r1[r1 > qt[2]] <- qt[2]
+    r1[r1 < qt[1]] <- qt[1]
+  }
+
+  ## method: either 'Th' or 'logTh'
   if(method %in% c("logTh","Th")){
     if(missing(th)){
       stop("'th' should be specified for this normalization method")
