@@ -7,6 +7,7 @@
 \alias{maxCycles}
 \alias{nCells,CycifStack-method}
 \alias{length,CycifStack-method}
+\alias{within_rois,CycifStack-method}
 \alias{nCycles,CycifStack-method}
 \title{Accessing slots in a CellTypeCycifStack object}
 \usage{
@@ -21,6 +22,8 @@ maxCycles(x)
 \S4method{nCells}{CycifStack}(x)
 
 \S4method{length}{CycifStack}(x)
+
+\S4method{within_rois}{CycifStack}(x)
 
 \S4method{nCycles}{CycifStack}(x)
 }

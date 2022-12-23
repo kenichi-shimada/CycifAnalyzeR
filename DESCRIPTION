@@ -51,6 +51,8 @@ Collate:
     'exprs.R'
     'findCluster.R'
     'gates.R'
+    'h3.R'
+    'heatmapExp.R'
     'nCycles.R'
     'normalize.R'
     'nrPlot.R'
