@@ -2,10 +2,12 @@
 #'
 setGeneric("slidePlot", function(x,...) standardGeneric("slidePlot"))
 setMethod("slidePlot", "Cycif",
-	function(x,pch=".",cex=1,type=c("dna","exp","cell_type","filter"),ttl,ab,
-	         uniq.cols,na.col="grey80",uniq.cts=roi.selected,ncells=1e4,
-	         legend=FALSE, legend.pos="bottomright",mar=c(3,3,3,3),...){
-	  n <- exprs(x,type="normalized")
+	function(x,pch=20,cex=2,type=c("dna","exp","cell_type","filter"),
+	         ctype.full=TRUE,ttl,ab,uniq.cts,uniq.cols,draw.roi=TRUE,
+	         na.col="grey80",use.roi=TRUE,use.thres=TRUE,ncells=1e4,
+	         contour=TRUE,cont_nlevs=3,
+	         trim_th=1e-2,legend=FALSE, legend.pos="bottomright",mar=c(3,3,3,3),...){
+	  n <- exprs(x,type="log_normalized")
 	  smpl <- names(x)
 	  if(missing(type)){
 	    stop("need to specify the color_code by 'type' argument")
@@ -18,16 +20,17 @@ setMethod("slidePlot", "Cycif",
 	    mat <- cbind(log1p(mat[[1]]),as.data.frame(lapply(mat,function(x)log1p(x/mat[[1]])))[-1])
 	    names(mat) <- names(x@dna)
 
-  	  n.ab <- trim_fun(mat[[ab]],trim_th=1e-2)
+  	  n.ab <- trim_fun(mat[[ab]],trim_th=trim_th)
   	  rn <- range(n.ab,na.rm=T)
 
       is.na <- is.na(n.ab)
-      if(!missing(roi.selected)){
-        is.na <- is.na | !roi.selected
-  	  }
+      if(use.roi){
+        within.rois <- x@within_rois
+        is.na <- is.na | !within.rois
+      }
+
 	    if(missing(uniq.cols)){
 	      nlev <- 50
-
 	      idx <- round((n.ab[!is.na] - rn[1])/diff(rn)*(nlev-1))+1
         uniq.cols <- colorRampPalette(rev(brewer.pal(11,"Spectral")))(nlev)
       	cols <- rep(na.col,length(n.ab))
@@ -47,17 +50,28 @@ setMethod("slidePlot", "Cycif",
   	   ttl <- paste0(smpl," (",ab1,")")
   	 }
 	  }else if(type=="exp"){
+	    cts <- cell_types(x,full=ctype.full,leaves.only=TRUE,within.rois=use.roi)
+	    if(missing(uniq.cts)){
+	      uniq.cts <- levels(cts)
+	      if(any(uniq.cts=="unknown")){
+	        ui <- which(uniq.cts=="unknown")
+	        uniq.cts <- c(uniq.cts[-ui],"unknown")
+	      }
+	    }
+	    cts <- factor(cts,levels=uniq.cts)
+
       if(missing(ab) || !ab %in% abs_list(x)$ab){
         stop(ab, " is not specified or available in the sample ", names(x))
-      }else{
-        n.ab <- trim_fun(n[[ab]],trim_th=1e-3)
-        rn <- range(n.ab,na.rm=T)
-        # stop(sum(is.na(rn)))
-        is.na <- is.na(n.ab)
-        if(!missing(roi.selected)){
-          is.na <- is.na | !roi.selected
-        }
       }
+
+      n.ab <- trim_fun(n[[ab]],trim_th=trim_th)
+      rn <- range(n.ab,na.rm=T)
+      is.na <- is.na(n.ab)
+      if(use.roi){
+        within.rois <- x@within_rois
+        is.na <- is.na | !within.rois
+      }
+
       if(missing(uniq.cols)){
         nlev <- 50
 
@@ -72,29 +86,41 @@ setMethod("slidePlot", "Cycif",
       }
 
       if(missing(ttl)){
-        ttl <- paste0(smpl,", ",ab)
+        ttl <- paste0(smpl,", ",ab," expression")
       }
     }else if(type=="cell_type"){
-	    if(missing(cell_type)){
-	      stop("when type='cell_type', argument 'cell_type' can't be missing.")
-	    }
+      cts <- cell_types(x,full=ctype.full,leaves.only=TRUE,within.rois=use.roi)
+      if(missing(uniq.cts)){
+        uniq.cts <- levels(cts)
+        if(any(uniq.cts=="unknown")){
+          ui <- which(uniq.cts=="unknown")
+          uniq.cts <- c(uniq.cts[-ui],"unknown")
+        }
+      }
+      cts <- factor(cts,levels=uniq.cts)
+
 	    if(missing(uniq.cols)){
-	        nct <- nlevels(cell_type)
+	        nct <- nlevels(cts)
 	        if(nct>11){
   	        uniq.cols <- colorRampPalette(RColorBrewer::brewer.pal(11,"Spectral"))(nct)
 	        }else{
-  	        uniq.cols <- RColorBrewer::brewer.pal(nct,"Spectral")
+  	        uniq.cols <- RColorBrewer::brewer.pal(11,"Spectral")[seq(nct)]
 	        }
-	        names(uniq.cols) <- levels(cell_type)
+	        names(uniq.cols) <- uniq.cts
       }
-      cols <- uniq.cols[cell_type]
-      is.na <- is.na(cell_type)
-      if(!missing(roi.selected)){
-        is.na <- is.na | !roi.selected
+      cols <- uniq.cols[cts]
+      is.na <- is.na(cts)
+      if(use.roi){
+        within.rois <- x@within_rois
+        is.na <- is.na | !within.rois
       }
 
 	    if(missing(ttl)){
-	      ttl <- paste0(smpl,", cell-types")
+	      if(missing(uniq.cts)){
+  	      ttl <- paste0(smpl,", cell-types")
+	      }else{
+	        ttl <- paste0(smpl,", ",paste0(uniq.cts,collapse=","))
+	      }
 	    }
     }else if(type=="filter"){
       if(missing(cell_type)){
@@ -111,9 +137,11 @@ setMethod("slidePlot", "Cycif",
       }
       cols <- uniq.cols[cell_type]
       is.na <- is.na(cell_type)
-      if(!missing(roi.selected)){
-        is.na <- is.na | !roi.selected
+      if(use.roi){
+        within.rois <- x@within_rois
+        is.na <- is.na | !within.rois
       }
+
       o <- order(cell_type)
       if(length(pch)==1){
         pch <- rep(pch,length(cell_type))
@@ -124,8 +152,10 @@ setMethod("slidePlot", "Cycif",
       ttl <- ""
 	  }
 
+ 	  ## plot
     xy <- xys(x)
   	xy$Y_centroid <- max(xy$Y) - xy$Y
+  	prs <- x@positive_rois
 
   	if(!is.na(ncells) && nrow(xy) > ncells){
   	  set.seed(123)
@@ -133,31 +163,51 @@ setMethod("slidePlot", "Cycif",
   	}else{
   	  is.used <- rep(TRUE,nrow(xy))
   	}
+
   	omar <- par()$mar
+  	##
   	par(mar=mar)
-  	plot(xy$X,xy$Y,main=ttl,asp=1,xlab="",ylab="",type="n",...)
-  	points(xy$X[is.na & is.used],xy$Y[is.na & is.used],col=na.col,pch=pch,cex=cex*.8)
+  	plot(xy$X,xy$Y,main=ttl,asp=1,xlab="",ylab="",type="n")#,...)
+
+  	cex1 = 4.8 * 8/3 * (par()$pin[1]/par()$cin[2])/diff(par()$usr[1:2])
+
+  	points(xy$X[is.na & is.used],xy$Y[is.na & is.used],col=na.col,pch=pch,cex=cex1)
+
   	if(type=="cell_type"){
-  	  points(xy$X[!is.na & cell_type=="_" & is.used],
-  	         xy$Y[!is.na & cell_type=="_" & is.used],
-  	         col=cols[!is.na & cell_type=="_" & is.used],
-  	         pch=pch,cex=cex)
-  	  points(xy$X[!is.na & cell_type!="_" & is.used],
-  	         xy$Y[!is.na & cell_type!="_" & is.used],
-  	         col=cols[!is.na & cell_type!="_" & is.used],
-  	         pch=pch,cex=cex)
+  	  points(xy$X[!is.na & cts=="unknown" & is.used],
+  	         xy$Y[!is.na & cts=="unknown" & is.used],
+  	         col=cols[!is.na & cts=="unknown" & is.used],
+  	         pch=pch,cex=cex1*cex)
+  	  points(xy$X[!is.na & cts!="unknown" & is.used],
+  	         xy$Y[!is.na & cts!="unknown" & is.used],
+  	         col=cols[!is.na & cts!="unknown" & is.used],
+  	         pch=pch,cex=cex1*cex)
   	}else if(type=="filter"){
   	  points(xy$X[o],
   	         xy$Y[o],
   	         col=cols[o],
-  	         pch=pch,cex=cex)
+  	         pch=pch,cex=cex1*cex)
   	}else{
   	  points(xy$X[!is.na & is.used],
   	         xy$Y[!is.na & is.used],
   	         col=cols[!is.na & is.used],
-  	         pch=pch,cex=cex)
+  	         pch=pch,cex=cex1*cex)
   	}
-
+    if(draw.roi){
+      for(i in seq(prs)){
+        pr <- prs[[i]]
+        # points(pr,pch=sub(".+(.)$","\\1",as.character(seq(length(pr$x)))))
+        pr$x <- c(pr$x,pr$x[1])
+        pr$y <- c(pr$y,pr$y[1])
+        lines(pr,lty=2,col=i)
+      }
+    }
+  	if(type=="cell_type" && contour){
+  	  this.idx <- !is.na & cts %in% uniq.cts & is.used
+  	  f1 <- kde2d(xy$X[this.idx],xy$Y[this.idx], n = 1000, lims = par()$usr,
+  	              h = c(width.SJ(xy$X), width.SJ(xy$Y)))
+  	  contour(f1, nlevels  = cont_nlevs, add=T, labels=rep("",3),col="grey50")
+  	}
   	if(legend){
   	  legend(legend.pos,names(uniq.cols),col=uniq.cols,pch=20)
   	}
