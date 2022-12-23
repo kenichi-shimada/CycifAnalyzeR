@@ -3,7 +3,7 @@
 setGeneric("cell_types", function(x,...) standardGeneric("cell_types"))
 
 #' @export
-setMethod("cell_types", "CellTypeCycif", function(x,full=TRUE,leaves.only=TRUE,within.rois=TRUE){
+setMethod("cell_types", "CellTypeCycif", function(x,full=TRUE,leaves.only=TRUE){
   if(full){
     cts <- x@cell_types_full
     ctype <- x@expanded_lineage_df
@@ -20,7 +20,11 @@ setMethod("cell_types", "CellTypeCycif", function(x,full=TRUE,leaves.only=TRUE,w
 
 #' @export
 setMethod("cell_types", "Cycif", function(x,full=TRUE,leaves.only=TRUE,within.rois=TRUE){
-  cts <- cell_types(x@cell_type,full=full,leaves.only=leaves.only,within.rois=within.rois)
+  cts <- cell_types(x@cell_type,full=full,leaves.only=leaves.only)
+  if(within.rois){
+    is.rois <- x@within_rois
+  }
+  cts[!is.rois] <- NA
   return(cts)
 })
 
@@ -31,6 +35,10 @@ setMethod("cell_types", "CycifStack", function(x,full=TRUE,leaves.only=TRUE,with
   }else{
     cts <- x@cell_type@cell_types
   }
+  if(within.rois){
+    is.rois <- within_rois(x)
+  }
+  cts[is.rois] <- NA
   return(cts)
 })
 
