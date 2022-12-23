@@ -42,5 +42,9 @@ setMethod("nCells", "CycifStack", function(x) x@n_cells)
 setMethod("length","CycifStack",function(x)length(x@samples))
 
 
-
+#' @rdname CycifStack-slots
+#' @export
+setMethod("within_rois", "CycifStack", function(x){
+  unlist(cyApply(x,function(cy)cy@within_rois))
+})
 
