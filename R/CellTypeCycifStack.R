@@ -50,12 +50,14 @@ CellTypeCycifStack <- function(x,ctype.full=FALSE){
     warning("some samples are not gated:",paste(smpls[is.ungated],collapse=","))
   }
 
+  abs <- abs %>% filter(ab %in% mks)
+
   new("CellTypeCycifStack",
       n_samples = x@n_samples,
       max_cycles = x@max_cycles,
       cell_lineage_def = ctype,
       cell_state_def = cstate,
-      markers = mks,
+      markers = abs,
       gates = gates.df
   )
 }
