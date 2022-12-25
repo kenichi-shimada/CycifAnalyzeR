@@ -1,5 +1,5 @@
 #'@export
-CellTypeCycifStack <- function(x,ctype,cstate,gates.df){
+CellTypeCycifStack <- function(x,ctype,cstate,gates.df,ctype.full=FALSE){
   require(dplyr)
   if(class(x)=="CycifStack"){
     abs <- abs_list(x)
@@ -26,7 +26,7 @@ CellTypeCycifStack <- function(x,ctype,cstate,gates.df){
 
   mks <- c(lmks,smks)
   gates.list <- as.data.frame(cyApply(x,function(cy){
-    ctc <- CellTypeCycif(cy,ctype,cstate,gates.df)
+    ctc <- CellTypeCycif(cy,ctype,cstate,gates.df,ctype.full=ctype.full)
     ctc@gates[mks]
   },simplify=TRUE))
 
