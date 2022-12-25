@@ -59,14 +59,16 @@ setMethod("normalize", "Cycif",
 
       norm <- as.data.frame(
         sapply(used.abs,function(ab){
-          n <- rep(NA,nrow(raw))
-          if(ab %in% used.abs){
-            cycle <- abs_list(x)$cycle[abs_list(x)$ab==ab]
-            is.used.1 <- is.used[,cycle]
-            r <- raw[[ab]]
-            th <- thres[ab]
-            n[is.used.1] <- transform(r[is.used.1],method="logTh",th=th,trim=trim,p_thres=p_thres)
-          }
+          # for(ab in used.abs){
+            n <- rep(NA,nrow(raw))
+            if(ab %in% used.abs){
+              cycle <- abs_list(x)$cycle[abs_list(x)$ab==ab]
+              is.used.1 <- is.used[,cycle]
+              r <- raw[[ab]]
+              th <- thres[ab]
+              n[is.used.1] <- transform(r[is.used.1],method="logTh",th=th,trim=trim,p_thres=p_thres)
+            }
+          # }
           return(n)
         })
       )
