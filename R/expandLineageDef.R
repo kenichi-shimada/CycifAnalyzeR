@@ -1,11 +1,23 @@
 #'@export
-expandLineageDef <- function(ctype){
+expandLineageDef <- function(ctype,ctype.full=TRUE){
   if(!is.data.frame(ctype)){
     stop("ctype should be data.frame")
   }
   uniq.cts <- ctype$Child
   uniq.abs <- colnames(ctype)[-c(1:2)]
   is.str <- sapply(ctype[uniq.abs],function(x)any(x=="CAN"))
+  if(all(is.str!="CAN")){
+    chs1 <- ctype$Child
+    cts.conv <- data.frame(idx=seq(chs1),original=chs1,expanded=chs1)
+    return(list(ctype=ctype,names=cts.conv))
+  }else if(all(is.str!="CAN") & !ctype.full){
+    chs1 <- ctype$Child
+    uniq.abs <- uniq.abs[!is.str]
+    ctype <- ctype[,c("Parent","Child",uniq.abs)]
+    cts.conv <- data.frame(idx=seq(chs1),original=chs1,expanded=chs1)
+    return(list(ctype=ctype,names=cts.conv))
+  }
+
   lin.abs <- uniq.abs[!is.str]
   str.abs <- uniq.abs[is.str]
   is.pd <- any(str.abs %in% c("PDL1","PD1"))
@@ -77,5 +89,5 @@ expandLineageDef <- function(ctype){
   idx <- match(pas1,chs)
   cts.conv <- data.frame(idx=idx,original=pas1,expanded=chs1)
 
-  return(list(lineage_df=ct,names=cts.conv))
+  return(list(ctype=ct,names=cts.conv))
 }
