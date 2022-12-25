@@ -19,17 +19,6 @@ setMethod("vlnPlot", "CycifStack",
       stop("ab should be always specified")
     }
 
-    if(xaxis=="celltype"){
-
-    }else{
-
-    }
-    if(xaxis=="smpl"){
-
-    }else{
-
-    }
-
     ## gates
     ab_thres <- unlist(x@cell_type@gates[ab,])
     if(type=="raw"){
@@ -41,13 +30,14 @@ setMethod("vlnPlot", "CycifStack",
     }
 
     ## cell types
-    cts <- cell_types(x,full=ctype.full,leaves.only=TRUE,within.rois=rois)
+    cts <- cell_types(x,ctype.full=ctype.full,leaves.only=TRUE,within.rois=rois)
+    table(cts) ## all zeros!!!
 
     df <- exprs(x,type=type) %>%
       tibble::rownames_to_column(var="smpl") %>%
       mutate(smpl = sub("\\.[0-9]+$","",smpl)) %>%
-      filter(within_rois(x)) %>%
       mutate(celltype=factor(cts)) %>%
+      filter(within_rois(x)) %>%
       left_join(pData(cs1) %>% rename(smpl=id),by="smpl") %>%
       mutate(smpl = factor(smpl))
 

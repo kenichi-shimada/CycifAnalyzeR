@@ -12,7 +12,7 @@
 setGeneric("exprs", function(x,...) standardGeneric("exprs"))
 
 #' @export
-setMethod("exprs", "Cycif", function(x,type=c("raw","log_normalized","logTh_normalized"),silent=TRUE){
+setMethod("exprs", "Cycif", function(x,type=c("raw","log_normalized","logTh_normalized")){
   if(missing(type)){
     # cat("Error: specify type: \"raw\" or \"normalized\"\n")
     stop("'type'argument should be specified\n")

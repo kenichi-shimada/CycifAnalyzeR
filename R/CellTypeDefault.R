@@ -26,14 +26,11 @@ CellTypeDefault <- function(x,ctype,cstate,ctype.full=TRUE){
     mks.info <- abs %>% filter(ab %in% mks)
   }
 
-  elin <- expandLineageDef(ctype,ctype.full=ctype.full)
-
-  est <- cstate[elin$names$idx,]
-    rownames(est) <- elin$names$expanded
+  elin <- expandLineageDef(ctype=ctype,cstate=cstate,ctype.full=ctype.full)
 
   new("CellTypeDefault",
-      cell_lineage_def = ctype,
-      cell_state_def = cstate,
+      cell_lineage_def = elin$ctype,
+      cell_state_def = elin$cstate,
       markers = mks.info
   )
 }

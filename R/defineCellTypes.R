@@ -6,17 +6,21 @@ setGeneric("defineCellTypes", function(x,...) standardGeneric("defineCellTypes")
 setMethod("defineCellTypes", "Cycif", function(x,ctype,cstate,gates,p_thres=0.5,...){
   # ctype and cstate is input
   ## run CellTypeCycif
-  x@cell_type  <- CellTypeCycif(x,ctype,cstate,gates)
-  x@cell_type_full  <- CellTypeCycif(x,ctype,cstate,gates)
+  x@cell_type  <- CellTypeCycif(x,ctype,cstate,gates,ctype.full=FALSE)
+  x@cell_type_full  <- CellTypeCycif(x,ctype,cstate,gates,ctype.full=TRUE)
 
   ## normalize - should be done within CellTypeCycif
   x <- normalize(x,method="logTh",p_thres=p_thres)
 
   ## set CellTypeCycif object in the cell_type slot
-  cts.full <- CellTypeCalling(x,p_thres=p_thres,strict=FALSE,expanded_df=TRUE)
-  cts.short <- CellTypeCalling(x,p_thres=p_thres,strict=FALSE,expanded_df=FALSE)
-  x@cell_type@cell_types_full <- cts.full
-  x@cell_type@cell_types <- cts.short
+  cts.full <- CellTypeCalling(x,p_thres=p_thres,ctype.full=TRUE)
+  cts.short <- CellTypeCalling(x,p_thres=p_thres,ctype.full=FALSE)
+
+  x@cell_type_full@cell_types <- cts.full$cell_type
+  x@cell_type_full@is_strict <- cts.full$is_strict
+  x@cell_type@cell_types <- cts.short$cell_type
+  x@cell_type@is_strict <- cts.short$is_strict
+
   return(x)
 })
 

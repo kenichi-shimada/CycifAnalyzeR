@@ -1,25 +1,24 @@
 #' @export
-CellTypeCalling <- function(cy,p_thres=0.5,strict=FALSE,expanded_df=TRUE){
+CellTypeCalling <- function(cy,p_thres=0.5,ctype.full=TRUE){
   # return a character vector containing 'cell_types'
   # cy <- x[[1]]
   lth <- exprs(cy,type="logTh_normalized")
   if (nrow(lth)==0) {
     stop("run normalize(method=\"logTh\") before CellTypeCalling()")
   }
-  if(strict){
-    stop("strict=TRUE is not implemented yet")
-  }
 
-  ctc <- cy@cell_type
-  if(expanded_df){
-    ctype <- ctc@expanded_lineage_df
+  if(ctype.full){
+    ctc <- cy@cell_type_full
   }else{
-    ctype <- ctc@cell_lineage_df
+    ctc <- cy@cell_type
   }
+  ctype <- ctc@cell_lineage_def
 
   ctlevs <- CellTypeGraph(ctype,plot=F)
 
   cell.types <- rep("all",nrow(lth))
+  is.strict <- rep(TRUE,nrow(lth))
+
   for(l in seq(length(ctlevs)-1)){
     pas <- ctlevs[[l]]
     chs <- ctlevs[[l+1]]
@@ -84,12 +83,20 @@ CellTypeCalling <- function(cy,p_thres=0.5,strict=FALSE,expanded_df=TRUE){
             }
             return(ch1)
           }
-        })
-      }
+      })
+    }
+    this.strict <- rowSums(prs > 0.5) < 2
+    this.strict[is.na(this.strict)] <- FALSE
+    is.strict[is.strict] <- this.strict[is.strict]
   }
+
   ## convert to factor: Q: how to order cell types from ctype df?
   uniq.cts <- c("all",ctype$Child)
+  leaves <- uniq.cts[!uniq.cts %in% ctype$Parent]
+
+  uniq.cts <- c(uniq.cts[uniq.cts!="unknown"],"unknown")
   cts <- factor(cell.types,levels=uniq.cts)
-  return(cts)
+
+  return(list(cell_type=cts,is_strict=is.strict))
 }
 

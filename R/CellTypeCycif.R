@@ -8,22 +8,26 @@ CellTypeCycif <- function(x,ctype,cstate,gates.df,ctype.full=FALSE){
     stop("1st argument should be a Cycif object")
   }
 
+  ## redefine ctype and cstate
   ctd <- CellTypeDefault(x,ctype,cstate,ctype.full=ctype.full)
+  ctype <- ctd@cell_lineage_def
+  cstate <- ctd@cell_state_def
 
-  lmks <- colnames(ctype)[-c(1:2)]
+  ## Subsetting ctype and cstate so only used antibodies exist in the experiment
+  lmks <- names(ctype)[-c(1:2)]
   used.abs1 <- lmks[lmks %in% abs$ab]
   unused.abs1 <- lmks[!lmks %in% abs$ab]
-  used1 <- ctype[,used.abs1,drop=F]
-  unused1 <- ctype[,unused.abs1,drop=F]
-  used.cts <- !apply(unused1=="AND",1,any)
+  used.ctype1 <- ctype[,used.abs1,drop=F]
+  unused.ctype1 <- ctype[,unused.abs1,drop=F]
+  is.used.ct <- !apply(unused.ctype1=="AND",1,any) #
 
   smks <- colnames(cstate)
   used.abs2 <- smks[smks %in% abs$ab]
 
-  ctype.sub <- cbind(ctype[1:2],ctype[used.abs1])[used.cts,]
-  cstate.sub <- cstate[used.cts,used.abs2]
+  ctype.sub <- ctype[is.used.ct,c("Parent","Child",used.abs1)]
+  cstate.sub <- cstate[is.used.ct,used.abs2]
 
-
+  ##
   mks <- unique(c(used.abs1,used.abs2))
   g <- rep(NA,length(mks))
   names(g) <- mks
@@ -31,12 +35,14 @@ CellTypeCycif <- function(x,ctype,cstate,gates.df,ctype.full=FALSE){
   smpl <- names(x)
   g[] <- gates.df[mks,smpl]
 
+  abs <- abs %>% filter(ab %in% mks)
+
   new("CellTypeCycif",
       name = x@name,
       n_cycles = x@n_cycles,
-      cell_lineage_def = ctd@cell_lineage_def,
-      cell_state_def = ctd@cell_state_def,
-      markers = ctd@markers,
+      cell_lineage_def = ctype.sub,
+      cell_state_def = cstate.sub,
+      markers = abs,
       gates = g
   )
 }
