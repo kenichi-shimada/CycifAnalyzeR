@@ -8,16 +8,6 @@ CellTypeCycifStack <- function(x,ctype.full=FALSE){
     stop("1st argument should be a CycifStack object")
   }
 
-  if(is.matrix(gates.df)){
-    gates.df <- as.data.frame(gates.df)
-  }
-
-  gates.smpls <- names(gates.df)
-  smpls <- names(x)
-  if(!all(smpls %in% gates.smpls)){
-    stop("All the samples should be gated before cell type calling")
-  }
-
   nc <- nCycles(x)
   min.i <- min(which(nc==max(nc)))
   smpl <- names(x)[min.i]
@@ -43,6 +33,12 @@ CellTypeCycifStack <- function(x,ctype.full=FALSE){
     ctc <- CellTypeCycif(cy,ctype,cstate,gates.df,ctype.full=ctype.full)
     ctc@gates[mks]
   },simplify=TRUE))
+
+  gates.smpls <- names(gates.list)
+  smpls <- names(x)
+  if(!all(smpls %in% gates.smpls)){
+    stop("Check gates; All the samples should be gated before cell type calling")
+  }
 
   is.ungated <- sapply(gates.list,function(g)all(is.na(g)))
 
