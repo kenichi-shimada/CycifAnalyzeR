@@ -1,5 +1,5 @@
 #'@export
-CellTypeCycifStack <- function(x,ctype,cstate,gates.df,ctype.full=FALSE){
+CellTypeCycifStack <- function(x,ctype.full=FALSE){
   require(dplyr)
   if(class(x)=="CycifStack"){
     abs <- abs_list(x)
@@ -23,12 +23,22 @@ CellTypeCycifStack <- function(x,ctype,cstate,gates.df,ctype.full=FALSE){
   smpl <- names(x)[min.i]
   x1 <- x[[smpl]]
 
-  ctc <- x1@cell_type
+  if(ctype.full){
+    ctc <- x1@cell_type_full
+  }else{
+    ctc <- x1@cell_type
+  }
 
+  ## load ctype and cstate
+  ctype <- ctc@cell_lineage_def
+  cstate <- ctc@cell_state_def
+
+  ## marker abs
   lmks <- colnames(ctype)[-c(1:2)]
   smks <- colnames(cstate)
-
   mks <- c(lmks,smks)
+
+  ## compile gates
   gates.list <- as.data.frame(cyApply(x,function(cy){
     ctc <- CellTypeCycif(cy,ctype,cstate,gates.df,ctype.full=ctype.full)
     ctc@gates[mks]
@@ -43,9 +53,9 @@ CellTypeCycifStack <- function(x,ctype,cstate,gates.df,ctype.full=FALSE){
   new("CellTypeCycifStack",
       n_samples = x@n_samples,
       max_cycles = x@max_cycles,
-      cell_lineage_def = ctc@cell_lineage_def,
-      cell_state_def = ctc@cell_state_def,
-      markers = ctc@markers,
+      cell_lineage_def = ctype,
+      cell_state_def = cstate,
+      markers = mks,
       gates = gates.list
   )
 }

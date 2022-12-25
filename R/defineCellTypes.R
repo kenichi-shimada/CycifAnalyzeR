@@ -30,8 +30,8 @@ setMethod("defineCellTypes", "CycifStack", function(x,ctype,cstate,gates){
   if(any(nct == 0)){
     stop("run defineCellTypes() for each Cycif object")
   }
-  x@cell_type <- CellTypeCycifStack(x,ctype,cstate,gates,ctype.full=FALSE)
-  x@cell_type_full <- CellTypeCycifStack(x,ctype,cstate,gates,ctype.full=TRUE)
+  x@cell_type <- CellTypeCycifStack(x,ctype.full=FALSE)
+  x@cell_type_full <- CellTypeCycifStack(x,ctype.full=TRUE)
 
   x@cell_type@cell_types <- unlist(cyApply(x,function(x)x@cell_type@cell_types))
   x@cell_type@is_strict <- unlist(cyApply(x,function(x)x@cell_type@is_strict))
