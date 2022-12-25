@@ -7,6 +7,8 @@ setMethod("defineCellTypes", "Cycif", function(x,ctype,cstate,gates,p_thres=0.5,
   # ctype and cstate is input
   ## run CellTypeCycif
   x@cell_type  <- CellTypeCycif(x,ctype,cstate,gates)
+  x@cell_type_full  <- CellTypeCycif(x,ctype,cstate,gates)
+
   ## normalize - should be done within CellTypeCycif
   x <- normalize(x,method="logTh",p_thres=p_thres)
 

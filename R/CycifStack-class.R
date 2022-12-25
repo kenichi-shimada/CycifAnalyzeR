@@ -15,6 +15,7 @@ setClass("CycifStack",
        n_cells = "numeric",
 
        cell_type = "CellTypeCycifStack",
+       cell_type_full = "CellTypeCycifStack",
 
        ld_coords = "data.frame",
        samples = "list",
