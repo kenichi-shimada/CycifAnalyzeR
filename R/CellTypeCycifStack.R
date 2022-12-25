@@ -8,6 +8,10 @@ CellTypeCycifStack <- function(x,ctype,cstate,gates.df,ctype.full=FALSE){
     stop("1st argument should be a CycifStack object")
   }
 
+  if(is.matrix(gates.df)){
+    gates.df <- as.data.frame(gates.df)
+  }
+
   gates.smpls <- names(gates.df)
   smpls <- names(x)
   if(!all(smpls %in% gates.smpls)){

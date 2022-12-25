@@ -24,7 +24,7 @@ setMethod("defineCellTypes", "Cycif", function(x,ctype,cstate,gates,p_thres=0.5,
   return(x)
 })
 
-setMethod("defineCellTypes", "CycifStack", function(x,ctype,cstate,gates,p_thres=0.5,...){
+setMethod("defineCellTypes", "CycifStack", function(x,ctype,cstate,gates){
   # x <- cyApply(x,defineCellTypes,ctype=ctype,cstate=cstate,gates=gates,p_thres=p_thres)
   nct <- cyApply(x,function(y)length(y@cell_type@cell_types),simplify=T)
   if(any(nct == 0)){
