@@ -29,18 +29,22 @@ CellTypeCycifStack <- function(x,ctype.full=FALSE){
   mks <- c(lmks,smks)
 
   ## compile gates
-  gates.list <- as.data.frame(cyApply(x,function(cy){
-    ctc <- CellTypeCycif(cy,ctype,cstate,gates.df,ctype.full=ctype.full)
+  gates.df <- as.data.frame(cyApply(x,function(cy){
+    if(ctype.full){
+      ctc <- cy@cell_type_full
+    }else{
+      ctc <- cy@cell_type
+    }
     ctc@gates[mks]
   },simplify=TRUE))
 
-  gates.smpls <- names(gates.list)
+  gates.smpls <- names(gates.df)
   smpls <- names(x)
   if(!all(smpls %in% gates.smpls)){
     stop("Check gates; All the samples should be gated before cell type calling")
   }
 
-  is.ungated <- sapply(gates.list,function(g)all(is.na(g)))
+  is.ungated <- sapply(gates.df,function(g)all(is.na(g)))
 
   if(any(is.ungated)){
     warning("some samples are not gated:",paste(smpls[is.ungated],collapse=","))
@@ -52,7 +56,7 @@ CellTypeCycifStack <- function(x,ctype.full=FALSE){
       cell_lineage_def = ctype,
       cell_state_def = cstate,
       markers = mks,
-      gates = gates.list
+      gates = gates.df
   )
 }
 
