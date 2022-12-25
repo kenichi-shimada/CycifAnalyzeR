@@ -9,6 +9,9 @@ setClass("CycifStack",
 
        abs_list = "data.frame",
 
+       log_normalized = "data.frame",
+       logTh_normalized = "data.frame",
+
        n_samples = "numeric",
        n_cycles = "numeric",
        max_cycles = "numeric",

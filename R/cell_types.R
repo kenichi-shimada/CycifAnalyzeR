@@ -3,42 +3,59 @@
 setGeneric("cell_types", function(x,...) standardGeneric("cell_types"))
 
 #' @export
-setMethod("cell_types", "CellTypeCycif", function(x,ctype.full=TRUE,leaves.only=TRUE){
-  if(ctype.full){
-    cts <- x@cell_types_full
-    ctype <- x@expanded_lineage_def
-  }else{
-    cts <- x@cell_types
-    ctype <- x@cell_lineage_def
-  }
+setMethod("cell_types", "CellTypeCycif", function(x,leaves.only=TRUE,strict=FALSE){
+  cts <- x@cell_types
+  ctype <- x@cell_lineage_def
   if(leaves.only){
+    leaves <- ctype$Child[!ctype$Child %in% ctype$Parent]
+    leaves <- c(leaves[!grepl("unknown",leaves)],"unknown")
+    cts <- factor(cts,levels=leaves)
+  }
+  if(strict){
+    is.strict <- x@is_strict
+    cts[!is.strict] <- NA
+  }
+  return(cts)
+})
+
+#' @export
+setMethod("cell_types","Cycif",function(x,ctype.full=TRUE,leaves.only=TRUE,strict=FALSE,within.rois=TRUE){
+  if(ctype.full){
+    cts <- cell_types(x@cell_type_full,leaves.only=leaves.only,strict=strict)
+  }else{
+    cts <- cell_types(x@cell_type,leaves.only=leaves.only,strict=strict)
+  }
+  if(within.rois){
+    is.rois <- x@within_rois
+    cts[!is.rois] <- NA
+  }
+  return(cts)
+})
+
+#' @export
+setMethod("cell_types", "CycifStack", function(x,ctype.full=TRUE,leaves.only=TRUE,strict=FALSE,within.rois=TRUE){
+  if(ctype.full){
+    ctd <- x@cell_type_full
+  }else{
+    ctd <- x@cell_type
+  }
+  cts <- ctd@cell_types
+
+  if(leaves.only){
+    ctype <- ctd@cell_lineage_def
     leaves <- ctype$Child[!ctype$Child %in% ctype$Parent]
     cts <- factor(cts,levels=leaves)
   }
-  return(cts)
-})
 
-#' @export
-setMethod("cell_types", "Cycif", function(x,ctype.full=TRUE,leaves.only=TRUE,within.rois=TRUE){
-  cts <- cell_types(x@cell_type,ctype.full=ctype.full,leaves.only=leaves.only)
-  if(within.rois){
-    is.rois <- x@within_rois
+  if(strict){
+    is.strict <- ctd@is_strict
+    cts[!is.strict] <- NA
   }
-  cts[!is.rois] <- NA
-  return(cts)
-})
 
-#' @export
-setMethod("cell_types", "CycifStack", function(x,ctype.full=TRUE,leaves.only=TRUE,within.rois=TRUE){
-  if(ctype.full){
-    cts <- x@cell_type@cell_types_full
-  }else{
-    cts <- x@cell_type@cell_types
-  }
   if(within.rois){
     is.rois <- within_rois(x)
+    cts[!is.rois] <- NA
   }
-  cts[is.rois] <- NA
   return(cts)
 })
 
