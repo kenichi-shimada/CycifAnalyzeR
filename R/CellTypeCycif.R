@@ -34,7 +34,7 @@ CellTypeCycif <- function(x,ctype,cstate,gates.df,ctype.full=FALSE){
   new("CellTypeCycif",
       name = x@name,
       n_cycles = x@n_cycles,
-      cell_lienage_def = ctd@cell_lienage_def,
+      cell_lineage_def = ctd@cell_lineage_def,
       cell_state_def = ctd@cell_state_def,
       markers = ctd@markers,
       gates = g
@@ -43,10 +43,10 @@ CellTypeCycif <- function(x,ctype,cstate,gates.df,ctype.full=FALSE){
 
 setMethod("show", "CellTypeCycif", function(object){
   nmk <- length(object@markers$ab)
-  cts <- object@cell_lienage_def$Child
+  cts <- object@cell_lineage_def$Child
   cts <- cts[!cts == "unknown"]
   nct <- length(cts)
-  mty <- apply(object@cell_lienage_def[-c(1:2)],2,function(x){
+  mty <- apply(object@cell_lineage_def[-c(1:2)],2,function(x){
     if(all(x %in% c("AND","OR","NOT","NOR",""))){
       return("lin")
     }else if(all(x %in% c("CAN",""))){
