@@ -1,5 +1,5 @@
 #'@export
-CellTypeCycif <- function(x,lineage_df,state_df,gates.df){
+CellTypeCycif <- function(x,ctype,cstate,gates.df,ctype.full=FALSE){
   require(dplyr)
   if(class(x)=="Cycif"){
     abs <- abs_list(x)
@@ -8,20 +8,21 @@ CellTypeCycif <- function(x,lineage_df,state_df,gates.df){
     stop("1st argument should be a Cycif object")
   }
 
-  lmks <- colnames(lineage_df)[-c(1:2)]
+  ctd <- CellTypeDefault(x,ctype,cstate,ctype.full=ctype.full)
+
+  lmks <- colnames(ctype)[-c(1:2)]
   used.abs1 <- lmks[lmks %in% abs$ab]
   unused.abs1 <- lmks[!lmks %in% abs$ab]
-  used1 <- lineage_df[,used.abs1,drop=F]
-  unused1 <- lineage_df[,unused.abs1,drop=F]
+  used1 <- ctype[,used.abs1,drop=F]
+  unused1 <- ctype[,unused.abs1,drop=F]
   used.cts <- !apply(unused1=="AND",1,any)
 
-  smks <- colnames(state_df)
+  smks <- colnames(cstate)
   used.abs2 <- smks[smks %in% abs$ab]
 
-  lineage_df.sub <- cbind(lineage_df[1:2],lineage_df[used.abs1])[used.cts,]
-  state_df.sub <- state_df[used.cts,used.abs2]
+  ctype.sub <- cbind(ctype[1:2],ctype[used.abs1])[used.cts,]
+  cstate.sub <- cstate[used.cts,used.abs2]
 
-  ctd <- CellTypeDefault(x,lineage_df.sub,state_df.sub)
 
   mks <- unique(c(used.abs1,used.abs2))
   g <- rep(NA,length(mks))
@@ -33,10 +34,8 @@ CellTypeCycif <- function(x,lineage_df,state_df,gates.df){
   new("CellTypeCycif",
       name = x@name,
       n_cycles = x@n_cycles,
-      cell_lineage_df = ctd@cell_lineage_df,
-      cell_state_df = ctd@cell_state_df,
-      expanded_lineage_df = ctd@expanded_lineage_df,
-      expanded_state_df = ctd@expanded_state_df,
+      cell_lienage_def = ctd@cell_lienage_def,
+      cell_state_def = ctd@cell_state_def,
       markers = ctd@markers,
       gates = g
   )
@@ -44,10 +43,10 @@ CellTypeCycif <- function(x,lineage_df,state_df,gates.df){
 
 setMethod("show", "CellTypeCycif", function(object){
   nmk <- length(object@markers$ab)
-  cts <- object@cell_lineage_df$Child
+  cts <- object@cell_lienage_def$Child
   cts <- cts[!cts == "unknown"]
   nct <- length(cts)
-  mty <- apply(object@cell_lineage_df[-c(1:2)],2,function(x){
+  mty <- apply(object@cell_lienage_def[-c(1:2)],2,function(x){
     if(all(x %in% c("AND","OR","NOT","NOR",""))){
       return("lin")
     }else if(all(x %in% c("CAN",""))){
@@ -57,7 +56,7 @@ setMethod("show", "CellTypeCycif", function(object){
     }
   })
   nty <- tapply(names(mty),mty,identity)
-  mst <- colnames(object@cell_state_df)
+  mst <- colnames(object@cell_state_def)
 
   nlin <- length(nty$lin)
   nstr <- length(nty$str)

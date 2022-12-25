@@ -1,5 +1,5 @@
 #'@export
-CellTypeCycifStack <- function(x,lineage_df,state_df,gates.df){
+CellTypeCycifStack <- function(x,ctype,cstate,gates.df){
   require(dplyr)
   if(class(x)=="CycifStack"){
     abs <- abs_list(x)
@@ -21,12 +21,12 @@ CellTypeCycifStack <- function(x,lineage_df,state_df,gates.df){
 
   ctc <- x1@cell_type
 
-  lmks <- colnames(lineage_df)[-c(1:2)]
-  smks <- colnames(state_df)
+  lmks <- colnames(ctype)[-c(1:2)]
+  smks <- colnames(cstate)
 
   mks <- c(lmks,smks)
   gates.list <- as.data.frame(cyApply(x,function(cy){
-    ctc <- CellTypeCycif(cy,lineage_df,state_df,gates.df)
+    ctc <- CellTypeCycif(cy,ctype,cstate,gates.df)
     ctc@gates[mks]
   },simplify=TRUE))
 
@@ -39,19 +39,19 @@ CellTypeCycifStack <- function(x,lineage_df,state_df,gates.df){
   new("CellTypeCycifStack",
       n_samples = x@n_samples,
       max_cycles = x@max_cycles,
-      cell_lineage_df = ctc@cell_lineage_df,
-      cell_state_df = ctc@cell_state_df,
+      cell_lineage_def = ctc@cell_lineage_def,
+      cell_state_def = ctc@cell_state_def,
       markers = ctc@markers,
-      gates = gs
+      gates = gates.list
   )
 }
 
 setMethod("show", "CellTypeCycifStack", function(object){
   nmk <- length(object@markers$ab)
-  cts <- object@cell_lineage_df$Child
+  cts <- object@cell_lineage_def$Child
   cts <- cts[!cts == "unknown"]
   nct <- length(cts)
-  mty <- apply(object@cell_lineage_df[-c(1:2)],2,function(x){
+  mty <- apply(object@cell_lineage_def[-c(1:2)],2,function(x){
     if(all(x %in% c("AND","OR","NOT","NOR",""))){
       return("lin")
     }else if(all(x %in% c("CAN",""))){
@@ -61,7 +61,7 @@ setMethod("show", "CellTypeCycifStack", function(object){
     }
   })
   nty <- tapply(names(mty),mty,identity)
-  mst <- colnames(object@cell_state_df)
+  mst <- colnames(object@cell_state_def)
 
   nlin <- length(nty$lin)
   nstr <- length(nty$str)
