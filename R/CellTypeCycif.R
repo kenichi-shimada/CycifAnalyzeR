@@ -12,9 +12,9 @@ CellTypeCycif <- function(x,ctype,cstate,gates.df,ctype.full=FALSE){
   ctd <- CellTypeDefault(x,ctype,cstate,ctype.full=ctype.full)
   ctype <- ctd@cell_lineage_def
   cstate <- ctd@cell_state_def
+  mks <- ctd@markers
 
   ##
-  mks <- unique(c(used.abs1,used.abs2))
   g <- rep(NA,length(mks))
   names(g) <- mks
 
