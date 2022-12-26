@@ -60,6 +60,7 @@ Collate:
     'pipe.R'
     'plotUsedCellRatio.R'
     'slidePlot.R'
+    'statPosCells.R'
     'statUsedCells.R'
     'vlnPlot.R'
 Suggests: 
