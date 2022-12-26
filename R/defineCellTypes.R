@@ -24,7 +24,7 @@ setMethod("defineCellTypes", "Cycif", function(x,ctype,cstate,gates,p_thres=0.5,
   return(x)
 })
 
-setMethod("defineCellTypes", "CycifStack", function(x,ctype,cstate,gates){
+setMethod("defineCellTypes", "CycifStack", function(x){
   # x <- cyApply(x,defineCellTypes,ctype=ctype,cstate=cstate,gates=gates,p_thres=p_thres)
   nct <- cyApply(x,function(y)length(y@cell_type@cell_types),simplify=T)
   if(any(nct == 0)){
@@ -33,10 +33,10 @@ setMethod("defineCellTypes", "CycifStack", function(x,ctype,cstate,gates){
   x@cell_type <- CellTypeCycifStack(x,ctype.full=FALSE)
   x@cell_type_full <- CellTypeCycifStack(x,ctype.full=TRUE)
 
-  x@cell_type@cell_types <- unlist(cyApply(x,function(x)x@cell_type@cell_types))
-  x@cell_type@is_strict <- unlist(cyApply(x,function(x)x@cell_type@is_strict))
-  x@cell_type_full@cell_types <- unlist(cyApply(x,function(x)x@cell_type_full@cell_types))
-  x@cell_type_full@is_strict <- unlist(cyApply(x,function(x)x@cell_type_full@is_strict))
+  x@cell_type@cell_types <- unlist(cyApply(x,function(cy)cy@cell_type@cell_types))
+  x@cell_type@is_strict <- unlist(cyApply(x,function(cy)cy@cell_type@is_strict))
+  x@cell_type_full@cell_types <- unlist(cyApply(x,function(cy)cy@cell_type_full@cell_types))
+  x@cell_type_full@is_strict <- unlist(cyApply(x,function(cy)cy@cell_type_full@is_strict))
 
   return(x)
 })
