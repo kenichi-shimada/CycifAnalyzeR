@@ -4,11 +4,9 @@ setGeneric("vlnPlot", function(x,...) standardGeneric("vlnPlot"))
 
 #' @export
 setMethod("vlnPlot", "CycifStack",
-  function(x,xaxis=c("celltype","smpl"),
-           type=c("raw","log_normalized","logTh_normalized"),
-           ab="PDL1", ctype.full=FALSE,
-           rois = TRUE,
-           uniq.cts,uniq.smpls){
+  function(x,xaxis=c("celltype","smpl"), ab="PDL1", ctype.full=FALSE,
+           type=c("raw","log_normalized","logTh_normalized"), strict=FALSE,
+           within.rois = TRUE,uniq.cts,uniq.smpls){
     if(missing(type)){
       type <- "log_normalized"
     }
@@ -30,20 +28,31 @@ setMethod("vlnPlot", "CycifStack",
     }
 
     ## cell types
-    cts <- cell_types(x,ctype.full=ctype.full,leaves.only=TRUE,within.rois=rois)
-    table(cts) ## all zeros!!!
+    cts <- cell_types(x,ctype.full=ctype.full,leaves.only=TRUE,within.rois=within.rois)
+    is.strict <- unlist(cyApply(x,function(cy)cy@cell_type@is_strict))
+    # table(cts) ## all zeros!!!
 
+    if(strict){
+      used <- within_rois(x) & is.strict
+    }else{
+      used <- within_rois(x)
+    }
     df <- exprs(x,type=type) %>%
       tibble::rownames_to_column(var="smpl") %>%
       mutate(smpl = sub("\\.[0-9]+$","",smpl)) %>%
       mutate(celltype=factor(cts)) %>%
-      filter(within_rois(x)) %>%
+      filter(used) %>%
       left_join(pData(cs1) %>% rename(smpl=id),by="smpl") %>%
       mutate(smpl = factor(smpl))
 
     if(xaxis=="smpl"){
       if(missing(uniq.cts) || length(uniq.cts) != 1){
         stop("one celltype should be set in 'uniq.cts'")
+      }else if(uniq.cts == "all"){
+        ttl <- paste0(ab,", all cells")
+        uniq.cts <- levels(df$celltype)
+      }else{
+        ttl <- paste0(ab,", ",uniq.cts)
       }
       if(missing(uniq.smpls)){
         uniq.smpls <- levels(df$smpl)
@@ -52,7 +61,6 @@ setMethod("vlnPlot", "CycifStack",
         filter(smpl %in% uniq.smpls) %>%
         filter(celltype %in% uniq.cts) %>%
         mutate(thres=ab_thres[as.character(smpl)])
-      ttl <- paste0(ab,",",uniq.cts)
       p <- ggplot(df1,aes_string(x="Patient.ID",y=ab,fill="TimePoint")) +
         geom_violin(position = position_dodge(width = 0.9)) +
         ylab(paste0(ab," (",sub("_"," ",type),")")) +
@@ -71,6 +79,7 @@ setMethod("vlnPlot", "CycifStack",
       }
       if(missing(uniq.cts)){
         uniq.cts <- levels(df$celltype)
+        uniq.cts <- c(uniq.cts[uniq.cts != "unknown"],"unknown")
       }
       df1 <- df %>%
         mutate(celltype=factor(celltype,levels=uniq.cts)) %>%
@@ -83,7 +92,7 @@ setMethod("vlnPlot", "CycifStack",
         ggtitle(ttl) +
         scale_fill_discrete(drop=FALSE) +
         scale_x_discrete(drop=FALSE) +
-        geom_hline(yintercept = ab_thres[[smpl]],col="black") +
+        geom_hline(yintercept = ab_thres[[uniq.smpls]],col="black") +
         theme_bw() +
         theme(legend.position = "none") +
         theme(axis.text.x = element_text(angle = 90, vjust = 0.5, hjust=1))
