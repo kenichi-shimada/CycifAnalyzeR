@@ -29,8 +29,8 @@ CellTypeCycif <- function(x,ctype,cstate,gates.df,ctype.full=FALSE){
   new("CellTypeCycif",
       name = x@name,
       n_cycles = x@n_cycles,
-      cell_lineage_def = ctype.sub,
-      cell_state_def = cstate.sub,
+      cell_lineage_def = ctype,
+      cell_state_def = cstate,
       markers = abs,
       gates = g
   )
