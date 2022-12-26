@@ -13,20 +13,6 @@ CellTypeCycif <- function(x,ctype,cstate,gates.df,ctype.full=FALSE){
   ctype <- ctd@cell_lineage_def
   cstate <- ctd@cell_state_def
 
-  ## Subsetting ctype and cstate so only used antibodies exist in the experiment
-  lmks <- names(ctype)[-c(1:2)]
-  used.abs1 <- lmks[lmks %in% abs$ab]
-  unused.abs1 <- lmks[!lmks %in% abs$ab]
-  used.ctype1 <- ctype[,used.abs1,drop=F]
-  unused.ctype1 <- ctype[,unused.abs1,drop=F]
-  is.used.ct <- !apply(unused.ctype1=="AND",1,any) #
-
-  smks <- colnames(cstate)
-  used.abs2 <- smks[smks %in% abs$ab]
-
-  ctype.sub <- ctype[is.used.ct,c("Parent","Child",used.abs1)]
-  cstate.sub <- cstate[is.used.ct,used.abs2]
-
   ##
   mks <- unique(c(used.abs1,used.abs2))
   g <- rep(NA,length(mks))

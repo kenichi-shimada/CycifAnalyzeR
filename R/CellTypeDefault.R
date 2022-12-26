@@ -18,13 +18,29 @@ CellTypeDefault <- function(x,ctype,cstate,ctype.full=TRUE){
   if(!all(as.character(ctype$Child)==rownames(cstate))){
     stop("ctype$Child and cell types in cstate should be identical")
   }
-  mks <- unique(c(colnames(ctype)[-(1:2)],colnames(cstate)))
+
+  lmks <- names(ctype)[-c(1:2)]
+  smks <- colnames(cstate)
+
+  mks <- unique(c(lmks,smks))
   if(!all(mks %in% used.abs)){
+    ## here ctype and cstate should be subsetted based on available mks
+    ## Subsetting ctype and cstate so only used antibodies exist in the experiment
+    used.abs1 <- lmks[lmks %in% abs$ab]
+    unused.abs1 <- lmks[!lmks %in% abs$ab]
+    used.ctype1 <- ctype[,used.abs1,drop=F]
+    unused.ctype1 <- ctype[,unused.abs1,drop=F]
+    is.used.ct <- !apply(unused.ctype1=="AND",1,any) #
+
+    used.abs2 <- smks[smks %in% abs$ab]
+
+    ctype <- ctype[is.used.ct,c("Parent","Child",used.abs1)]
+    cstate <- cstate[is.used.ct,used.abs2]
+
+    ## up to here
     unknown <- mks[!mks %in% used.abs]
-    stop(paste0("some markers in the defs not found: ",paste(unknown,collapse=",")))
-  }else{
-    mks.info <- abs %>% filter(ab %in% mks)
   }
+  mks.info <- abs %>% filter(ab %in% mks)
 
   elin <- expandLineageDef(ctype=ctype,cstate=cstate,ctype.full=ctype.full)
 
