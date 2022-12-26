@@ -31,7 +31,7 @@ setMethod("nCycles<-", "Cycif", function(x,value){
   }
 
   x@abs_list <- abs_list(x) %>% filter(cycle <= value)
-  this.abs <- abs_list(x)$ab
+  this.abs <- as.character(abs_list(x)$ab)
 
   x@raw <- x@raw[this.abs]
   if(all(this.abs %in% names(x@log_normalized))){
@@ -80,11 +80,11 @@ setMethod("nCycles<-", "CycifStack", function(x,value){
   }
 
   x@abs_list <- abs_list(x[[idx]])
-  this.abs <- abs_list(cs1)$ab
+  this.abs <- as.character(abs_list(cs1)$ab)
 
-  if(nrow(x@raw)>0){
-    x@raw <- x@raw[this.abs]
-  }
+  # if(nrow(x@raw)>0){
+  #   x@raw <- x@raw[this.abs]
+  # }
 
   if(all(this.abs %in% names(x@log_normalized))){
     x@log_normalized <- x@log_normalized[this.abs]

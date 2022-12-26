@@ -75,7 +75,7 @@ Cycif <- function(filename,path,suffix="_cellRing") {
 #' @rdname Cycif
 #' @export
 setMethod("show", "Cycif", function(object) {
-  m <- matrix(abs_list(object)$ab,nrow=3)
+  m <- matrix(as.character(abs_list(object)$ab),nrow=3)
   rownames(m) <- c("R","G","B")
   colnames(m) <- paste0("Cycle",seq(nCycles(object)))
   m <- data.frame(m)
