@@ -8,11 +8,14 @@ CellTypeCycif <- function(x,ctype,cstate,gates.df,ctype.full=FALSE){
     stop("1st argument should be a Cycif object")
   }
 
+  if(is.matrix(gates.df)){
+    gates.df <- as.data.frame(gates.df)
+  }
   ## redefine ctype and cstate
   ctd <- CellTypeDefault(x,ctype,cstate,ctype.full=ctype.full)
   ctype <- ctd@cell_lineage_def
   cstate <- ctd@cell_state_def
-  mks <- ctd@markers
+  mks <- ctd@markers$ab
 
   ##
   g <- rep(NA,length(mks))
