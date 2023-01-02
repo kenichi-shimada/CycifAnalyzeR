@@ -7,7 +7,7 @@ setMethod("heatmapExp", "CycifStack",
   function(x,type=c("log_normalized","logTh_normalized"),
            ab="PDL1", sum_fun=function(y)quantile(y,.5,na.rm=T),
            ctype.full=FALSE,rois = TRUE,
-           uniq.cts,uniq.smpls,...){
+           uniq.cts,uniq.smpls,strict=FALSE,...){
     options(dplyr.summarise.inform = FALSE)
     if(missing(type)){
       type <- "log_normalized"
@@ -26,13 +26,13 @@ setMethod("heatmapExp", "CycifStack",
     }
 
     ## cell types
-    cts <- cell_types(x,full=ctype.full,leaves.only=TRUE,within.rois=rois)
+    cts <- cell_types(x,ctype.full=ctype.full,leaves.only=TRUE,within.rois=rois,strict=strict)
 
     df <- exprs(x,type=type) %>%
       tibble::rownames_to_column(var="smpl") %>%
       mutate(smpl = sub("\\.[0-9]+$","",smpl)) %>%
-      filter(within_rois(x)) %>%
       mutate(celltype=factor(cts)) %>%
+      filter(within_rois(x)) %>%
       filter(!is.na(celltype)) %>%
       filter(smpl %in% uniq.smpls) %>%
       filter(celltype %in% uniq.cts) %>%

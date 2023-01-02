@@ -1,18 +1,19 @@
-h3 <- function (x, Rowv = NULL, Colv = if (symm) "Rowv" else NULL, 
-          # distfun = function(x) as.dist(1 - cor(t(x), use = "pa")), 
-          distfun = dist, distfunC, distfunR, balanceColor = F, ColSideLabs, RowSideLabs, 
-          showColDendro = T, showRowDendro = T, col = colorRampPalette(c("navy","white", "firebrick3"))(1024), 
-          legendfun, method = "complete", ColAxisColors = 0, RowAxisColors = 0, hclustfun = hclust, 
-          reorderfun = function(d, w) reorder(d, w), add.expr, symm = FALSE, 
-          revC = identical(Colv, "Rowv"), scale = c("row", "column","none"), 
-          na.rm = TRUE, ColSideFun, ColSideAnn, ColSideWidth = 0.4, 
-          ColSideCut, colorCell, highlightCell, file = "heatmap3.pdf", 
-          topN = NA, filterFun = sd, returnDistMatrix = FALSE, margins = c(5,5), 
-          ColSideColors, RowSideColors, cexRow = 0.2 + 1/log10(nrow(x)), 
-          cexCol = 0.2 + 1/log10(ncol(x)), lasRow = 2, lasCol = 2, 
+#' @export
+h3 <- function (x, Rowv = NULL, Colv = if (symm) "Rowv" else NULL,
+          # distfun = function(x) as.dist(1 - cor(t(x), use = "pa")),
+          distfun = dist, distfunC, distfunR, balanceColor = F, ColSideLabs, RowSideLabs,
+          showColDendro = T, showRowDendro = T, col = colorRampPalette(c("navy","white", "firebrick3"))(1024),
+          legendfun, method = "complete", ColAxisColors = 0, RowAxisColors = 0, hclustfun = hclust,
+          reorderfun = function(d, w) reorder(d, w), add.expr, symm = FALSE,
+          revC = identical(Colv, "Rowv"), scale = c("row", "column","none"),
+          na.rm = TRUE, ColSideFun, ColSideAnn, ColSideWidth = 0.4,
+          ColSideCut, colorCell, highlightCell, file = "heatmap3.pdf",
+          topN = NA, filterFun = sd, returnDistMatrix = FALSE, margins = c(5,5),
+          ColSideColors, RowSideColors, cexRow = 0.2 + 1/log10(nrow(x)),
+          cexCol = 0.2 + 1/log10(ncol(x)), lasRow = 2, lasCol = 2,
           labRow = NULL, labCol = NULL, main = NULL, xlab = NULL, ylab = NULL, na.color = "grey",
-          keep.dendro = FALSE, verbose = getOption("verbose"), 
-          useRaster = if (ncol(x) * nrow(x) >= 50000) TRUE else FALSE, ...) 
+          keep.dendro = FALSE, verbose = getOption("verbose"),
+          useRaster = if (ncol(x) * nrow(x) >= 50000) TRUE else FALSE, ...)
 {
   hcc <- NULL
   hcr <- NULL
@@ -23,24 +24,24 @@ h3 <- function (x, Rowv = NULL, Colv = if (symm) "Rowv" else NULL,
       xSub <- x[rev(order(temp))[1:n], , drop = F]
       if (!missing(RowSideColors)) {
         RowSideColorsBak <- RowSideColors
-        RowSideColors <- RowSideColors[rev(order(temp))[1:n], 
+        RowSideColors <- RowSideColors[rev(order(temp))[1:n],
                                        , drop = F]
       }
-      result[[paste0(n)]] <- heatmap3(xSub, Rowv = Rowv, 
-                                      Colv = Colv, distfun = distfun, balanceColor = balanceColor, 
-                                      ColSideLabs = ColSideLabs, RowSideLabs = RowSideLabs, 
-                                      showColDendro = showColDendro, showRowDendro = showRowDendro, 
-                                      col = col, legendfun = legendfun, method = "complete", 
-                                      ColAxisColors = 0, RowAxisColors = 0, hclustfun = hclust, 
-                                      reorderfun = reorderfun, add.expr = add.expr, 
-                                      symm = symm, revC = revC, scale = scale, na.rm = na.rm, 
-                                      ColSideFun = ColSideFun, ColSideAnn = ColSideAnn, 
-                                      ColSideWidth = ColSideWidth, ColSideCut = ColSideCut, 
-                                      margins = margins, ColSideColors = ColSideColors, 
-                                      RowSideColors = RowSideColors, cexRow = cexRow, 
-                                      cexCol = cexCol, labRow = labRow, labCol = labCol, 
-                                      main = paste0("top ", n), xlab = xlab, ylab = ylab, 
-                                      keep.dendro = keep.dendro, verbose = verbose, 
+      result[[paste0(n)]] <- heatmap3(xSub, Rowv = Rowv,
+                                      Colv = Colv, distfun = distfun, balanceColor = balanceColor,
+                                      ColSideLabs = ColSideLabs, RowSideLabs = RowSideLabs,
+                                      showColDendro = showColDendro, showRowDendro = showRowDendro,
+                                      col = col, legendfun = legendfun, method = "complete",
+                                      ColAxisColors = 0, RowAxisColors = 0, hclustfun = hclust,
+                                      reorderfun = reorderfun, add.expr = add.expr,
+                                      symm = symm, revC = revC, scale = scale, na.rm = na.rm,
+                                      ColSideFun = ColSideFun, ColSideAnn = ColSideAnn,
+                                      ColSideWidth = ColSideWidth, ColSideCut = ColSideCut,
+                                      margins = margins, ColSideColors = ColSideColors,
+                                      RowSideColors = RowSideColors, cexRow = cexRow,
+                                      cexCol = cexCol, labRow = labRow, labCol = labCol,
+                                      main = paste0("top ", n), xlab = xlab, ylab = ylab,
+                                      keep.dendro = keep.dendro, verbose = verbose,
                                       ...)
       if (!missing(RowSideColors)) {
         RowSideColors <- RowSideColorsBak
@@ -50,14 +51,14 @@ h3 <- function (x, Rowv = NULL, Colv = if (symm) "Rowv" else NULL,
     cat(paste0("The heatmaps were generated at ", file, "\n"))
     return(invisible(result))
   }
-  scale <- if (symm && missing(scale)) 
+  scale <- if (symm && missing(scale))
     "none"
   else match.arg(scale)
   if (is.data.frame(x)) {
     x <- as.matrix(x)
   }
   ## a ---
-  
+
   if (!missing(ColSideColors)) {
     if (is.vector(ColSideColors)) {
       ColSideColors <- cbind(ColSideColors)
@@ -76,65 +77,65 @@ h3 <- function (x, Rowv = NULL, Colv = if (symm) "Rowv" else NULL,
   }
   distMatrixC = NULL
   distMatrixR = NULL
-  if (length(di <- dim(x)) != 2 || !is.numeric(x)) 
+  if (length(di <- dim(x)) != 2 || !is.numeric(x))
     stop("'x' must be a numeric matrix")
   nr <- di[1L]
   nc <- di[2L]
-  if (nr <= 1 || nc <= 1) 
+  if (nr <= 1 || nc <= 1)
     stop("'x' must have at least 2 rows and 2 columns")
-  if (!is.numeric(margins) || length(margins) != 2L) 
+  if (!is.numeric(margins) || length(margins) != 2L)
     stop("'margins' must be a numeric vector of length 2")
   doRdend <- !identical(Rowv, NA)
   doCdend <- !identical(Colv, NA)
-  if (!doRdend && identical(Colv, "Rowv")) 
+  if (!doRdend && identical(Colv, "Rowv"))
     doCdend <- FALSE
-  if (is.null(Rowv)) 
+  if (is.null(Rowv))
     Rowv <- rowMeans(x, na.rm = na.rm)
-  if (is.null(Colv)) 
+  if (is.null(Colv))
     Colv <- colMeans(x, na.rm = na.rm)
   if (doRdend) {
-    if (inherits(Rowv, "dendrogram")) 
+    if (inherits(Rowv, "dendrogram"))
       ddr <- Rowv
     else {
       distMatrixR = distfunR(x)
       hcr <- hclustfun(distMatrixR, method = method)
       ddr <- as.dendrogram(hcr)
-      if (!is.logical(Rowv) || Rowv) 
+      if (!is.logical(Rowv) || Rowv)
         ddr <- reorderfun(ddr, Rowv)
     }
-    if (nr != length(rowInd <- order.dendrogram(ddr))) 
+    if (nr != length(rowInd <- order.dendrogram(ddr)))
       stop("row dendrogram ordering gave index of wrong length")
   }
   else rowInd <- 1L:nr
   if (doCdend) {
-    if (inherits(Colv, "dendrogram")) 
+    if (inherits(Colv, "dendrogram"))
       ddc <- Colv
     else if (identical(Colv, "Rowv")) {
-      if (nr != nc) 
+      if (nr != nc)
         stop("Colv = \"Rowv\" but nrow(x) != ncol(x)")
       ddc <- ddr
     }
     else {
-      distMatrixC = distfunC(if (symm) 
+      distMatrixC = distfunC(if (symm)
         x
         else t(x))
       hcc <- hclustfun(distMatrixC, method = method)
       ddc <- as.dendrogram(hcc)
-      if (!is.logical(Colv) || Colv) 
+      if (!is.logical(Colv) || Colv)
         ddc <- reorderfun(ddc, Colv)
     }
-    if (nc != length(colInd <- order.dendrogram(ddc))) 
+    if (nc != length(colInd <- order.dendrogram(ddc)))
       stop("column dendrogram ordering gave index of wrong length")
   }
   else colInd <- 1L:nc
   x <- x[rowInd, colInd]
-  labRow <- if (is.null(labRow)) 
-    if (is.null(rownames(x))) 
+  labRow <- if (is.null(labRow))
+    if (is.null(rownames(x)))
       (1L:nr)[rowInd]
   else rownames(x)
   else labRow[rowInd]
-  labCol <- if (is.null(labCol)) 
-    if (is.null(colnames(x))) 
+  labCol <- if (is.null(labCol))
+    if (is.null(colnames(x)))
       (1L:nc)[colInd]
   else colnames(x)
   else labCol[colInd]
@@ -156,20 +157,20 @@ h3 <- function (x, Rowv = NULL, Colv = if (symm) "Rowv" else NULL,
     lhei <- c(lhei[1L], ColSideWidth, lhei[2L])
   }
   else if (!missing(ColSideColors)) {
-    if (!is.character(ColSideColors) & nrow(ColSideColors) != 
-        nc) 
+    if (!is.character(ColSideColors) & nrow(ColSideColors) !=
+        nc)
       stop("'ColSideColors' must be a character vector or matrix of length ncol(x)")
     lmat <- rbind(lmat[1, ] + 1, c(NA, 1), lmat[2, ] + 1)
-    lhei <- c(lhei[1L], 0.2 * round(ncol(ColSideColors)/2 + 
+    lhei <- c(lhei[1L], 0.2 * round(ncol(ColSideColors)/2 +
                                       0.1), lhei[2L])
   }
   if (!missing(RowSideColors)) {
-    if (!is.character(RowSideColors) || nrow(RowSideColors) != 
-        nr) 
+    if (!is.character(RowSideColors) || nrow(RowSideColors) !=
+        nr)
       stop("'RowSideColors' must be a character vector or matrix of length nrow(x)")
-    lmat <- cbind(lmat[, 1] + 1, c(rep(NA, nrow(lmat) - 1), 
+    lmat <- cbind(lmat[, 1] + 1, c(rep(NA, nrow(lmat) - 1),
                                    1), lmat[, 2] + 1)
-    lwid <- c(lwid[1L], 0.2 * round(ncol(RowSideColors)/2 + 
+    lwid <- c(lwid[1L], 0.2 * round(ncol(RowSideColors)/2 +
                                       0.1), lwid[2L])
   }
   lmat <- lmat + 1
@@ -181,14 +182,14 @@ h3 <- function (x, Rowv = NULL, Colv = if (symm) "Rowv" else NULL,
   on.exit(par(op), add = TRUE)
   if (balanceColor) {
     if (abs(max(x, na.rm = T)) >= abs(min(x, na.rm = T))) {
-      cut.off <- round(quantile(1:length(col), probs = 1 - 
-                                  (abs(max(x, na.rm = T)) + abs(min(x, na.rm = T)))/(2 * 
+      cut.off <- round(quantile(1:length(col), probs = 1 -
+                                  (abs(max(x, na.rm = T)) + abs(min(x, na.rm = T)))/(2 *
                                                                                        abs(max(x, na.rm = T)))))
       col <- col[cut.off:length(col)]
     }
     else {
-      cut.off <- round(quantile(1:length(col), probs = (abs(max(x, 
-                                                                na.rm = T)) + abs(min(x, na.rm = T)))/(2 * abs(min(x, 
+      cut.off <- round(quantile(1:length(col), probs = (abs(max(x,
+                                                                na.rm = T)) + abs(min(x, na.rm = T)))/(2 * abs(min(x,
                                                                                                                    na.rm = T)))))
       col <- col[1:cut.off]
     }
@@ -203,10 +204,10 @@ h3 <- function (x, Rowv = NULL, Colv = if (symm) "Rowv" else NULL,
   }
   else {
     par(mar = c(5, 1, 1, 0))
-    dummy.x <- seq(min(x, na.rm = TRUE), max(x, na.rm = TRUE), 
+    dummy.x <- seq(min(x, na.rm = TRUE), max(x, na.rm = TRUE),
                    length = length(col))
     dummy.z <- matrix(dummy.x, ncol = 1)
-    image(x = dummy.x, y = 1, z = dummy.z, yaxt = "n", col = col, 
+    image(x = dummy.x, y = 1, z = dummy.z, yaxt = "n", col = col,
           cex.axis = cexCol, xlab = "")
   }
   if (!missing(RowSideColors)) {
@@ -228,7 +229,7 @@ h3 <- function (x, Rowv = NULL, Colv = if (symm) "Rowv" else NULL,
     rsc = matrix(as.numeric(rsc), nrow = dim(rsc)[1])
     image(t(rsc), col = as.vector(rsc.colors), axes = FALSE)
     if (missing(RowSideLabs)) {
-      if (ncol(RowSideColors) == 1 & colnames(RowSideColors)[1] == 
+      if (ncol(RowSideColors) == 1 & colnames(RowSideColors)[1] ==
           "") {
         RowSideLabs <- ""
       }
@@ -240,7 +241,7 @@ h3 <- function (x, Rowv = NULL, Colv = if (symm) "Rowv" else NULL,
       axis(1, 0, RowSideLabs, las = 2, tick = FALSE)
     }
     else {
-      axis(1, 0:(dim(rsc)[2] - 1)/(dim(rsc)[2] - 1), RowSideLabs, 
+      axis(1, 0:(dim(rsc)[2] - 1)/(dim(rsc)[2] - 1), RowSideLabs,
            las = 2, tick = FALSE)
     }
   }
@@ -253,50 +254,50 @@ h3 <- function (x, Rowv = NULL, Colv = if (symm) "Rowv" else NULL,
     }
     cutTable <- NULL
     if (verbose) {
-      cat(paste0("The samples could be cut into ", length(ColSideCutResult), 
+      cat(paste0("The samples could be cut into ", length(ColSideCutResult),
                  " parts with height ", ColSideCut))
       cat("\n")
       if (!missing(ColSideAnn)) {
         for (i in 1:ncol(ColSideAnn)) {
           if (is.factor(ColSideAnn[, i])) {
-            cutTable[[i]] <- sapply(ColSideCutResultSubIndList, 
+            cutTable[[i]] <- sapply(ColSideCutResultSubIndList,
                                     function(x) table(ColSideAnn[x, i]))
-            colnames(cutTable[[i]]) <- paste0("Cluster ", 
+            colnames(cutTable[[i]]) <- paste0("Cluster ",
                                               1:length(ColSideCutResult))
             names(cutTable)[i] <- colnames(ColSideAnn)[i]
             pvalue <- chisq.test(cutTable[[i]])$p.value
-            cat(paste0("Differential distribution for ", 
-                       colnames(ColSideAnn)[i], ", p value by chi-squared test: ", 
+            cat(paste0("Differential distribution for ",
+                       colnames(ColSideAnn)[i], ", p value by chi-squared test: ",
                        round(pvalue, 3), "\n"))
-            cutTable[[i]] <- rbind(cutTable[[i]], round(cutTable[[i]][1, 
+            cutTable[[i]] <- rbind(cutTable[[i]], round(cutTable[[i]][1,
             ]/colSums(cutTable[[i]]), 2))
-            row.names(cutTable[[i]])[nrow(cutTable[[i]])] <- paste0(row.names(cutTable[[i]])[1], 
+            row.names(cutTable[[i]])[nrow(cutTable[[i]])] <- paste0(row.names(cutTable[[i]])[1],
                                                                     "_Percent")
-            cutTable[[i]] <- cbind(cutTable[[i]], pValue = c(pvalue, 
+            cutTable[[i]] <- cbind(cutTable[[i]], pValue = c(pvalue,
                                                              rep(NA, nrow(cutTable[[i]]) - 1)))
           }
           else {
-            cutTable[[i]] <- sapply(split(ColSideAnn[unlist(ColSideCutResultSubIndList), 
-                                                     i], rep(1:length(ColSideCutResultSubIndList), 
-                                                             sapply(ColSideCutResultSubIndList, length))), 
+            cutTable[[i]] <- sapply(split(ColSideAnn[unlist(ColSideCutResultSubIndList),
+                                                     i], rep(1:length(ColSideCutResultSubIndList),
+                                                             sapply(ColSideCutResultSubIndList, length))),
                                     function(x) summary(na.omit(x)))
-            colnames(cutTable[[i]]) <- paste0("Cluster ", 
+            colnames(cutTable[[i]]) <- paste0("Cluster ",
                                               1:length(ColSideCutResult))
             names(cutTable)[i] <- colnames(ColSideAnn)[i]
-            temp <- aov(ColSideAnn[unlist(ColSideCutResultSubIndList), 
-                                   i] ~ as.factor(rep(1:length(ColSideCutResultSubIndList), 
+            temp <- aov(ColSideAnn[unlist(ColSideCutResultSubIndList),
+                                   i] ~ as.factor(rep(1:length(ColSideCutResultSubIndList),
                                                       sapply(ColSideCutResultSubIndList, length))))
             pvalue <- summary(temp)[[1]]$"Pr(>F)"[1]
-            cat(paste0("Differential distribution for ", 
-                       colnames(ColSideAnn)[i], ", p value by ANOVA: ", 
+            cat(paste0("Differential distribution for ",
+                       colnames(ColSideAnn)[i], ", p value by ANOVA: ",
                        round(pvalue, 3), "\n"))
-            cutTable[[i]] <- cbind(cutTable[[i]], pValue = c(pvalue, 
+            cutTable[[i]] <- cbind(cutTable[[i]], pValue = c(pvalue,
                                                              rep(NA, 5)))
           }
         }
       }
     }
-    ColSideCutResultCol <- rainbow(length(ColSideCutResult), 
+    ColSideCutResultCol <- rainbow(length(ColSideCutResult),
                                    alpha = 0.2)
     ColNumber <- (ncol(x) - 1)
   }
@@ -308,10 +309,10 @@ h3 <- function (x, Rowv = NULL, Colv = if (symm) "Rowv" else NULL,
       ColAnnHeight <- par("usr")[3:4]
     }
     if (!missing(ColSideCut)) {
-      rect(c(0 - 1/ColNumber/2, (0 - 1/ColNumber/2) + 1/ColNumber * 
-               cumsum(sapply(ColSideCutResult, function(x) length(unlist(x))))[-length(ColSideCutResult)]), 
-           ColAnnHeight[1], c((0 - 1/ColNumber/2) + 1/ColNumber * 
-                                cumsum(sapply(ColSideCutResult, function(x) length(unlist(x))))), 
+      rect(c(0 - 1/ColNumber/2, (0 - 1/ColNumber/2) + 1/ColNumber *
+               cumsum(sapply(ColSideCutResult, function(x) length(unlist(x))))[-length(ColSideCutResult)]),
+           ColAnnHeight[1], c((0 - 1/ColNumber/2) + 1/ColNumber *
+                                cumsum(sapply(ColSideCutResult, function(x) length(unlist(x))))),
            ColAnnHeight[2], col = ColSideCutResultCol)
     }
   }
@@ -329,7 +330,7 @@ h3 <- function (x, Rowv = NULL, Colv = if (symm) "Rowv" else NULL,
     csc = matrix(as.numeric(csc), nrow = dim(csc)[1])
     image(csc, col = as.vector(csc.colors), axes = FALSE)
     if (missing(ColSideLabs)) {
-      if (ncol(ColSideColors) == 1 & colnames(ColSideColors)[1] == 
+      if (ncol(ColSideColors) == 1 & colnames(ColSideColors)[1] ==
           "") {
         ColSideLabs <- ""
       }
@@ -341,33 +342,33 @@ h3 <- function (x, Rowv = NULL, Colv = if (symm) "Rowv" else NULL,
       axis(4, 0, ColSideLabs, las = 2, tick = FALSE)
     }
     else {
-      axis(4, 0:(dim(csc)[2] - 1)/(dim(csc)[2] - 1), ColSideLabs, 
+      axis(4, 0:(dim(csc)[2] - 1)/(dim(csc)[2] - 1), ColSideLabs,
            las = 2, tick = FALSE)
     }
   }
   par(mar = c(margins[1L], 0, 0, margins[2L]))
-  if (!symm || scale != "none") 
+  if (!symm || scale != "none")
     x <- t(x)
   if (revC) {
     iy <- nr:1
-    if (doRdend) 
+    if (doRdend)
       ddr <- rev(ddr)
     x <- x[, iy]
   }
   else iy <- 1L:nr
-  image(1L:nc, 1L:nr, x, xlim = 0.5 + c(0, nc), ylim = 0.5 + 
-          c(0, nr), axes = FALSE, xlab = "", ylab = "", col = col, 
+  image(1L:nc, 1L:nr, x, xlim = 0.5 + c(0, nc), ylim = 0.5 +
+          c(0, nr), axes = FALSE, xlab = "", ylab = "", col = col,
         useRaster = useRaster, ...)
   if (any(is.na(x))) {
     mmat <- ifelse(is.na(x), 1, NA)
-    image(1L:nc, 1L:nr, mmat, axes = FALSE, xlab = "", ylab = "", 
+    image(1L:nc, 1L:nr, mmat, axes = FALSE, xlab = "", ylab = "",
           col = na.color, useRaster=useRaster, add = TRUE)
   }
   if (!missing(colorCell)) {
     colorCell[, 1] <- match(colorCell[, 1], rowInd)
     colorCell[, 2] <- match(colorCell[, 2], colInd)
-    rect(colorCell[, 2] - 0.5, colorCell[, 1] - 0.5, colorCell[, 
-                                                               2] + 0.5, colorCell[, 1] + 0.5, col = as.character(colorCell[, 
+    rect(colorCell[, 2] - 0.5, colorCell[, 1] - 0.5, colorCell[,
+                                                               2] + 0.5, colorCell[, 1] + 0.5, col = as.character(colorCell[,
                                                                                                                             3]), border = NA)
   }
   if (!missing(highlightCell)) {
@@ -376,57 +377,57 @@ h3 <- function (x, Rowv = NULL, Colv = if (symm) "Rowv" else NULL,
     }
     highlightCell[, 1] <- match(highlightCell[, 1], rowInd)
     highlightCell[, 2] <- match(highlightCell[, 2], colInd)
-    rect(highlightCell[, 2] - 0.5, highlightCell[, 1] - 0.5, 
-         highlightCell[, 2] + 0.5, highlightCell[, 1] + 0.5, 
-         border = as.character(highlightCell[, 3]), lwd = as.integer(highlightCell[, 
+    rect(highlightCell[, 2] - 0.5, highlightCell[, 1] - 0.5,
+         highlightCell[, 2] + 0.5, highlightCell[, 1] + 0.5,
+         border = as.character(highlightCell[, 3]), lwd = as.integer(highlightCell[,
                                                                                    4]))
   }
   if (!missing(ColSideColors) & ColAxisColors != 0) {
-    mtext(1, at = 1L:nc, text = labCol, las = lasCol, line = 0.5, 
+    mtext(1, at = 1L:nc, text = labCol, las = lasCol, line = 0.5,
           cex = cexCol, col = ColSideColors[colInd, ColAxisColors])
   }
   else {
-    axis(1, 1L:nc, labels = labCol, las = lasCol, line = -0.5, 
+    axis(1, 1L:nc, labels = labCol, las = lasCol, line = -0.5,
          tick = 0, cex.axis = cexCol)
   }
-  if (!is.null(xlab)) 
+  if (!is.null(xlab))
     mtext(xlab, side = 1, line = margins[1L] - 1.25)
   if (!missing(RowSideColors) & RowAxisColors != 0) {
-    mtext(4, at = iy, text = labRow, las = lasRow, line = 0.5, 
+    mtext(4, at = iy, text = labRow, las = lasRow, line = 0.5,
           cex = cexRow, col = RowSideColors[rowInd, RowAxisColors])
   }
   else {
-    axis(4, iy, labels = labRow, las = lasRow, line = -0.5, 
+    axis(4, iy, labels = labRow, las = lasRow, line = -0.5,
          tick = 0, cex.axis = cexRow)
   }
-  if (!is.null(ylab)) 
+  if (!is.null(ylab))
     mtext(ylab, side = 4, line = margins[2L] - 1.25)
-  if (!missing(add.expr)) 
+  if (!missing(add.expr))
     eval(substitute(add.expr))
   par(mar = c(margins[1L], 0, 0, 0))
-  if (doRdend & showRowDendro) 
+  if (doRdend & showRowDendro)
     plot(ddr, horiz = TRUE, axes = FALSE, yaxs = "i", leaflab = "none")
   else frame()
   par(mar = c(0, 0, if (!is.null(main)) 1 else 0, margins[2L]))
   if (doCdend & showColDendro) {
     plot(ddc, axes = FALSE, xaxs = "i", leaflab = "none")
     if (!missing(ColSideCut)) {
-      rect(c(0.5, 0.5 + cumsum(sapply(ColSideCutResult, 
-                                      function(x) length(unlist(x))))[-length(ColSideCutResult)]), 
-           0, cumsum(sapply(ColSideCutResult, function(x) length(unlist(x)))) + 
+      rect(c(0.5, 0.5 + cumsum(sapply(ColSideCutResult,
+                                      function(x) length(unlist(x))))[-length(ColSideCutResult)]),
+           0, cumsum(sapply(ColSideCutResult, function(x) length(unlist(x)))) +
              0.5, ColSideCut, col = ColSideCutResultCol)
     }
   }
-  else if (!is.null(main)) 
+  else if (!is.null(main))
     frame()
   if (!is.null(main)) {
     par(xpd = NA)
     title(main, cex.main = 1.5 * op[["cex.main"]])
   }
-  invisible(list(rowInd = rowInd, colInd = colInd, Rowv = if (keep.dendro && 
-                                                              doRdend) ddr, Colv = if (keep.dendro && doCdend) ddc, 
-                 cutTable = if (!missing(ColSideAnn) && !missing(ColSideCut)) cutTable, 
-                 cutColoumIndList = if (!missing(ColSideCut)) ColSideCutResultSubIndList, 
-                 DistMatrixC = if (returnDistMatrix) distMatrixC, DistMatrixR = if (returnDistMatrix) distMatrixR, 
+  invisible(list(rowInd = rowInd, colInd = colInd, Rowv = if (keep.dendro &&
+                                                              doRdend) ddr, Colv = if (keep.dendro && doCdend) ddc,
+                 cutTable = if (!missing(ColSideAnn) && !missing(ColSideCut)) cutTable,
+                 cutColoumIndList = if (!missing(ColSideCut)) ColSideCutResultSubIndList,
+                 DistMatrixC = if (returnDistMatrix) distMatrixC, DistMatrixR = if (returnDistMatrix) distMatrixR,
                  hcr = hcr, hcc = hcc))
 }
