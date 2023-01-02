@@ -50,7 +50,7 @@ setMethod("slidePlot", "Cycif",
   	   ttl <- paste0(smpl," (",ab1,")")
   	 }
 	  }else if(type=="exp"){
-	    cts <- cell_types(x,full=ctype.full,leaves.only=TRUE,within.rois=use.roi)
+	    cts <- cell_types(x,ctype.full=ctype.full,leaves.only=TRUE,within.rois=use.roi)
 	    if(missing(uniq.cts)){
 	      uniq.cts <- levels(cts)
 	      if(any(uniq.cts=="unknown")){
@@ -89,7 +89,7 @@ setMethod("slidePlot", "Cycif",
         ttl <- paste0(smpl,", ",ab," expression")
       }
     }else if(type=="cell_type"){
-      cts <- cell_types(x,full=ctype.full,leaves.only=TRUE,within.rois=use.roi)
+      cts <- cell_types(x,ctype.full=ctype.full,leaves.only=TRUE,within.rois=use.roi)
       if(missing(uniq.cts)){
         uniq.cts <- levels(cts)
         if(any(uniq.cts=="unknown")){
