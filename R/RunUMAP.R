@@ -81,6 +81,7 @@ setMethod("RunUMAP", "Cycif",
       n_cells_total = n.cells,
       ld_coords = ru,
       is_used = is.used.1,
+      ctype.full = ctype.full,
       ld_params=call1)
 
     x@ld_coords[[ld_name]] <- ld
@@ -178,7 +179,7 @@ setMethod("RunUMAP", "CycifStack",
       n_cells_total = n.used.cells,
       ld_coords = ru,
       is_used = is.used.2,
-      ctype.full,ctype.full,
+      ctype.full = ctype.full,
       ld_params = call1)
 
     x@ld_coords[[ld_name]] <- ld
