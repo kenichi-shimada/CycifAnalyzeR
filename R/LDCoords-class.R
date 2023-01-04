@@ -14,7 +14,9 @@ setClass("LDCoords",
 
      ld_coords = "data.frame",
      is_used = "logical",
-     ctype.full = "logical",
-     ld_params = "call"
+     cts_params = "list",
+     ld_params = "list",
+
+     call = "call"
    )
 )

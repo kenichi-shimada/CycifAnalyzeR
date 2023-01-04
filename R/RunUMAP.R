@@ -8,7 +8,7 @@
 #' @param used.abs A character vector containing a set of antibodies used for UMAP computation.
 #' @param init.seed initial seed to set for computing UMAP.
 #' @param smpls Character vector containign a set of samples to be included inthe UMAP.
-#' @param max.ncells.per.smpl A numeric scholar. The number of cells per sample to be set when a CycifStack is run.
+#' @param ncells.per.smpl A numeric scholar. The number of cells per sample to be set when a CycifStack is run.
 #' @param ... arguments passed to uwot::umap().
 #' @export
 setGeneric("RunUMAP", function(x,...) standardGeneric("RunUMAP"))
@@ -17,7 +17,7 @@ setGeneric("RunUMAP", function(x,...) standardGeneric("RunUMAP"))
 #' @export
 setMethod("RunUMAP", "Cycif",
   function(x,type=c("raw","log_normalized","logTh_normalized"),
-           ld_name,n.cells,used.abs,used.cts,ctype.full=FALSE,strict=TRUE,
+           ld_name,ncells.per.smpl,used.abs,used.cts,ctype.full=FALSE,strict=TRUE,
            n_neighbors=20,init.seed=12345,...){
     call1 <- sys.calls()[[1]]
     if(missing(ld_name)){
@@ -43,22 +43,23 @@ setMethod("RunUMAP", "Cycif",
     }
     is.used <- cts %in% used.cts
 
-    ## Select 'n.cells' cells from available.
+    ## Select 'ncells.per.smpl' cells from available.
     n.used <- sum(is.used)
-    if(missing(n.cells)){
-      n.cells <- n.used
+    if(missing(ncells.per.smpl)){
+      ncells.per.smpl <- n.used
     }
 
     smpl <- names(x)
 
-    if(n.used < n.cells){
-      warning(smpl, ": try sampling ",n.cells," cells but only ",n.used," cells available.\n")
+    if(n.used < ncells.per.smpl){
+      ncells.per.smpl <- n.used
+      warning(smpl, ": try sampling ",ncells.per.smpl," cells but only ",n.used," cells available.\n")
     }else{
-      cat(smpl, ": sampling ",n.cells," out of ",n.used," cells.\n")
+      cat(smpl, ": sampling ",ncells.per.smpl," out of ",n.used," cells.\n")
     }
 
     set.seed(123)
-    used.idx <- sample(which(is.used),n.cells)
+    used.idx <- sample(which(is.used),ncells.per.smpl)
     is.used.1 <- seq(is.used) %in% used.idx
 
     ## exprs matrix
@@ -77,12 +78,21 @@ setMethod("RunUMAP", "Cycif",
       smpls = smpl,
       used.abs = used.abs,
       used.cts = used.cts,
-      sn_cells_per_smpl = n.cells,
-      n_cells_total = n.cells,
+      n_cells_per_smpl = ncells.per.smpl,
+      n_cells_total = ncells.per.smpl,
       ld_coords = ru,
       is_used = is.used.1,
-      ctype.full = ctype.full,
-      ld_params=call1)
+      cts_params = list(
+        ctype.full = ctype.full,
+        strict = strict,
+        leaves.only= TRUE,
+        within.rois = TRUE
+      ),
+      ld_params= list(
+        init.seed = init.seed,
+        n_neighbors = n_neighbors
+      ),
+      call=call1)
 
     x@ld_coords[[ld_name]] <- ld
     return(x)
@@ -93,7 +103,7 @@ setMethod("RunUMAP", "Cycif",
 setMethod("RunUMAP", "CycifStack",
   function(x,type=c("raw","log_normalized","logTh_normalized"),ld_name,
            smpls,used.abs,used.cts,ctype.full=FALSE,strict=TRUE,
-           max.ncells.per.smpl,n_neighbors=20,init.seed=12345,
+           ncells.per.smpl,n_neighbors=20,init.seed=12345,
            save.coords=FALSE,...){
     call1 <- sys.calls()[[1]]
     if(missing(ld_name)){
@@ -144,8 +154,8 @@ setMethod("RunUMAP", "CycifStack",
 
       set.seed(123)
       is.used.1 <- is.used[v.ncells==smpl]
-      if(max.ncells.per.smpl < sum(is.used.1)){
-        used.idx <- sample(which(is.used.1),max.ncells.per.smpl)
+      if(ncells.per.smpl < sum(is.used.1)){
+        used.idx <- sample(which(is.used.1),ncells.per.smpl)
         is.used.2 <- seq(is.used.1) %in% used.idx
       }else{
         is.used.2 <- is.used.1
@@ -175,12 +185,21 @@ setMethod("RunUMAP", "CycifStack",
       smpls = smpls,
       used.abs = used.abs,
       used.cts = used.cts,
-      n_cells_per_smpl = max.ncells.per.smpl,
+      n_cells_per_smpl = ncells.per.smpl,
       n_cells_total = n.used.cells,
       ld_coords = ru,
       is_used = is.used.2,
-      ctype.full = ctype.full,
-      ld_params = call1)
+      cts_params = list(
+        ctype.full = ctype.full,
+        strict = strict,
+        leaves.only= TRUE,
+        within.rois = TRUE
+      ),
+      ld_params= list(
+        init.seed = init.seed,
+        n_neighbors = n_neighbors
+      ),
+      call=call1)
 
     x@ld_coords[[ld_name]] <- ld
     return(x)
