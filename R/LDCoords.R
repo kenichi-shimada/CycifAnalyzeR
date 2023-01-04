@@ -1,6 +1,6 @@
 LDCoords <- function(type,smpls,used.abs,used.cts,
                      n_cells_per_smpl,n_cells_total,
-                     ld_coords,is_used){
+                     ld_coords,is_used,ld_params){
   if(!type %in% c("PCA","tSNE","UMAP")){
     stop("type should be PCA, tSNE, or UMAP.")
   }
@@ -15,7 +15,8 @@ LDCoords <- function(type,smpls,used.abs,used.cts,
       n_cells_total = n_cells_total,
 
       ld_coords = ld_coords,
-      is_used = is_used)
+      is_used = is_used,
+      ld_params = ld_params)
 }
 
 #' @rdname LDCoords
