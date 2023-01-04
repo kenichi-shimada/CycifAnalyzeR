@@ -20,7 +20,7 @@ setClass("CycifStack",
        cell_type = "CellTypeCycifStack",
        cell_type_full = "CellTypeCycifStack",
 
-       ld_coords = "data.frame",
+       ld_coords = "list",
        samples = "list",
 
        phenoData = "data.frame",
