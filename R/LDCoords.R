@@ -20,7 +20,6 @@ LDCoords <- function(type,smpls,used.abs,used.cts,
 
       ld_coords = ld_coords,
       is_used = is_used,
-      ctype.full = ctype.full,
       cts_params = cts_params,
       ld_params = ld_params,
       call=call)
