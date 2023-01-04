@@ -23,10 +23,13 @@ setGeneric("lowDimPlot", function(x,...) standardGeneric("lowDimPlot"))
 #' @export
 setMethod("lowDimPlot", "Cycif",
   function(x,ld_name,type=c("celltype","cluster","exp"),
-           pch=".",main,leg=TRUE,p_thres=p_thres,...){
+           pch=".",main,leg=TRUE,p_thres=0.5,...){
     if(missing(ld_name)){
       stop("'ld_name' should be specified (it's used to retrieve the data later)")
+    }else if(!ld_name %in% names(x)){
+      stop("Specified 'ld_name' does not exist.")
     }
+
     ld <- ld_coords(x,ld_name=ld_name)
     xys <- ld@ld_coords
     is.used <- ld@is_used
@@ -91,7 +94,7 @@ setMethod("lowDimPlot", "Cycif",
 #' @rdname lowDimPlot
 #' @export
 setMethod("lowDimPlot", "CycifStack",
-  function(x,pch=".",type=c("cell_type","smpl","exp"),
+  function(x,ld_name,pch=".",type=c("cell_type","smpl","exp"),
            type=c("logTh_normalized","log_normalized"),
            ab,main,leg=TRUE,p_thres=0.5,...){
     ld <- x@ld_coords
