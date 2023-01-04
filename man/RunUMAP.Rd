@@ -25,6 +25,7 @@ RunUMAP(x, ...)
 \S4method{RunUMAP}{CycifStack}(
   x,
   type = c("raw", "log_normalized", "logTh_normalized"),
+  ld_name,
   smpls,
   used.abs,
   used.cts,
