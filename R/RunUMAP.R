@@ -8,7 +8,7 @@
 #' @param used.abs A character vector containing a set of antibodies used for UMAP computation.
 #' @param init.seed initial seed to set for computing UMAP.
 #' @param smpls Character vector containign a set of samples to be included inthe UMAP.
-#' @param n.cells.per.smpl A numeric scholar. The number of cells per sample to be set when a CycifStack is run.
+#' @param max.ncells.per.smpl A numeric scholar. The number of cells per sample to be set when a CycifStack is run.
 #' @param ... arguments passed to uwot::umap().
 #' @export
 setGeneric("RunUMAP", function(x,...) standardGeneric("RunUMAP"))
@@ -16,13 +16,17 @@ setGeneric("RunUMAP", function(x,...) standardGeneric("RunUMAP"))
 #' @rdname RunUMAP
 #' @export
 setMethod("RunUMAP", "Cycif",
-  function(x,type=c("raw","normalized"),n.cells,
-           celltype,
-           n_neighbors=20,used.abs,init.seed=12345,...){
+  function(x,type=c("raw","log_normalized","logTh_normalized"),
+           ld_name,n.cells,used.abs,used.cts,ctype.full=FALSE,strict=TRUE,
+           n_neighbors=20,init.seed=12345,...){
+    call1 <- sys.calls()[[1]]
+    if(missing(ld_name)){
+      stop("'ld_name' should be specified (it's used to retrieve the data later)")
+    }
 
     ## type - by default, should use normalized value
     if(missing(type)){
-      type <- "normalized"
+      type <- "logTh_normalized"
     }
 
     ## used.abs
@@ -30,19 +34,14 @@ setMethod("RunUMAP", "Cycif",
         stop("'used.abs' should be defined first (have you set threshold?).")
     }
 
-    ## how many cycles to be used
-    ab.cycle <- max((abs_list(x) %>% filter(ab %in% used.abs))$cycle) + 1 # note we use non-zero origin
-
     ## is.used
-    if(!missing(celltype)){
-      idx.used <- which(celltype != "Others")
-      is.used <- rep(FALSE,length(celltype))
-      is.used[idx.used] <- TRUE
-    }else if(!.hasSlot(x,"used_cells")){
-      stop("'used_cells' should be defined first.\n")
-    }else{
-      is.used <- cumUsedCells(x)[,ab.cycle]
+    cts <- cell_types(x,ctype.full=ctype.full,strict=strict)
+
+    if(missing(used.cts)){
+      used.cts <- levels(cts)
+      used.cts <- used.cts[used.cts != "unknown"]
     }
+    is.used <- cts %in% used.cts
 
     ## Select 'n.cells' cells from available.
     n.used <- sum(is.used)
@@ -51,6 +50,7 @@ setMethod("RunUMAP", "Cycif",
     }
 
     smpl <- names(x)
+
     if(n.used < n.cells){
       warning(smpl, ": try sampling ",n.cells," cells but only ",n.used," cells available.\n")
     }else{
@@ -72,109 +72,116 @@ setMethod("RunUMAP", "Cycif",
     rownames(ru) <- which(is.used.1)
     names(ru) <- c("x","y")
 
-    x@ld_coords <- ru
+    ld <- LDCoords(
+      type = "UMAP",
+      smpls = smpl,
+      used.abs = used.abs,
+      used.cts = used.cts,
+      sn_cells_per_smpl = n.cells,
+      n_cells_total = n.cells,
+      ld_coords = ru,
+      is_used = is.used.1,
+      ld_params=call1)
 
-    # validObject(x)
+    x@ld_coords[[ld_name]] <- ld
     return(x)
   })
 
 #' @rdname RunUMAP
 #' @export
 setMethod("RunUMAP", "CycifStack",
-          function(x,type=c("raw","normalized"),smpls,used.abs,
-                   celltype,removed_ct="",
-                   n.cells.per.smpl,n_neighbors=20,init.seed=12345,...){
+  function(x,type=c("raw","log_normalized","logTh_normalized"),ld_name,
+           smpls,used.abs,used.cts,ctype.full=FALSE,strict=TRUE,
+           max.ncells.per.smpl,n_neighbors=20,init.seed=12345,
+           save.coords=FALSE,...){
+    call1 <- sys.calls()[[1]]
+    if(missing(ld_name)){
+      stop("'ld_name' should be specified (it's used to retrieve the data later)")
+    }
 
-            ## type - by default, should use normalized value
-            if(missing(type)){
-              type <- "normalized"
-            }
+    ## type - by default, should use normalized value
+    if(missing(type)){
+      type <- "logTh_normalized"
+    }
 
-            ## samples
-            if(missing(smpls)){
-              smpls <- names(x)
-            }
-            if(type=="normalized"){
-              is.normalized <- all(cyApply(x,function(y).hasSlot(y,type),simplify=TRUE))
-              if(!is.normalized){
-                stop("Some samples aren't normalized yet.\n")
-              }
-            }
+    ## used.abs
+    if(missing(used.abs)){
+      stop("'used.abs' should be defined first (have you set threshold?).")
+    }else if(any(!used.abs %in% abs_list(x)$ab)){
+      missing.abs <- used.abs[(!used.abs %in% abs_list(x)$ab)]
+      stop("missing abs in 'used.abs': ",paste(missing.abs,collapse=", "))
+    }
 
-            x <- x[smpls] # redundant - no subsetting
+    ## samples
+    if(missing(smpls)){
+      smpls <- names(x)
+      x <- x[smpls] # redundant - no subsetting
+    }else if(any(!smpls %in% names(x))){
+      missing.smpls <- smpls[!smpls %in% names(x)]
+      stop("missing smpls in 'smpls': ",paste(missing.smpls,collapse=", "))
+    }
 
-            ## used.abs
-            if(missing(used.abs)){
-              list.used.abs <- cyApply(x,function(y)abs_list(y))
-              tab.used.abs <- table(unlist(list.used.abs))
-              used.abs <- names(which(tab.used.abs == length(smpls)))
-            }
+    ## celltypes
+    cts <- cell_types(x,ctype.full=ctype.full,strict=strict)
+    if(missing(used.cts)){
+      used.cts <- levels(cts)
+      used.cts <- used.cts[used.cts != "unknown"]
+    }else if(!all(used.cts %in% levels(cts))){
+      stop("all 'used.cts' should be observed cell types")
+    }
+    is.used <- cts %in% used.cts
 
-            ## how many cycles to be used
-            ab.cycle <- max((abs_list(x) %>% filter(ab %in% used.abs))$cycle) + 1 # note we use non-zero origin
+    ## set 'n.cells'
+    ncells <- nCells(x)
+    v.ncells <- rep(names(ncells),ncells)
+    n.used <- table(factor(is.used,levels=c("TRUE","FALSE")),v.ncells)["TRUE",]
+    smpls <- names(which(n.used>0))
 
-            ## is.used
-            if(!missing(celltype)){
-              list.is.used <- lapply(celltype,function(ct){
-                  is.used <- !is.na(ct) & !(ct %in% removed_ct)
-                  return(is.used)
-              })
-            }else{
-              list.is.used <- cyApply(x,function(y){
-                if(!.hasSlot(y,"used_cells")){
-                  stop("'used_cells' should be defined first.\n")
-                }
-                is.used <- cumUsedCells(y)[,ab.cycle]
-              })
-            }
+    ##
+    idx.list.mat <- cyApply(x,function(y){
+      smpl <- names(y)
 
-            n.used <- sapply(list.is.used,sum)
+      set.seed(123)
+      is.used.1 <- is.used[v.ncells==smpl]
+      if(max.ncells.per.smpl < sum(is.used.1)){
+        used.idx <- sample(which(is.used.1),max.ncells.per.smpl)
+        is.used.2 <- seq(is.used.1) %in% used.idx
+      }else{
+        is.used.2 <- is.used.1
+      }
+    },as.CycifStack=FALSE)
 
-            ## Select 'n.cells' cells from available.
-            if(missing(n.cells.per.smpl)){
-              n.cells.per.smpl <- min(n.used)
-            }
+    is.used.2 <- unlist(idx.list.mat)
+    mat <- exprs(x,type=type)[is.used.2,used.abs,drop=F]
+    has.na <- apply(is.na(mat),1,any)
+    mat <- mat[!has.na,]
 
-            ##
-            if(min(n.used) < n.cells.per.smpl){
-              warning("Tried to use ",n.cells.per.smpl," cells but some samples only have ",min(n.used)," cells.\n")
-              n.cells.per.smpl <- min(n.used)
-            }
+    ##
+    set.seed(init.seed)
+    ru <- uwot::umap(mat,n_neighbors=n_neighbors,...)
 
-            list.mat <- cyApply(x,function(y){
-              smpl <- names(y)
+    ru <- data.frame(ru)
+    rownames(ru) <- rownames(mat)
+    names(ru) <- c("x","y")
 
-              set.seed(123)
-              is.used <- list.is.used[[smpl]]
-              used.idx <- sample(which(is.used),n.cells.per.smpl) #
-              is.used.1 <- seq(is.used) %in% used.idx
+    tmp <- table(sub("\\..+","",rownames(mat)))
+    n.used.cells <- as.vector(tmp)
+    names(n.used.cells) <- names(tmp)
 
-              mat <- exprs(y,type=type)
-              mat <- mat[is.used.1,used.abs]
-              rownames(mat) <- which(is.used.1)
 
-              return(mat)
-            },as.CycifStack=FALSE)
+    ld <- LDCoords(
+      type = "UMAP",
+      smpls = smpls,
+      used.abs = used.abs,
+      used.cts = used.cts,
+      n_cells_per_smpl = max.ncells.per.smpl,
+      n_cells_total = n.used.cells,
+      ld_coords = ru,
+      is_used = is.used.2,
+      ctype.full,ctype.full,
+      ld_params = call1)
 
-            mat <- do.call(rbind,list.mat)
-
-            if(0){
-              ## consistency with cts
-              rn <- rownames(mat)
-              idx <- which(dc[rn]=="Tumor")
-              mat[head(idx),]
-            }
-
-            ##
-            set.seed(init.seed)
-            ru <- uwot::umap(mat,n_neighbors=n_neighbors,...)
-
-            ru <- data.frame(ru)
-            rownames(ru) <- rownames(mat)
-            names(ru) <- c("x","y")
-
-            x@ld_coords <- ru
-
-            # validObject(x)
-            return(x)
-          })
+    x@ld_coords[[ld_name]] <- ld
+    return(x)
+    # validObject(x)
+  })
