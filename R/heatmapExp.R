@@ -18,12 +18,6 @@ setMethod("heatmapExp", "CycifStack",
     if(missing(ab)){
       stop("ab should be always specified")
     }
-    if(missing(uniq.smpls)){
-      uniq.smpls <- levels(df$smpl)
-    }
-    if(missing(uniq.cts)){
-      uniq.cts <- levels(df$celltype)
-    }
 
     ## cell types
     cts <- cell_types(x,ctype.full=ctype.full,leaves.only=TRUE,within.rois=rois,strict=strict)
@@ -31,7 +25,16 @@ setMethod("heatmapExp", "CycifStack",
     df <- exprs(x,type=type) %>%
       tibble::rownames_to_column(var="smpl") %>%
       mutate(smpl = sub("\\.[0-9]+$","",smpl)) %>%
-      mutate(celltype=factor(cts)) %>%
+      mutate(celltype=factor(cts))
+
+    if(missing(uniq.smpls)){
+      uniq.smpls <- unique(df$smpl)
+    }
+    if(missing(uniq.cts)){
+      uniq.cts <- levels(df$celltype)
+    }
+
+    df <- df %>%
       filter(within_rois(x)) %>%
       filter(!is.na(celltype)) %>%
       filter(smpl %in% uniq.smpls) %>%
@@ -41,6 +44,7 @@ setMethod("heatmapExp", "CycifStack",
       summarise(sum_ab=sum_fun(this_ab)) %>%
       left_join(pd,by="smpl") %>%
       mutate(smpl = factor(smpl))
+
 
     ttl <- paste0(ab," (",type,")")
     m1 <- as.matrix(with(df, sparseMatrix(as.integer(smpl), as.integer(celltype), x=sum_ab)))
