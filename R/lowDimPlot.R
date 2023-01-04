@@ -22,17 +22,20 @@ setGeneric("lowDimPlot", function(x,...) standardGeneric("lowDimPlot"))
 #' @rdname lowDimPlot
 #' @export
 setMethod("lowDimPlot", "Cycif",
-  function(x,pch=".",type=c("cell_type","exp"),celltype=cts,ab,
-           main,leg=TRUE,p_thres=0.4,...){
-    require(RColorBrewer)
-    ld <- x@ld_coords
-    rn <- as.numeric(rownames(ld))
-    if(type=="cell_type"){
+  function(x,ld_name,type=c("celltype","cluster","exp"),
+           pch=".",main,leg=TRUE,p_thres=p_thres,...){
+    if(missing(ld_name)){
+      stop("'ld_name' should be specified (it's used to retrieve the data later)")
+    }
+    ld <- ld_coords(x,ld_name=ld_name)
+    xys <- ld@ld_coords
+    is.used <- ld@is_used
+    if(type=="celltype"){
       dc <- celltype
       levs <- levels(dc)
       levs <- levs[levs != "Others"]
       nlev <- length(levs)
-      uniq.cols <- c(colorRampPalette(brewer.pal(11,"Spectral"))(nlev))
+      uniq.cols <- c(colorRampPalette(RColorBrewer::brewer.pal(11,"Spectral"))(nlev))
       cols <- uniq.cols[dc[rn]]
 
       if(missing(main)){
@@ -88,9 +91,9 @@ setMethod("lowDimPlot", "Cycif",
 #' @rdname lowDimPlot
 #' @export
 setMethod("lowDimPlot", "CycifStack",
-  function(x,pch=".",type=c("cell_type","smpl","exp"),normMth=c("logTh","log"),
-           celltype,ab,main,leg=TRUE,p_thres=0.4,...){
-    require(RColorBrewer)
+  function(x,pch=".",type=c("cell_type","smpl","exp"),
+           type=c("logTh_normalized","log_normalized"),
+           ab,main,leg=TRUE,p_thres=0.5,...){
     ld <- x@ld_coords
     rn <- rownames(ld)
     if(type=="cell_type"){
@@ -102,7 +105,7 @@ setMethod("lowDimPlot", "CycifStack",
 
       levs <- levels(dc)
       nlev <- length(levs)
-      uniq.cols <- c(colorRampPalette(brewer.pal(11,"Spectral"))(nlev))
+      uniq.cols <- c(colorRampPalette(RColorBrewer::brewer.pal(11,"Spectral"))(nlev))
       cols <- uniq.cols[dc[rn]]
 
       if(missing(main)){
