@@ -1,3 +1,5 @@
+#' @rdname LDCoords
+#' @export
 LDCoords <- function(type,smpls,used.abs,used.cts,
                      n_cells_per_smpl,n_cells_total,
                      ld_coords,is_used,ld_params){
