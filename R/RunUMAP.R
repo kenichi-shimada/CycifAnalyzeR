@@ -16,7 +16,7 @@ setGeneric("RunUMAP", function(x,...) standardGeneric("RunUMAP"))
 #' @rdname RunUMAP
 #' @export
 setMethod("RunUMAP", "Cycif",
-  function(x,type=c("raw","log_normalized","logTh_normalized"),
+  function(x,norm_type=c("raw","log_normalized","logTh_normalized"),
            ld_name,ncells.per.smpl,used.abs,used.cts,ctype.full=FALSE,strict=TRUE,
            n_neighbors=20,init.seed=12345,...){
     call1 <- sys.calls()[[1]]
@@ -24,9 +24,9 @@ setMethod("RunUMAP", "Cycif",
       stop("'ld_name' should be specified (it's used to retrieve the data later)")
     }
 
-    ## type - by default, should use normalized value
-    if(missing(type)){
-      type <- "logTh_normalized"
+    ## norm_type - by default, should use normalized value
+    if(missing(norm_type)){
+      norm_type <- "logTh_normalized"
     }
 
     ## used.abs
@@ -44,14 +44,11 @@ setMethod("RunUMAP", "Cycif",
     is.used <- cts %in% used.cts
 
     ## Select 'ncells.per.smpl' cells from available.
+    smpl <- names(x)
     n.used <- sum(is.used)
     if(missing(ncells.per.smpl)){
       ncells.per.smpl <- n.used
-    }
-
-    smpl <- names(x)
-
-    if(n.used < ncells.per.smpl){
+    }else if(n.used < ncells.per.smpl){
       ncells.per.smpl <- n.used
       warning(smpl, ": try sampling ",ncells.per.smpl," cells but only ",n.used," cells available.\n")
     }else{
@@ -63,7 +60,7 @@ setMethod("RunUMAP", "Cycif",
     is.used.1 <- seq(is.used) %in% used.idx
 
     ## exprs matrix
-    mat <- exprs(x,type=type)
+    mat <- exprs(x,type=norm_type)
     mat <- mat[is.used.1,used.abs]
 
     set.seed(init.seed)
@@ -74,7 +71,8 @@ setMethod("RunUMAP", "Cycif",
     names(ru) <- c("x","y")
 
     ld <- LDCoords(
-      type = "UMAP",
+      ld_type = "UMAP",
+      norm_type = norm_type,
       smpls = smpl,
       used.abs = used.abs,
       used.cts = used.cts,
@@ -101,7 +99,7 @@ setMethod("RunUMAP", "Cycif",
 #' @rdname RunUMAP
 #' @export
 setMethod("RunUMAP", "CycifStack",
-  function(x,type=c("raw","log_normalized","logTh_normalized"),ld_name,
+  function(x,norm_type=c("raw","log_normalized","logTh_normalized"),ld_name,
            smpls,used.abs,used.cts,ctype.full=FALSE,strict=TRUE,
            ncells.per.smpl,n_neighbors=20,init.seed=12345,
            save.coords=FALSE,...){
@@ -110,9 +108,9 @@ setMethod("RunUMAP", "CycifStack",
       stop("'ld_name' should be specified (it's used to retrieve the data later)")
     }
 
-    ## type - by default, should use normalized value
-    if(missing(type)){
-      type <- "logTh_normalized"
+    ## norm_type - by default, should use normalized value
+    if(missing(norm_type)){
+      norm_type <- "logTh_normalized"
     }
 
     ## used.abs
@@ -163,7 +161,7 @@ setMethod("RunUMAP", "CycifStack",
     },as.CycifStack=FALSE)
 
     is.used.2 <- unlist(idx.list.mat)
-    mat <- exprs(x,type=type)[is.used.2,used.abs,drop=F]
+    mat <- exprs(x,type=norm_type)[is.used.2,used.abs,drop=F]
     has.na <- apply(is.na(mat),1,any)
     mat <- mat[!has.na,]
 
@@ -181,7 +179,8 @@ setMethod("RunUMAP", "CycifStack",
 
 
     ld <- LDCoords(
-      type = "UMAP",
+      ld_type = "UMAP",
+      norm_type = norm_type,
       smpls = smpls,
       used.abs = used.abs,
       used.cts = used.cts,

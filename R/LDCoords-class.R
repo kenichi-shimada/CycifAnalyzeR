@@ -3,7 +3,8 @@
 #'@export
 setClass("LDCoords",
    slots = c(
-     type = "character", # PCA, TSNE, UMAP
+     ld_type = "character", # PCA, TSNE, UMAP
+     norm_type = "character",
 
      smpls = "character",
      used.abs = "character",

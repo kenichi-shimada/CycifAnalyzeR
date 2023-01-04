@@ -1,15 +1,16 @@
 #' @rdname LDCoords
 #' @export
-LDCoords <- function(type,smpls,used.abs,used.cts,
+LDCoords <- function(ld_type,norm_type,smpls,used.abs,used.cts,
                      n_cells_per_smpl,n_cells_total,
                      ld_coords,is_used,
                      cts_params,ld_params,
                      call){
-  if(!type %in% c("PCA","tSNE","UMAP")){
-    stop("type should be PCA, tSNE, or UMAP.")
+  if(!ld_type %in% c("PCA","tSNE","UMAP")){
+    stop("ld_type should be PCA, tSNE, or UMAP.")
   }
   new("LDCoords",
-      type = type,
+      ld_type = ld_type,
+      norm_type = norm_type,
 
       smpls = smpls,
       used.abs = used.abs,
@@ -28,8 +29,6 @@ LDCoords <- function(type,smpls,used.abs,used.cts,
 #' @rdname LDCoords
 #' @export
 setMethod("show", "LDCoords", function(object) {
-  type <- object@type
-
   n.smpls <- length(object@smpls)
   used.abs <- object@used.abs
   n.abs <- length(used.abs)
@@ -42,7 +41,8 @@ setMethod("show", "LDCoords", function(object) {
   n_cells_total <- object@n_cells_total
 
   cat("[",is(object)[[1]], " object]\n\n",
-      "Type: ", object@type, "\n\n",
+      "Type: ", object@ld_type, "\n",
+      "Normalization: ",object@norm_type, "\n\n",
       "cts (",n.cts,") : ",cts,"\n",
       "abs (",n.abs,") : ",abs,"\n\n",
       "# samples : ", n.smpls,"\n",
