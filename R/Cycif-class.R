@@ -30,7 +30,7 @@ setClass("Cycif",
      dna_thres = "data.frame",
      positive_rois= "list",
 
-     ld_coords = "data.frame",
+     ld_coords = "list",
      clusters = "numeric", # numeric
 
      tif_files = "data.frame", # full path
