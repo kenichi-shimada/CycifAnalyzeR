@@ -124,7 +124,6 @@ setMethod("RunUMAP", "CycifStack",
     ## samples
     if(missing(smpls)){
       smpls <- names(x)
-      x <- x[smpls] # redundant - no subsetting
     }else if(any(!smpls %in% names(x))){
       missing.smpls <- smpls[!smpls %in% names(x)]
       stop("missing smpls in 'smpls': ",paste(missing.smpls,collapse=", "))
@@ -144,7 +143,6 @@ setMethod("RunUMAP", "CycifStack",
     ncells <- nCells(x)
     v.ncells <- rep(names(ncells),ncells)
     n.used <- table(factor(is.used,levels=c("TRUE","FALSE")),v.ncells)["TRUE",]
-    smpls <- names(which(n.used>0))
 
     ##
     idx.list.mat <- cyApply(x,function(y){
@@ -165,6 +163,9 @@ setMethod("RunUMAP", "CycifStack",
     has.na <- apply(is.na(mat),1,any)
     mat <- mat[!has.na,]
 
+    is.used.3 <- is.used.2
+    is.used.3[which(is.used.2)[has.na]] <- FALSE
+
     ##
     set.seed(init.seed)
     ru <- uwot::umap(mat,n_neighbors=n_neighbors,...)
@@ -175,8 +176,7 @@ setMethod("RunUMAP", "CycifStack",
 
     tmp <- table(sub("\\..+","",rownames(mat)))
     n.used.cells <- as.vector(tmp)
-    names(n.used.cells) <- names(tmp)
-
+    smpls <- names(n.used.cells) <- names(tmp)
 
     ld <- LDCoords(
       ld_type = "UMAP",
@@ -187,7 +187,7 @@ setMethod("RunUMAP", "CycifStack",
       n_cells_per_smpl = ncells.per.smpl,
       n_cells_total = n.used.cells,
       ld_coords = ru,
-      is_used = is.used.2,
+      is_used = is.used.3,
       cts_params = list(
         ctype.full = ctype.full,
         strict = strict,
