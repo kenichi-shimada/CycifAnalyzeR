@@ -10,9 +10,9 @@ RunUMAP(x, ...)
 
 \S4method{RunUMAP}{Cycif}(
   x,
-  type = c("raw", "log_normalized", "logTh_normalized"),
+  norm_type = c("raw", "log_normalized", "logTh_normalized"),
   ld_name,
-  n.cells,
+  ncells.per.smpl,
   used.abs,
   used.cts,
   ctype.full = FALSE,
@@ -24,14 +24,14 @@ RunUMAP(x, ...)
 
 \S4method{RunUMAP}{CycifStack}(
   x,
-  type = c("raw", "log_normalized", "logTh_normalized"),
+  norm_type = c("raw", "log_normalized", "logTh_normalized"),
   ld_name,
   smpls,
   used.abs,
   used.cts,
   ctype.full = FALSE,
   strict = TRUE,
-  max.ncells.per.smpl,
+  ncells.per.smpl,
   n_neighbors = 20,
   init.seed = 12345,
   save.coords = FALSE,
@@ -43,10 +43,7 @@ RunUMAP(x, ...)
 
 \item{...}{arguments passed to uwot::umap().}
 
-\item{type}{character. It should be "raw" or "normalized", indicating which expression
-values to use for the U-MAP.}
-
-\item{n.cells}{numeric. The number of cells sampled from each CyCIF object.}
+\item{ncells.per.smpl}{A numeric scholar. The number of cells per sample to be set when a CycifStack is run.}
 
 \item{used.abs}{A character vector containing a set of antibodies used for UMAP computation.}
 
@@ -56,7 +53,10 @@ values to use for the U-MAP.}
 
 \item{smpls}{Character vector containign a set of samples to be included inthe UMAP.}
 
-\item{max.ncells.per.smpl}{A numeric scholar. The number of cells per sample to be set when a CycifStack is run.}
+\item{type}{character. It should be "raw" or "normalized", indicating which expression
+values to use for the U-MAP.}
+
+\item{n.cells}{numeric. The number of cells sampled from each CyCIF object.}
 }
 \description{
 Run visualization with dimensionality reduction (t-SNE and U-MAP) on CyCIF data.
