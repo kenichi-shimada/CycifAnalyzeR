@@ -14,6 +14,8 @@ setClass("LDCoords",
      n_cells_total = "numeric",
 
      ld_coords = "data.frame",
+     clusters = "factor",
+
      is_used = "logical",
      cts_params = "list",
      ld_params = "list",
