@@ -17,7 +17,9 @@ Imports:
     ggplot2,
     raster,
     rasterVis,
-    openxlsx
+    openxlsx,
+    RColorBrewer,
+    Seurat
 Collate: 
     'CellType-class.R'
     'CycifStack-class.R'
@@ -31,6 +33,7 @@ Collate:
     'Cycif-utils.R'
     'CycifStack-subset.R'
     'CycifStack-utils.R'
+    'FindClusters.R'
     'LDCoords-class.R'
     'LDCoords-utils.R'
     'LDCoords.R'
