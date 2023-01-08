@@ -38,6 +38,7 @@ setMethod("FindClusters", "Cycif",
     ld <- ld_coords(x,ld_name)
     used.cts <- ld@used.cts
     this.abs <- ld@used.abs
+    is.used <- ld@is_used
 
     e <- exprs(x,type="logTh_normalized")
     e1 <- data.matrix(e[is.used,this.abs])
@@ -67,6 +68,7 @@ setMethod("FindClusters", "CycifStack",
     ld <- ld_coords(cs1,ld_name)
     used.cts <- ld@used.cts
     this.abs <- ld@used.abs
+    is.used <- ld@is_used
 
     e <- exprs(x,type="logTh_normalized")
     e1 <- data.matrix(e[is.used,this.abs])
