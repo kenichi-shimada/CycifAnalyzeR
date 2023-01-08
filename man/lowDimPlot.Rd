@@ -11,27 +11,34 @@ lowDimPlot(x, ...)
 \S4method{lowDimPlot}{Cycif}(
   x,
   ld_name,
-  plot.type = c("celltype", "cluster", "exp"),
+  plot_type = c("celltype", "cluster", "exp"),
+  ab,
   na.col = "grey80",
   uniq.cols,
+  with.labels = TRUE,
+  leg = TRUE,
   pch = ".",
   main,
-  leg = TRUE,
   p_thres = 0.5,
+  mar,
+  cex.labs = 1,
   ...
 )
 
 \S4method{lowDimPlot}{CycifStack}(
   x,
   ld_name,
-  plot.type = c("celltype", "smpl", "cluster", "exp"),
-  norm_type = c("logTh_normalized", "log_normalized"),
-  pch = ".",
-  uniq.cols,
+  plot_type = c("celltype", "cluster", "exp"),
   ab,
-  main,
+  na.col = "grey80",
+  uniq.cols,
+  with.labels = TRUE,
   leg = TRUE,
+  pch = ".",
+  main,
   p_thres = 0.5,
+  mar,
+  cex.labs = 1,
   ...
 )
 }
@@ -40,14 +47,14 @@ lowDimPlot(x, ...)
 
 \item{...}{other arguments  passed to plot()}
 
+\item{ab}{character, indicating one channel/antibody. This needs to be provided when
+type is 'exp'.}
+
 \item{uniq.cols}{color sets used for the plot()}
 
 \item{pch}{pch passed to plot()}
 
 \item{main}{main passed to plot()}
-
-\item{ab}{character, indicating one channel/antibody. This needs to be provided when
-type is 'exp'.}
 
 \item{type}{character, indicating how cells are colored. 'cell_type' is cell types
 computed prior to the plotting, 'smpl' show the samples the cells derived from,
