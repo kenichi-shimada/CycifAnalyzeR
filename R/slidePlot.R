@@ -2,17 +2,19 @@
 #'
 setGeneric("slidePlot", function(x,...) standardGeneric("slidePlot"))
 setMethod("slidePlot", "Cycif",
-	function(x,pch=20,cex=2,type=c("dna","exp","cell_type","filter"),
-	         ctype.full=TRUE,ttl,ab,uniq.cts,uniq.cols,draw.roi=TRUE,
+	function(x,pch=20,cex=2,plot_type=c("dna","exp","cell_type","filter"),
+	         ctype.full=FALSE,strict=FALSE,ttl,ab,uniq.cts,uniq.cols,draw.roi=TRUE,
+	         remove.unknown=TRUE,
 	         na.col="grey80",use.roi=TRUE,use.thres=TRUE,ncells=1e4,
-	         contour=TRUE,cont_nlevs=3,
+	         contour=FALSE,cont_nlevs=3,
 	         trim_th=1e-2,legend=FALSE, legend.pos="bottomright",mar=c(3,3,3,3),...){
-	  n <- exprs(x,type="log_normalized")
-	  smpl <- names(x)
-	  if(missing(type)){
-	    stop("need to specify the color_code by 'type' argument")
+	  if(missing(plot_type)){
+	    stop("need to specify the color_code by 'plot_type' argument")
 	  }
-	  if(type=="dna"){
+
+	  smpl <- names(x)
+
+	  if(plot_type=="dna"){
 	    if(missing(ab) || !ab %in% paste0("DNA",seq(nCycles(x)))){
   	    stop(paste0("If DNA stain, `ab' should be one of DNA1, ..., DNA", nCycles(x),")"))
   	  }
@@ -49,13 +51,17 @@ setMethod("slidePlot", "Cycif",
   	   }
   	   ttl <- paste0(smpl," (",ab1,")")
   	 }
-	  }else if(type=="exp"){
-	    cts <- cell_types(x,ctype.full=ctype.full,leaves.only=TRUE,within.rois=use.roi)
+	  }else if(plot_type=="exp"){
+	    cts <- cell_types(x,ctype.full=ctype.full,leaves.only=TRUE,within.rois=use.roi,strict=strict)
 	    if(missing(uniq.cts)){
 	      uniq.cts <- levels(cts)
 	      if(any(uniq.cts=="unknown")){
-	        ui <- which(uniq.cts=="unknown")
-	        uniq.cts <- c(uniq.cts[-ui],"unknown")
+	        if(remove.unknown){
+	          uniq.cts <- uniq.cts[uniq.cts!="unknown"]
+	        }else{
+	          ui <- which(uniq.cts=="unknown")
+	          uniq.cts <- c(uniq.cts[-ui],"unknown")
+	        }
 	      }
 	    }
 	    cts <- factor(cts,levels=uniq.cts)
@@ -64,7 +70,8 @@ setMethod("slidePlot", "Cycif",
         stop(ab, " is not specified or available in the sample ", names(x))
       }
 
-      n.ab <- trim_fun(n[[ab]],trim_th=trim_th)
+	    n <- exprs(x,plot_type="log_normalized")
+	    n.ab <- trim_fun(n[[ab]],trim_th=trim_th)
       rn <- range(n.ab,na.rm=T)
       is.na <- is.na(n.ab)
       if(use.roi){
@@ -88,23 +95,41 @@ setMethod("slidePlot", "Cycif",
       if(missing(ttl)){
         ttl <- paste0(smpl,", ",ab," expression")
       }
-    }else if(type=="cell_type"){
-      cts <- cell_types(x,ctype.full=ctype.full,leaves.only=TRUE,within.rois=use.roi)
+    }else if(plot_type=="cell_type"){
+      cts <- cell_types(x,ctype.full=ctype.full,leaves.only=TRUE,within.rois=use.roi,strict=strict)
+      if(missing(ttl)){
+        if(missing(uniq.cts)){
+          ttl <- paste0(smpl,", cell-types")
+        }else{
+          ttl <- paste0(smpl,", ",paste0(uniq.cts,collapse=","))
+        }
+      }
       if(missing(uniq.cts)){
         uniq.cts <- levels(cts)
+
+        if(any(uniq.cts=="Immune_other")){
+          ui <- which(uniq.cts=="Immune_other")
+          uniq.cts <- c(uniq.cts[-ui],"Immune_other")
+        }
+
         if(any(uniq.cts=="unknown")){
-          ui <- which(uniq.cts=="unknown")
-          uniq.cts <- c(uniq.cts[-ui],"unknown")
+          if(remove.unknown){
+            uniq.cts <- uniq.cts[uniq.cts!="unknown"]
+          }else{
+            ui <- which(uniq.cts=="unknown")
+            uniq.cts <- c(uniq.cts[-ui],"unknown")
+          }
         }
       }
       cts <- factor(cts,levels=uniq.cts)
 
 	    if(missing(uniq.cols)){
 	        nct <- nlevels(cts)
-	        if(nct>11){
-  	        uniq.cols <- colorRampPalette(RColorBrewer::brewer.pal(11,"Spectral"))(nct)
+	        if(nct>10){
+  	        uniq.cols <- colorRampPalette(RColorBrewer::brewer.pal(11,"Spectral")[-6])(nct)
 	        }else{
-  	        uniq.cols <- RColorBrewer::brewer.pal(11,"Spectral")[seq(nct)]
+	          # set.seed(12)
+  	        uniq.cols <- (RColorBrewer::brewer.pal(11,"Spectral"))[c(7,1,2,4,5,11:9,8)]
 	        }
 	        names(uniq.cols) <- uniq.cts
       }
@@ -115,16 +140,10 @@ setMethod("slidePlot", "Cycif",
         is.na <- is.na | !within.rois
       }
 
-	    if(missing(ttl)){
-	      if(missing(uniq.cts)){
-  	      ttl <- paste0(smpl,", cell-types")
-	      }else{
-	        ttl <- paste0(smpl,", ",paste0(uniq.cts,collapse=","))
-	      }
-	    }
-    }else if(type=="filter"){
+
+    }else if(plot_type=="filter"){
       if(missing(cell_type)){
-        stop("when type='filter', argument 'cell_type' can't be missing.")
+        stop("when plot_type='filter', argument 'cell_type' can't be missing.")
       }
       if(missing(uniq.cols)){
         nct <- nlevels(cell_type)
@@ -150,7 +169,7 @@ setMethod("slidePlot", "Cycif",
         cex <- rep(cex,length(cell_type))
       }
       ttl <- ""
-	  }
+    }
 
  	  ## plot
     xy <- xys(x)
@@ -173,7 +192,7 @@ setMethod("slidePlot", "Cycif",
 
   	points(xy$X[is.na & is.used],xy$Y[is.na & is.used],col=na.col,pch=pch,cex=cex1)
 
-  	if(type=="cell_type"){
+  	if(plot_type=="cell_type"){
   	  points(xy$X[!is.na & cts=="unknown" & is.used],
   	         xy$Y[!is.na & cts=="unknown" & is.used],
   	         col=cols[!is.na & cts=="unknown" & is.used],
@@ -182,7 +201,7 @@ setMethod("slidePlot", "Cycif",
   	         xy$Y[!is.na & cts!="unknown" & is.used],
   	         col=cols[!is.na & cts!="unknown" & is.used],
   	         pch=pch,cex=cex1*cex)
-  	}else if(type=="filter"){
+  	}else if(plot_type=="filter"){
   	  points(xy$X[o],
   	         xy$Y[o],
   	         col=cols[o],
@@ -199,10 +218,10 @@ setMethod("slidePlot", "Cycif",
         # points(pr,pch=sub(".+(.)$","\\1",as.character(seq(length(pr$x)))))
         pr$x <- c(pr$x,pr$x[1])
         pr$y <- c(pr$y,pr$y[1])
-        lines(pr,lty=2,col=i)
+        lines(pr,lty=2,col=1)
       }
     }
-  	if(type=="cell_type" && contour){
+  	if(plot_type=="cell_type" && contour){
   	  this.idx <- !is.na & cts %in% uniq.cts & is.used
   	  f1 <- kde2d(xy$X[this.idx],xy$Y[this.idx], n = 1000, lims = par()$usr,
   	              h = c(width.SJ(xy$X), width.SJ(xy$Y)))
