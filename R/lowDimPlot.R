@@ -82,13 +82,13 @@ setMethod("lowDimPlot", "Cycif",
       main <- paste(ld.type,ld_name,plot_type,sep=", ")
     }
 
-    ## levels
-    levs <- levels(facs)
-    nlev <- nlevels(facs)
-
     ## colors - when plot_type
     if(!grepl("exp",plot_type)){
       if(missing(uniq.cols)){
+        ## levels
+        levs <- levels(facs)
+        nlev <- nlevels(facs)
+
         if(nlev < 9){
           uniq.cols <- RColorBrewer::brewer.pal(8,"Dark2")[seq(nlev)]
         }else{
@@ -144,13 +144,13 @@ setMethod("lowDimPlot", "Cycif",
 setMethod("lowDimPlot", "CycifStack",
           function(x,ld_name,plot_type=c("celltype","cluster","exp"),ab,
                    na.col = "grey80",uniq.cols,with.labels = TRUE,leg=TRUE,
-                   pch=".",main,p_thres=0.5,mar,cex.labs=1,...){
+                   pch=".",main,p_thres=0.5,mar,cex.labs=1,cex.leg=.5,cex=cex,...){
             if(missing(plot_type)){
               stop("Which plot type? (plot_type = celltype, cluster, exp)")
             }
 
             if(missing(ld_name)){
-              stop("'ld_name' should be specified (it's used to retrieve the data later)")
+              stop("'ld_name' should be specified (it's used to retrieve the specific UMAP/Clustgering)")
             }else if(!ld_name %in% ld_names(x)){
               stop("Specified 'ld_name' does not exist.")
             }else{
@@ -228,13 +228,15 @@ setMethod("lowDimPlot", "CycifStack",
               main <- paste(ld.type,ld_name,plot_type,sep=", ")
             }
 
-            ## levels
-            levs <- levels(facs)
-            nlev <- nlevels(facs)
+
 
             ## colors - when plot_type
             if(!grepl("exp",plot_type)){
               if(missing(uniq.cols)){
+                ## levels
+                levs <- levels(facs)
+                nlev <- nlevels(facs)
+
                 if(nlev < 9){
                   uniq.cols <- RColorBrewer::brewer.pal(8,"Dark2")[seq(nlev)]
                 }else{
@@ -260,7 +262,7 @@ setMethod("lowDimPlot", "CycifStack",
             }
 
             if(leg){
-              mar <- c(4,4,4,10)
+              mar <- c(4,4,4,4)
             }else{
               mar <- c(4,4,4,4)
             }
@@ -268,12 +270,12 @@ setMethod("lowDimPlot", "CycifStack",
             ## plot
             def.par <- par(no.readonly = TRUE)
             par(mar=mar)
-            plot(xys,col=cols,pch=pch,main=main,xlab="",ylab="")#,...)
+            plot(xys,col=cols,pch=pch,main=main,xlab="",ylab="",cex=cex,...)
 
 
             if(leg){
               par(xpd=T)
-              legend(par()$usr[2],par()$usr[4],levs,pch=pch,col=uniq.cols,cex=.9)
+              legend(par()$usr[2],par()$usr[4],levs,pch=pch,col=uniq.cols,cex=cex.leg)
               par(xpd=F)
             }
             if(with.labels){
