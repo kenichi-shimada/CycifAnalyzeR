@@ -32,7 +32,7 @@ setMethod("heatmapSCExp", "CycifStack",
 
     xys <- ld@ld_coords
     ld.type <- ld@ld_type
-    norm.type <- ld@norm_type
+    norm_type <- ld@norm_type
 
     is.used <- ld@is_used
     if(missing(used.abs)){
@@ -44,7 +44,6 @@ setMethod("heatmapSCExp", "CycifStack",
 
     n <- exprs(x,type=norm_type)[is.used,used.abs]
 
-    row.o <- meta$row.order
     if(summarize){
       if(!all(summarize.by %in% colnames(rsc))){
         na.cols <-summarize.by[!summarize.by %in% colnames(rsc)]
@@ -56,18 +55,27 @@ setMethod("heatmapSCExp", "CycifStack",
         left_join(pd[c("smpl",summarize.by)],by="smpl") %>%
         group_by(!!!syms(summarize.by)) %>%
         summarize_at(used.abs,mean,na.rm=T)
+      rn <- apply(as.matrix(n1[summarize.by]),1,paste,collapse=",")
+
+      n1 <- as.matrix(n1[used.abs])
+      rownames(n1) <- rn
       rsc1 <- unique(cbind(pd[summarize.by],rsc[,summarize.by]))
       names(rsc1) <- paste0(rep(c("pd",""),each=length(summarize.by)),rep(summarize.by,times=2))
       rsc1 <- rsc1 %>% arrange(!!!syms(paste0("pd",summarize.by))) %>% select(!!! syms(summarize.by))
-      rsc <- rsc1
+      rsc <- as.matrix(rsc1)
+
+      ## reverse row-order
+      row.o <- rev(seq(nrow(n1)))
+      n1 <- n1[row.o,]
+      rsc <- rsc[row.o,]
+
     }else{
-      n1 <- n[row.o,]
+      row.o <- meta$row.order
+      n1 <- as.matrix(n[row.o,])
+      rownames(n1) <- rep("",nrow(n1))
     }
-    rownames(n1) <- rep("",nrow(n1))
-    n1 <- as.matrix(n1)
 
     ttl <- paste0(ld_name,", ",sub("_.+","",norm_type)," (no scaling)")
-
-    h3(n1,Colv=NA,Rowv=NA,scale="none",RowSideColors=rsc,useRaster=F,main=ttl,margins=margins)#,...)
+    h3(n1,Colv=NA,Rowv=NA,scale="none",RowSideColors=rsc,useRaster=F,main=ttl,margins=margins,...)
   })
 
