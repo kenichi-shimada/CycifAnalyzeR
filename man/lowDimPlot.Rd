@@ -39,6 +39,8 @@ lowDimPlot(x, ...)
   p_thres = 0.5,
   mar,
   cex.labs = 1,
+  cex.leg = 0.5,
+  cex = cex,
   ...
 )
 }
