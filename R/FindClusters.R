@@ -57,7 +57,7 @@ setMethod("FindClusters", "Cycif",
 #' @export
 setMethod("FindClusters", "CycifStack",
   function(x,ld_name,k.param = 20,
-           initial.membership=NULL,node.sizes=NULL,resolution=0.8,algorithm=1,...){
+           initial.membership,node.sizes,resolution=0.8,algorithm=4,...){
     if(missing(ld_name)){
       stop("'ld_name' should be specified.")
     }else if(!ld_name %in% ld_names(cs1)){
@@ -83,25 +83,3 @@ setMethod("FindClusters", "CycifStack",
   }
 )
 
-#
-# pd <- pData(cs1) %>%
-# select(id,Patient.ID,gBRCA.status,BOR,TimePoint)
-# npts <- length(unique(pd$Patient.ID))
-# nbrca <- length(unique(pd$gBRCA.status))
-# nbor <- length(unique(pd$BOR))
-# ntp <- length(unique(pd$TimePoint))
-# pd <- pd %>%
-# mutate(pts.col = brewer.pal(npts,"Set3")[factor(Patient.ID)]) %>%
-# mutate(brca.col = c("black","lightyellow")[factor(gBRCA.status)]) %>%
-# mutate(bor.col = brewer.pal(nbor,"Set1")[c(1,3,2)][factor(BOR)]) %>%
-# mutate(tp.col = brewer.pal(ntp,"Accent")[factor(TimePoint)])
-#
-# pd1 <- data.frame(
-# clust = ocls,
-# id = smpls.all
-# ) %>%
-# left_join(pd,by="id") %>%
-# rename(smpl = id)
-# pd2 <- pd1 %>%  select(clust,pts.col,brca.col,bor.col,tp.col)
-# names(pd2) <- c("Clust","Patient","BRCA","BOR","TimePoint")
-# pd2 <- as.matrix(pd2)
