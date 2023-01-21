@@ -68,9 +68,9 @@ setMethod("lowDimPlot", "Cycif",
     }else if(plot_type=="celltype"){
       facs <- cell_types(x,
                        ctype.full = cts.params$ctype.full,
-                       leaves.only=cts.params$leaves.only,
-                       strict=cts.params$strict)[is.used]
-      facs <- factor(facs,levels=used.cts)
+                       leaves.only = cts.params$leaves.only,
+                       strict = cts.params$strict)[is.used]
+      facs <- factor(facs,levels = used.cts)
       plot_type <- "Cell types"
     }else if(plot_type=="cluster"){
       facs <- ld@clusters
