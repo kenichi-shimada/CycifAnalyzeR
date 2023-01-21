@@ -113,16 +113,18 @@ setMethod("lowDimPlot", "Cycif",
       cols <- uniq.cols[as.numeric(facs)]
     }
 
-    if(leg){
-      mar <- c(4,4,4,10)
-    }else{
-      mar <- c(4,4,4,4)
+    if(missing(mar)){
+      if(leg){
+        mar <- c(4,4,4,10)
+      }else{
+        mar <- c(4,4,4,4)
+      }
     }
 
     ## plot
     def.par <- par(no.readonly = TRUE)
     par(mar=mar)
-    plot(xys,col=cols,pch=pch,main=main,xlab="",ylab="")#,...)
+    plot(xys,col=cols,pch=pch,main=main,xlab="",ylab="",...)
 
 
     if(leg){
@@ -144,6 +146,7 @@ setMethod("lowDimPlot", "Cycif",
 setMethod("lowDimPlot", "CycifStack",
           function(x,ld_name,plot_type=c("celltype","cluster","exp"),ab,
                    na.col = "grey80",uniq.cols,with.labels = TRUE,leg=TRUE,
+                   cts.names,pal.name,
                    pch=".",main,p_thres=0.5,mar,cex.labs=1,cex.leg=.5,cex=cex,...){
             if(missing(plot_type)){
               stop("Which plot type? (plot_type = celltype, cluster, exp)")
@@ -191,7 +194,15 @@ setMethod("lowDimPlot", "CycifStack",
                                  ctype.full = cts.params$ctype.full,
                                  leaves.only=cts.params$leaves.only,
                                  strict=cts.params$strict)[is.used]
-              facs <- factor(facs,levels=used.cts)
+              if(!missing(cts.names)){
+                if(!all(names(cts.names) %in%  used.cts)){
+                  stop("all names(cts.names) should be original cell type names")
+                }
+                facs <- cts.names[as.character(facs)]
+                facs <- factor(facs,levels=unique(cts.names))
+              }else{
+                facs <- factor(facs,levels=used.cts)
+              }
               plot_type <- "Cell types"
             }else if(plot_type=="cluster"){
               facs <- ld@clusters
@@ -211,7 +222,7 @@ setMethod("lowDimPlot", "CycifStack",
               uniq.smpls <- names(n.cells.smpls)
 
               facs <- factor(rep(uniq.smpls,n.cells.smpls),levels=uniq.smpls)
-              if(plot_type %in% c("Cohort","gBRCA.status","Subtype")){
+              if(plot_type %in% c("Cohort","gBRCA.status","Subtype","Patient.ID")){
                 pd[[plot_type]] <- factor(pd[[plot_type]])
               }
 
@@ -232,15 +243,21 @@ setMethod("lowDimPlot", "CycifStack",
 
             ## colors - when plot_type
             if(!grepl("exp",plot_type)){
+              levs <- levels(facs)
               if(missing(uniq.cols)){
                 ## levels
-                levs <- levels(facs)
                 nlev <- nlevels(facs)
 
                 if(nlev < 9){
-                  uniq.cols <- RColorBrewer::brewer.pal(8,"Dark2")[seq(nlev)]
+                  if(missing(pal.name)){
+                    pal.name <- "Dark2"
+                  }
+                  uniq.cols <- RColorBrewer::brewer.pal(8,pal.name)[seq(nlev)]
                 }else{
-                  uniq.cols <- colorRampPalette(RColorBrewer::brewer.pal(11,"Spectral"))(nlev)
+                  if(missing(pal.name)){
+                    pal.name <- "Spectral"
+                  }
+                  uniq.cols <- colorRampPalette(RColorBrewer::brewer.pal(11,pal.name))(nlev)
                 }
                 names(uniq.cols) <- levs
               }
@@ -261,10 +278,12 @@ setMethod("lowDimPlot", "CycifStack",
               cols <- uniq.cols[as.numeric(facs)]
             }
 
-            if(leg){
-              mar <- c(4,4,4,4)
-            }else{
-              mar <- c(4,4,4,4)
+            if(missing(mar)){
+              if(leg){
+                mar <- c(4,4,4,6)
+              }else{
+                mar <- c(4,4,4,6)
+              }
             }
 
             ## plot
