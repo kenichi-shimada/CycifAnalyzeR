@@ -1,5 +1,5 @@
 #' @export
-CellTypeCalling <- function(cy,p_thres=0.5,ctype.full=TRUE){
+CellTypeCalling <- function(cy,p_thres=0.5,ctype.full=TRUE,mc.cores){
   # return a character vector containing 'cell_types'
   # cy <- x[[1]]
   lth <- exprs(cy,type="logTh_normalized")
@@ -18,6 +18,13 @@ CellTypeCalling <- function(cy,p_thres=0.5,ctype.full=TRUE){
 
   cell.types <- rep("all",nrow(lth))
   is.strict <- rep(TRUE,nrow(lth))
+
+#   if(missing(mc.cores)){
+#     dc <- parallel::detectCores()
+#     if(dc >= 2){
+#       mc.cores <- dc - 1
+#     }
+#   }
 
   for(l in seq(length(ctlevs)-1)){
     pas <- ctlevs[[l]]
@@ -85,7 +92,7 @@ CellTypeCalling <- function(cy,p_thres=0.5,ctype.full=TRUE){
           }
       })
     }
-    this.strict <- rowSums(prs > 0.5) < 2
+    this.strict <- rowSums(prs > p_thres) < 2
     this.strict[is.na(this.strict)] <- FALSE
     is.strict[is.strict] <- this.strict[is.strict]
   }
