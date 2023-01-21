@@ -14,7 +14,15 @@ CellTypeGraph <- function(ctype,plot=F,transpose=T){
       l[,2] <- max(l[,2]) - l[,2]
       l <- l[,2:1]
     }
-    plot(g,layout=l)
+    igraph::V(g)$shape <- "rectangle"
+    igraph::V(g)$label.family <- "Helvetica"
+
+    plot(g, layout=l,
+         edge.arrow.size=.5, vertex.color="gold", vertex.size=40,
+         vertex.frame.color=NA, vertex.label.color="black",
+         vertex.label.cex=0.8, vertex.label.dist=0, edge.curved=0
+         )
+
   }
   return(ctlevs)
 }
