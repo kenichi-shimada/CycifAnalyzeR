@@ -57,7 +57,7 @@ setMethod("FindClusters", "Cycif",
 #' @export
 setMethod("FindClusters", "CycifStack",
   function(x,ld_name,k.param = 20,
-           initial.membership,node.sizes,resolution=0.8,algorithm=4,...){
+           initial.membership,node.sizes,resolution=0.8,algorithm=1,...){
     if(missing(ld_name)){
       stop("'ld_name' should be specified.")
     }else if(!ld_name %in% ld_names(cs1)){
