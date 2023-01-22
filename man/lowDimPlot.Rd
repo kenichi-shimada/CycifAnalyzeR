@@ -34,6 +34,8 @@ lowDimPlot(x, ...)
   uniq.cols,
   with.labels = TRUE,
   leg = TRUE,
+  cts.names,
+  pal.name,
   pch = ".",
   main,
   p_thres = 0.5,
