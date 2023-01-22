@@ -1,8 +1,9 @@
+#' @export
 barplotCTS <- function(n.sh,uniq.cols,ylim=c(0,1)){
   nf <- layout(as.matrix(c(6:1)),widths=1,heights=c(1,1,1,1,1,16))
   ##
   par(mar=c(7,7,1,10))
-  
+
   ymax <- ylim[2]
   if(ymax!=1){
     if(!"others" %in% rownames(n.sh)){
@@ -24,7 +25,7 @@ barplotCTS <- function(n.sh,uniq.cols,ylim=c(0,1)){
       xx[x]
     }
   })
-  
+
   par(xpd=T)
   legend(par()$usr[2],par()$usr[4],levels(anno.smpls$BOR),fill=brewer.pal(3,"Set1")[c(1,3,2)],title="BOR")
   legend(par()$usr[2],.8*ymax,levels(anno.smpls$TimePoint),fill=brewer.pal(3,"Set2"),title="TimePoint")
@@ -35,7 +36,7 @@ barplotCTS <- function(n.sh,uniq.cols,ylim=c(0,1)){
   par(fg=NA)
   axis(1,at=xidx,labels=names(med.x),las=2,cex.axis=.8)
   par(fg="black")
-  
+
   d <- diff(xx[1:2])
   par(xpd=T)
   pts <- (pData(cs1) %>% filter(id %in% names(cs1)))$Patient.ID
@@ -46,7 +47,7 @@ barplotCTS <- function(n.sh,uniq.cols,ylim=c(0,1)){
   text(xx[cumsum(table(pts))],1.15,unique(pts),srt=45,cex=.5)
   # legend(par()$usr[2],par()$usr[4],rev(names(uniq.cols)),fill=rev(uniq.cols),cex=.7,border=NA,box.col=NA)
   par(xpd=F)
-  
+
   ##
   par(mar=c(0,7,.5,10))
   par(tcl=0)
@@ -63,17 +64,17 @@ barplotCTS <- function(n.sh,uniq.cols,ylim=c(0,1)){
   image(1:30,1,as.matrix(as.numeric(anno.smpls$Subtype)),col=brewer.pal(3,"Dark2"),axes=F,
        xlab="",ylab="",xlim=c(-0.5,31.5))
   axis(2,at=1,labels=c("Subtype"),las=1)
-  
+
   ##
   par(mar=c(0,7,.5,10))
   image(1:30,1,as.matrix(as.numeric(factor(anno.smpls$gBRCA.status))),col=c("black","grey80"),axes=F,
        xlab="",ylab="",xlim=c(-0.5,31.5))
   axis(2,at=1,labels=c("gBRCA.status"),las=1)
-  
+
   ##
   par(mar=c(0,7,.5,10))
   par(tcl=0)
   image(1:30,1,as.matrix(as.numeric(anno.smpls$Patient)),col=brewer.pal(11,"Set3"),axes=F,
        xlab="",ylab="",xlim=c(-0.5,31.5))
   axis(2,at=1,labels=c("Patient"),las=1)
-}         
+}

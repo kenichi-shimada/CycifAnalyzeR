@@ -4,7 +4,7 @@
 \alias{[,CycifStack,ANY,ANY,ANY-method}
 \alias{[[,CycifStack,ANY,ANY-method}
 \alias{[<-,CycifStack,ANY,ANY,ANY-method}
-\alias{[[<-,CycifStack,ANY,ANY-method}
+\alias{[[<-,CycifStack,ANY,ANY,ANY-method}
 \title{Subsetting samples from a CycifStack object}
 \usage{
 \S4method{[}{CycifStack,ANY,ANY,ANY}(x, i = NULL)
@@ -13,7 +13,7 @@
 
 \S4method{[}{CycifStack,ANY,ANY,ANY}(x, i) <- value
 
-\S4method{[[}{CycifStack,ANY,ANY}(x, i) <- value
+\S4method{[[}{CycifStack,ANY,ANY,ANY}(x, i) <- value
 }
 \arguments{
 \item{x}{A CycifStack object}
