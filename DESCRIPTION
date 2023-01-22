@@ -41,6 +41,7 @@ Collate:
     'areaFilter.R'
     'asCycif.R'
     'asCycifStack.R'
+    'barplotCTS.R'
     'barplotPosCells.R'
     'cell_types.R'
     'cyApply.R'
