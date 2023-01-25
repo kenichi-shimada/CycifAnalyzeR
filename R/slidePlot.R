@@ -3,8 +3,9 @@
 setGeneric("slidePlot", function(x,...) standardGeneric("slidePlot"))
 setMethod("slidePlot", "Cycif",
 	function(x,pch=20,cex=2,plot_type=c("dna","exp","cell_type","filter"),
-	         ctype.full=FALSE,strict=FALSE,ttl,ab,uniq.cts,uniq.cols,draw.roi=TRUE,
-	         remove.unknown=TRUE,
+	         within_filter_rng,ctype.full=FALSE,strict=FALSE,ttl,ab,
+	         uniq.cts,uniq.cols,draw.roi=TRUE,
+	         remove.unknown=TRUE,cell.order,
 	         na.col="grey80",use.roi=TRUE,use.thres=TRUE,ncells=1e4,
 	         contour=FALSE,cont_nlevs=3,
 	         trim_th=1e-2,legend=FALSE, legend.pos="bottomright",mar=c(3,3,3,3),...){
@@ -14,11 +15,18 @@ setMethod("slidePlot", "Cycif",
 
 	  smpl <- names(x)
 
+	  if(!missing(cell.order)){
+	    if(length(cell.order) != nCells(x)){
+	      stop("'cell.order' should be the same size as nrow(x@dna)")
+	    }
+	  }
+
 	  if(plot_type=="dna"){
 	    if(missing(ab) || !ab %in% paste0("DNA",seq(nCycles(x)))){
   	    stop(paste0("If DNA stain, `ab' should be one of DNA1, ..., DNA", nCycles(x),")"))
   	  }
 	    mat <- x@dna
+
 	    mat <- cbind(log1p(mat[[1]]),as.data.frame(lapply(mat,function(x)log1p(x/mat[[1]])))[-1])
 	    names(mat) <- names(x@dna)
 
@@ -28,6 +36,9 @@ setMethod("slidePlot", "Cycif",
       is.na <- is.na(n.ab)
       if(use.roi){
         within.rois <- x@within_rois
+        if(length(within.rois)){
+          stop("ROIs not defined yet; 'use.roi' should be FALSE")
+        }
         is.na <- is.na | !within.rois
       }
 
@@ -71,6 +82,7 @@ setMethod("slidePlot", "Cycif",
       }
 
 	    n <- exprs(x,plot_type="log_normalized")
+
 	    n.ab <- trim_fun(n[[ab]],trim_th=trim_th)
       rn <- range(n.ab,na.rm=T)
       is.na <- is.na(n.ab)
@@ -97,6 +109,7 @@ setMethod("slidePlot", "Cycif",
       }
     }else if(plot_type=="cell_type"){
       cts <- cell_types(x,ctype.full=ctype.full,leaves.only=TRUE,within.rois=use.roi,strict=strict)
+
       if(missing(ttl)){
         if(missing(uniq.cts)){
           ttl <- paste0(smpl,", cell-types")
@@ -142,38 +155,44 @@ setMethod("slidePlot", "Cycif",
 
 
     }else if(plot_type=="filter"){
-      if(missing(cell_type)){
-        stop("when plot_type='filter', argument 'cell_type' can't be missing.")
+      if(missing(within_filter_rng)){
+        stop("when plot_type='filter', the argument 'within_filter_rng' should be specified.")
+      }
+      if(class(within_filter_rng)!="factor"){
+        within_filter_rng <- factor(within_filter_rng)
       }
       if(missing(uniq.cols)){
-        nct <- nlevels(cell_type)
+        nct <- nlevels(within_filter_rng)
         if(nct>11){
           uniq.cols <- colorRampPalette(RColorBrewer::brewer.pal(11,"Spectral"))(nct)
         }else{
           uniq.cols <- RColorBrewer::brewer.pal(nct,"Spectral")
         }
-        names(uniq.cols) <- levels(cell_type)
+        names(uniq.cols) <- levels(within_filter_rng)
       }
-      cols <- uniq.cols[cell_type]
-      is.na <- is.na(cell_type)
+      cols <- uniq.cols[within_filter_rng]
+      is.na <- is.na(within_filter_rng)
       if(use.roi){
         within.rois <- x@within_rois
         is.na <- is.na | !within.rois
       }
 
-      o <- order(cell_type)
+      if(missing(cell.order)){
+        cell.order <- order(within_filter_rng,decreasing=T)
+      }
       if(length(pch)==1){
-        pch <- rep(pch,length(cell_type))
+        pch <- rep(pch,length(within_filter_rng))
       }
       if(length(cex)==1){
-        cex <- rep(cex,length(cell_type))
+        cex <- rep(cex,length(within_filter_rng))
       }
       ttl <- ""
     }
 
  	  ## plot
     xy <- xys(x)
-  	xy$Y_centroid <- max(xy$Y) - xy$Y
+
+    xy$Y_centroid <- max(xy$Y) - xy$Y
   	prs <- x@positive_rois
 
   	if(!is.na(ncells) && nrow(xy) > ncells){
@@ -185,6 +204,26 @@ setMethod("slidePlot", "Cycif",
 
   	omar <- par()$mar
   	##
+  	if(!missing(cell.order)){
+  	  xy <- xy[cell.order,]
+  	  if(exists("is.na") && length(is.na)==length(cell.order)){
+  	    # stop("is.na")
+  	    is.na <- is.na[cell.order]
+  	  }
+  	  if(exists("is.used") && length(is.used)==length(cell.order)){
+  	    is.used <- is.used[cell.order]
+  	  }
+  	  if(exists("pch") && length(pch)==length(cell.order)){
+  	    pch <- pch[cell.order]
+  	  }
+  	  if(exists("cts") && length(cts)==length(cell.order)){
+  	    cts <- cts[cell.order]
+  	  }
+  	  if(exists("cols") && length(cols)==length(cell.order)){
+  	    cols <- cols[cell.order]
+  	  }
+  	}
+
   	par(mar=mar)
   	plot(xy$X,xy$Y,main=ttl,asp=1,xlab="",ylab="",type="n")#,...)
 
@@ -202,9 +241,9 @@ setMethod("slidePlot", "Cycif",
   	         col=cols[!is.na & cts!="unknown" & is.used],
   	         pch=pch,cex=cex1*cex)
   	}else if(plot_type=="filter"){
-  	  points(xy$X[o],
-  	         xy$Y[o],
-  	         col=cols[o],
+  	  points(xy$X,
+  	         xy$Y,
+  	         col=cols,
   	         pch=pch,cex=cex1*cex)
   	}else{
   	  points(xy$X[!is.na & is.used],
@@ -218,7 +257,12 @@ setMethod("slidePlot", "Cycif",
         # points(pr,pch=sub(".+(.)$","\\1",as.character(seq(length(pr$x)))))
         pr$x <- c(pr$x,pr$x[1])
         pr$y <- c(pr$y,pr$y[1])
-        lines(pr,lty=2,col=1)
+        if(pr$roi_type=="positive"){
+          col1 <- "red"
+        }else if(pr$roi_type=="negative"){
+          col1 <- "blue"
+        }
+        lines(pr,lty=2,col=col1)
       }
     }
   	if(plot_type=="cell_type" && contour){
@@ -234,6 +278,7 @@ setMethod("slidePlot", "Cycif",
   }
 )
 
+#' @export
 trim_fun <- function(x,trim_th = 1e-3){
   qts <- quantile(x,c(trim_th,1-trim_th),na.rm=T)
   x[x < qts[1]] <- qts[1]
