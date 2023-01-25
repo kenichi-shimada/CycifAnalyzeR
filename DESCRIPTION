@@ -68,6 +68,7 @@ Collate:
     'pData.R'
     'pipe.R'
     'plotUsedCellRatio.R'
+    'roiFilter.R'
     'slidePlot.R'
     'statUsedCells.R'
     'vlnPlot.R'
