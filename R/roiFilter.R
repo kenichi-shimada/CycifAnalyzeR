@@ -95,7 +95,8 @@ setMethod("roiFilter", "Cycif",
     return(x)
   }
 )
-##
+
+#' @export
 setGeneric("isPassedROIs", function(x,...) standardGeneric("isPassedROIs"))
 setMethod("isPassedROIs", "Cycif",
   function(x){
