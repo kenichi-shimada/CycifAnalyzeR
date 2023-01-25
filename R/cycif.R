@@ -52,6 +52,10 @@ Cycif <- function(filename,path,suffix="_cellRing") {
 
   raw <- sub.txt[ab.list]
   dna <- sub.txt[dna.list]
+  if(dna.list[1]=="DNA0"){
+    dna.list <- paste0("DNA",seq(dna.list))
+    names(dna) <- dna.list
+  }
 
   xy_coords <- txt[c("X_centroid","Y_centroid")]
   # xy_coords$Y_centroid <- max(xy_coords$Y_centroid) - xy_coords$Y_centroid

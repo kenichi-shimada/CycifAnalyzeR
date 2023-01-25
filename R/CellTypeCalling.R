@@ -1,5 +1,5 @@
 #' @export
-CellTypeCalling <- function(cy,p_thres=0.5,ctype.full=TRUE,mc.cores){
+CellTypeCalling <- function(cy,p_thres=0.5,ctype.full=TRUE){
   # return a character vector containing 'cell_types'
   # cy <- x[[1]]
   lth <- exprs(cy,type="logTh_normalized")
@@ -19,14 +19,7 @@ CellTypeCalling <- function(cy,p_thres=0.5,ctype.full=TRUE,mc.cores){
   cell.types <- rep("all",nrow(lth))
   is.strict <- rep(TRUE,nrow(lth))
 
-#   if(missing(mc.cores)){
-#     dc <- parallel::detectCores()
-#     if(dc >= 2){
-#       mc.cores <- dc - 1
-#     }
-#   }
-
-  for(l in seq(length(ctlevs)-1)){
+  for(l in 1){#seq(length(ctlevs)-1)){
     pas <- ctlevs[[l]]
     chs <- ctlevs[[l+1]]
     i.others <- chs %in% "unknown" | grepl("_other$",chs)
@@ -34,6 +27,9 @@ CellTypeCalling <- function(cy,p_thres=0.5,ctype.full=TRUE,mc.cores){
 
     ct <- ctype %>% filter(Parent %in% pas & Child %in% chs1)
     uniq.pas <- unique(ct$Parent)
+
+    ## compute probability of being each child node in the following block
+    ## (not considering the parent node)
     prs <- sapply(chs1,function(ch){
       tmp <- unlist(ct %>% filter(Child == ch))
       pa <- tmp[1]
@@ -69,11 +65,13 @@ CellTypeCalling <- function(cy,p_thres=0.5,ctype.full=TRUE,mc.cores){
       return(this.ct)
     })
 
+    ## for each parent, show which child is more likely to be the cell type each cell is
     for(pa in uniq.pas){
       this.ind <- cell.types==pa
       this.chs <- (ct %>% filter(Parent==pa))$Child
       this.chs <- colnames(prs)[colnames(prs) %in% this.chs]
-      cell.types[this.ind] <- apply(prs[this.ind,this.chs,drop=F],1,function(pr){
+      prs1 <- prs[this.ind,this.chs,drop=F]
+      cell.types[this.ind] <- apply(prs1,1,function(pr){
           if(all(is.na(pr))){
             return(pa)
           }
@@ -91,10 +89,10 @@ CellTypeCalling <- function(cy,p_thres=0.5,ctype.full=TRUE,mc.cores){
             return(ch1)
           }
       })
+      this.strict <- rowSums(prs1 > p_thres,na.rm=F) < 2
+      this.strict[is.na(this.strict)] <- FALSE
+      is.strict[this.ind] <- this.strict & is.strict[this.ind]
     }
-    this.strict <- rowSums(prs > p_thres) < 2
-    this.strict[is.na(this.strict)] <- FALSE
-    is.strict[is.strict] <- this.strict[is.strict]
   }
 
   ## convert to factor: Q: how to order cell types from ctype df?
