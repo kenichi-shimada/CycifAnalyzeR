@@ -51,7 +51,7 @@ setMethod("roiFilter", "Cycif",
               cex=2,ncells=1e4,
               mar=c(3,3,0,3),ttl="")
 
-    pos.rois <- x@positive_rois
+    pos.rois <- x@rois
     ## choose positive ROI
     if(roi_type=="positive"){
       cat("Set positive ROIs.\n")
@@ -69,7 +69,7 @@ setMethod("roiFilter", "Cycif",
         pos.rois <- c(pos.rois,list(xys1))
         cat("Do you want to set more positive ROIs?")
         ans <- readline(prompt="(Y/N) [Y]")
-        x@positive_rois <- pos.rois
+        x@rois <- pos.rois
       }
       return(x)
     }else if(roi_type=="negative"){
@@ -89,7 +89,7 @@ setMethod("roiFilter", "Cycif",
         cat("Do you want to set more negative ROIs?")
         ans <- readline(prompt="(Y/N) [Y]")
 
-        x@positive_rois <- pos.rois
+        x@rois <- pos.rois
       }
     }
     return(x)
@@ -100,7 +100,7 @@ setMethod("roiFilter", "Cycif",
 setGeneric("isPassedROIs", function(x,...) standardGeneric("isPassedROIs"))
 setMethod("isPassedROIs", "Cycif",
   function(x){
-    rois <- x@positive_rois
+    rois <- x@rois
     coords <- xys(x)
     rts <- sapply(rois,function(r)r$roi_type)
     if(any(rts=="positive")){
@@ -130,7 +130,5 @@ setMethod("isPassedROIs", "Cycif",
 #   list(x=1:5,y=2:6,roi_type="positive"),
 #   list(x=1:5,y=2:6,roi_type="negative"),
 #   list(x=1:5,y=2:6,roi_type="positive")
-# )
-#
 # )
 

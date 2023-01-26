@@ -28,7 +28,7 @@ setClass("Cycif",
      used_cells = "matrix", # matrix
      within_rois = "logical", # matrix
      dna_thres = "data.frame",
-     positive_rois= "list",
+     rois= "list",
 
      ld_coords = "list",
      clusters = "numeric", # numeric

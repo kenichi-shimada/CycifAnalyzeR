@@ -10,7 +10,7 @@ setMethod("slidePlot", "Cycif",
 	         contour=FALSE,cont_nlevs=3,
 	         trim_th=1e-2,legend=FALSE, legend.pos="bottomright",mar=c(3,3,3,3),...){
 	  if(missing(plot_type)){
-	    stop("need to specify the color_code by 'plot_type' argument")
+	    stop("need to specify 'plot_type' argument: dna, exp, cell_type, filter")
 	  }
 
 	  smpl <- names(x)
@@ -193,7 +193,7 @@ setMethod("slidePlot", "Cycif",
     xy <- xys(x)
 
     xy$Y_centroid <- max(xy$Y) - xy$Y
-  	prs <- x@positive_rois
+  	prs <- x@rois
 
   	if(!is.na(ncells) && nrow(xy) > ncells){
   	  set.seed(123)
