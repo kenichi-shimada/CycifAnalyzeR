@@ -61,6 +61,7 @@ Collate:
     'h3.R'
     'heatmapSCExp.R'
     'heatmapSummAb.R'
+    'importROIs.R'
     'lowDimPlot.R'
     'nCycles.R'
     'normalize.R'
