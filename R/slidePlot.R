@@ -1,10 +1,9 @@
 #' @export
-#'
 setGeneric("slidePlot", function(x,...) standardGeneric("slidePlot"))
 setMethod("slidePlot", "Cycif",
 	function(x,pch=20,cex=2,plot_type=c("dna","exp","cell_type","filter"),
 	         within_filter_rng,ctype.full=FALSE,strict=FALSE,ttl,ab,
-	         uniq.cts,uniq.cols,draw.roi=TRUE,
+	         uniq.cts,uniq.cols,draw.roi=TRUE,roi.cycle,
 	         remove.unknown=TRUE,cell.order,
 	         na.col="grey80",use.roi=TRUE,use.thres=TRUE,ncells=1e4,
 	         contour=FALSE,cont_nlevs=3,
@@ -252,17 +251,19 @@ setMethod("slidePlot", "Cycif",
   	         pch=pch,cex=cex1*cex)
   	}
     if(draw.roi){
+      ncycles <- sapply(prs,function(x)x$cycle)
       for(i in seq(prs)){
         pr <- prs[[i]]
-        # points(pr,pch=sub(".+(.)$","\\1",as.character(seq(length(pr$x)))))
-        pr$x <- c(pr$x,pr$x[1])
-        pr$y <- c(pr$y,pr$y[1])
-        if(pr$roi_type=="positive"){
-          col1 <- "red"
-        }else if(pr$roi_type=="negative"){
-          col1 <- "blue"
+        if(pr$cycle != roi.cycle){
+          next;
         }
-        lines(pr,lty=2,col=col1)
+        # points(pr,pch=sub(".+(.)$","\\1",as.character(seq(length(pr$x)))))
+        if(pr$dir=="positive"){
+          col1 <- 2
+        }else if(pr$dir=="negative"){
+          col1 <- 4
+        }
+        polygon(pr$coords,lty=1,border=col1)
       }
     }
   	if(plot_type=="cell_type" && contour){
