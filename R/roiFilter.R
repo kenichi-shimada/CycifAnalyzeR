@@ -13,43 +13,10 @@
 #' @export
 setGeneric("roiFilter", function(x,...) standardGeneric("roiFilter"))
 setMethod("roiFilter", "Cycif",
-  function(x,roi_type=c("positive","negative")){
-    if(missing(roi_type)){
-      stop("'roi_type' should be specified")
-    }
+  function(x,rois){
     mat <- x@raw
     smpl <- x@name
-    n <- n1 <- 1000
-
-    used.cells <- x@used_cells
-    if(nrow(used.cells)==0){
-      stop("Run dnaFilter() first to set 'used_cells' slots")
-    }
-
-    ## summarise used.cells
-    uc <- used.cells==1
-    ucs <- sapply(seq(ncol(used.cells)),function(i){
-      uc1 <- rep(1,nrow(uc))
-      for(j in seq(i)){
-        uc1 <- uc1 * uc[,j]
-      }
-      return(uc1)
-    })
-    ret <- rowSums(ucs)
-    o <- order(ret,decreasing=T)
-
-    ## final after dnaFitlter
-    nc <- length(unique(ret))
-
-    uniq.cols <- colorRampPalette(brewer.pal(9,"YlGnBu"))(nc+2)[-(nc+(0:1))]
-    cat("Cell retention through each cycle:\n")
-    l <- layout(matrix(c(1,2),nrow=2),heights=c(2,2))
-    plotUsedCellRatio(x)
-    slidePlot(x,plot_type="filter",within_filter_rng=ret,
-              uniq.cols=uniq.cols,
-              cell.order=o,
-              cex=2,ncells=1e4,
-              mar=c(3,3,0,3),ttl="")
+    # n <- n1 <- 1000
 
     pos.rois <- x@rois
     ## choose positive ROI
@@ -97,30 +64,46 @@ setMethod("roiFilter", "Cycif",
 )
 
 #' @export
-setGeneric("isPassedROIs", function(x,...) standardGeneric("isPassedROIs"))
-setMethod("isPassedROIs", "Cycif",
+setGeneric("setWithinROIs", function(x,...) standardGeneric("setWithinROIs"))
+setMethod("setWithinROIs", "Cycif",
   function(x){
     rois <- x@rois
+    ncycles <- sapply(rois,function(x)x$cycle)
     coords <- xys(x)
-    rts <- sapply(rois,function(r)r$roi_type)
-    if(any(rts=="positive")){
-      pos.rois <- rois[rts=="positive"]
-      passed.pos.rois <- as.matrix(sapply(pos.rois,function(xys2){
-        within.rois <- sp::point.in.polygon(coords$X,max(coords$Y)-coords$Y,xys2$x,xys2$y)==1
-      }))
-    }else{
-      passed.pos.rois <- as.matrix(rep(TRUE,nCells(x)))
-    }
-    if(any(rts=="negative")){
-      neg.rois <- rois[rts=="negative"]
-      passed.neg.rois <- as.matrix(sapply(neg.rois,function(xys2){
-        within.rois <- sp::point.in.polygon(coords$X,max(coords$Y)-coords$Y,xys2$x,xys2$y)==0
-      }))
-    }else{
-      passed.neg.rois <- as.matrix(rep(TRUE,nCells(x)))
-    }
+    nc <- nCells(x)
+    ncycle <- nCycles(x)
 
-    within.rois <- apply(passed.pos.rois,1,any) & apply(passed.neg.rois,1,all)
+    within.rois <- sapply(seq(ncycle),function(i){
+      is.used.rois <- ncycles <= i
+      if(sum(is.used.rois)==0){
+        within.rois <- rep(TRUE,nc)
+        return(within.rois)
+      }
+      rois1 <- rois[is.used.rois]
+      rts <- sapply(rois1,function(r)r$dir)
+      if(any(rts=="positive")){
+        pos.rois <- rois1[rts=="positive"]
+        passed.pos.rois <- as.matrix(sapply(pos.rois,function(pr){
+          xys2 <- pr$coords
+          within.rois <- sp::point.in.polygon(coords$X,max(coords$Y)-coords$Y,xys2$x,xys2$y)==1
+        }))
+      }else{
+        passed.pos.rois <- as.matrix(rep(TRUE,nCells(x)))
+      }
+      if(any(rts=="negative")){
+        neg.rois <- rois1[rts=="negative"]
+        passed.neg.rois <- as.matrix(sapply(neg.rois,function(nr){
+          xys2 <- nr$coords
+          within.rois <- sp::point.in.polygon(coords$X,max(coords$Y)-coords$Y,xys2$x,xys2$y)==0
+        }))
+      }else{
+        passed.neg.rois <- as.matrix(rep(TRUE,nCells(x)))
+      }
+      wr <- apply(passed.pos.rois,1,any) & apply(passed.neg.rois,1,all)
+      return(wr)
+    })
+    colnames(within.rois) <- seq(ncycle)
+
     x@within_rois <- within.rois
     return(x)
 })
