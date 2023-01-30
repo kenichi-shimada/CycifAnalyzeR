@@ -26,7 +26,7 @@ setClass("Cycif",
      cell_type_full = "CellTypeCycif",
 
      used_cells = "matrix", # matrix
-     within_rois = "logical", # matrix
+     within_rois = "matrix", # matrix
      dna_thres = "data.frame",
      rois= "list",
 
