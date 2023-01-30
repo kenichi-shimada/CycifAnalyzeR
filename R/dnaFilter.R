@@ -128,7 +128,7 @@ setMethod("dnaFilter", "Cycif",
               cexs <- c(1,20)[(in.rng %in% as.character(c(1,3)))+1]
 
               slidePlot(x,plot_type="filter",within_filter_rng=in.rng,
-                        uniq.cols=c("grey80","blue","red"),
+                        uniq.cols=c("grey80",4,2),
                         cex=2,
                         mar=c(3,3,0,3),ttl="")
               hist_fun(x=m,ths=c(dna.ths1[i],dna.ths2[i]),brks1=brks,ttl1=ttl)
@@ -164,7 +164,7 @@ setMethod("dnaFilter", "Cycif",
 
                     ## update
                     slidePlot(x,plot_type="filter",within_filter_rng=in.rng,
-                              uniq.cols=c("grey80","blue","red"),
+                              uniq.cols=c("grey80",4,2),
                               cex=2,
                               mar=c(3,3,0,3),ttl="")
                     hist_fun(x=m,ths=c(lo,hi),brks1=brks,ttl1=ttl)
@@ -211,24 +211,24 @@ setMethod("dnaFilter", "Cycif",
               cex=2,ncells=1e4,
               mar=c(3,3,0,3),ttl="")
 
-    ## choose ROI
-    cat("Do you want to select ROIs?\n")
-    ans <- readline(prompt="Y/N [Y]")
-    pos.rois <- list()
-    if(!grepl("^[nN]",ans)){
-      cat("Positive ROIs, negative ROIs, or Cancel?")
-      ans <- readline(prompt="P/N/C []")
-      while(!grepl("[Cc]",ans)){
-        if(grepl("^[Pp]",ans)){
-          x <- roiFilter(x,roi_type="positive")
-        }else if(grepl("^[nN]",ans)){
-          x <- roiFilter(x,roi_type="negative")
-        }
-        cat("More positive ROIs, negative ROIs, or Cancel?")
-        ans <- readline(prompt="P/N/C []")
-      }
-      x <- isPassedROIs(x)
-    }
+    # ## choose ROI
+    # cat("Do you want to select ROIs?\n")
+    # ans <- readline(prompt="Y/N [Y]")
+    # pos.rois <- list()
+    # if(!grepl("^[nN]",ans)){
+    #   cat("Positive ROIs, negative ROIs, or Cancel?")
+    #   ans <- readline(prompt="P/N/C []")
+    #   while(!grepl("[Cc]",ans)){
+    #     if(grepl("^[Pp]",ans)){
+    #       x <- roiFilter(x,roi_type="positive")
+    #     }else if(grepl("^[nN]",ans)){
+    #       x <- roiFilter(x,roi_type="negative")
+    #     }
+    #     cat("More positive ROIs, negative ROIs, or Cancel?")
+    #     ans <- readline(prompt="P/N/C []")
+    #   }
+    #   x <- isPassedROIs(x)
+    # }
     return(x)
   }
 )
