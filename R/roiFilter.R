@@ -102,7 +102,7 @@ setMethod("setWithinROIs", "Cycif",
       wr <- apply(passed.pos.rois,1,any) & apply(passed.neg.rois,1,all)
       return(wr)
     })
-    colnames(within.rois) <- seq(ncycle)
+    within.rois <- within.rois[ncycle,]
 
     x@within_rois <- within.rois
     return(x)
