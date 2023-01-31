@@ -13,15 +13,19 @@
 #' @export
 setGeneric("cumUsedCells", function(x,...) standardGeneric("cumUsedCells"))
 setMethod("cumUsedCells", "Cycif",
-          function(x,roi.selected=NULL){
+          function(x,within.rois=TRUE){
             u <- x@used_cells
-            if(!missing(roi.selected) & !is.null(roi.selected)){
-              u <- u[roi.selected,]
-            }
+            w <- x@within_rois
+
             u <- sapply(seq(ncol(u)),function(i){
               id <- rowSums(u[,seq(i),drop=F]==1)==i
               return(id)
             })
+
+            if(within.rois & length(w)>0){
+              u <- u & w
+            }
+
             return(u)
           }
 )
@@ -32,21 +36,21 @@ setMethod("cumUsedCells", "Cycif",
 #' @export
 setGeneric("statUsedCells", function(x,...) standardGeneric("statUsedCells"))
 setMethod("statUsedCells", "Cycif",
-          function(x,cumulative=TRUE,ratio=TRUE,roi.selected=NULL,...){
-            stopifnot(nrow(x@used_cells)>0)
-            if(cumulative){
-                mat <- cumUsedCells(x,roi.selected=roi.selected)
-            } else{
-              mat <- x@used_cells == 1 # 0 - dropped, 1 - alive, 2 - bunched
-            }
-            tab <- apply(mat,2,function(l){
-              f <- factor(l,levels=c("TRUE","FALSE"))
-              table(f)
-            })
-            if(ratio){
-              nc.true <- tab["TRUE",]
-              tab <- nc.true/nc.true[1]
-            }
-            return(tab)
-          }
+  function(x,cumulative=TRUE,ratio=TRUE,within.rois=TRUE,...){
+    stopifnot(nrow(x@used_cells)>0)
+    if(cumulative){
+        mat <- cumUsedCells(x,within.rois=within.rois)
+    } else{
+      mat <- x@used_cells == 1 # 0 - dropped, 1 - alive, 2 - bunched
+    }
+    tab <- apply(mat,2,function(l){
+      f <- factor(l,levels=c("TRUE","FALSE"))
+      table(f)
+    })
+    if(ratio){
+      nc.true <- tab["TRUE",]
+      tab <- nc.true/nc.true[1]
+    }
+    return(tab)
+  }
 )
