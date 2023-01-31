@@ -26,7 +26,7 @@ setClass("Cycif",
      cell_type_full = "CellTypeCycif",
 
      used_cells = "matrix", # matrix
-     within_rois = "matrix", # matrix
+     within_rois = "logical", # vector - chose column only for that @n_cycles
      dna_thres = "data.frame",
      rois= "list",
 
