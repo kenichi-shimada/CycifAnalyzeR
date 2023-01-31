@@ -70,7 +70,7 @@ setMethod("importROIs", "Cycif",
     })
 
     x@rois <- lst.rois
-    # x@within_rois <- setWithinROIs(x)
+    x <- setWithinROIs(x)
     return(x)
   }
 )
