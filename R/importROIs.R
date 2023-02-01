@@ -74,3 +74,49 @@ setMethod("importROIs", "Cycif",
     return(x)
   }
 )
+
+#' @export
+setGeneric("setWithinROIs", function(x,...) standardGeneric("setWithinROIs"))
+setMethod("setWithinROIs", "Cycif",
+  function(x){
+    rois <- x@rois
+    ncycles <- sapply(rois,function(x)x$cycle)
+    coords <- xys(x)
+    nc <- nCells(x)
+    ncycle <- nCycles(x)
+
+    within.rois <- sapply(seq(ncycle),function(i){
+      is.used.rois <- ncycles <= i
+      if(sum(is.used.rois)==0){
+        within.rois <- rep(TRUE,nc)
+        return(within.rois)
+      }
+      rois1 <- rois[is.used.rois]
+      rts <- sapply(rois1,function(r)r$dir)
+      if(any(rts=="positive")){
+        pos.rois <- rois1[rts=="positive"]
+        passed.pos.rois <- as.matrix(sapply(pos.rois,function(pr){
+          xys2 <- pr$coords
+          within.rois <- sp::point.in.polygon(coords$X,max(coords$Y)-coords$Y,xys2$x,xys2$y)==1
+        }))
+      }else{
+        passed.pos.rois <- as.matrix(rep(TRUE,nCells(x)))
+      }
+      if(any(rts=="negative")){
+        neg.rois <- rois1[rts=="negative"]
+        passed.neg.rois <- as.matrix(sapply(neg.rois,function(nr){
+          xys2 <- nr$coords
+          within.rois <- sp::point.in.polygon(coords$X,max(coords$Y)-coords$Y,xys2$x,xys2$y)==0
+        }))
+      }else{
+        passed.neg.rois <- as.matrix(rep(TRUE,nCells(x)))
+      }
+      wr <- apply(passed.pos.rois,1,any) & apply(passed.neg.rois,1,all)
+      return(wr)
+    })
+    within.rois <- within.rois[,ncycle]
+
+    x@within_rois <- within.rois
+    return(x)
+  }
+)
