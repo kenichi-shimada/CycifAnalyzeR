@@ -1,15 +1,15 @@
 #' @export
 setGeneric("slidePlot", function(x,...) standardGeneric("slidePlot"))
 setMethod("slidePlot", "Cycif",
-	function(x,pch=20,cex=2,plot_type=c("dna","exp","cell_type","filter"),
-	         within_filter_rng,ctype.full=FALSE,strict=FALSE,ttl,ab,
-	         uniq.cts,uniq.cols,draw.roi=TRUE,roi.cycle,
+	function(x,pch=20,cex=2,plot_type=c("dna","exp","cell_type","custom"),
+	         custom_labs,ctype.full=FALSE,strict=FALSE,ttl,ab,
+	         uniq.cts,uniq.cols,draw.roi=TRUE,
 	         remove.unknown=TRUE,cell.order,
 	         na.col="grey80",use.roi=TRUE,use.thres=TRUE,ncells=1e4,
 	         contour=FALSE,cont_nlevs=3,
 	         trim_th=1e-2,legend=FALSE, legend.pos="bottomright",mar=c(3,3,3,3),...){
 	  if(missing(plot_type)){
-	    stop("need to specify 'plot_type' argument: dna, exp, cell_type, filter")
+	    stop("need to specify 'plot_type' argument: dna, exp, cell_type, custom")
 	  }
 
 	  smpl <- names(x)
@@ -153,37 +153,37 @@ setMethod("slidePlot", "Cycif",
       }
 
 
-    }else if(plot_type=="filter"){
-      if(missing(within_filter_rng)){
-        stop("when plot_type='filter', the argument 'within_filter_rng' should be specified.")
+    }else if(plot_type=="custom"){
+      if(missing(custom_labs)){
+        stop("when plot_type='custom', the argument 'custom_labs' should be specified.")
       }
-      if(class(within_filter_rng)!="factor"){
-        within_filter_rng <- factor(within_filter_rng)
+      if(class(custom_labs)!="factor"){
+        custom_labs <- factor(custom_labs)
       }
       if(missing(uniq.cols)){
-        nct <- nlevels(within_filter_rng)
+        nct <- nlevels(custom_labs)
         if(nct>11){
           uniq.cols <- colorRampPalette(RColorBrewer::brewer.pal(11,"Spectral"))(nct)
         }else{
           uniq.cols <- RColorBrewer::brewer.pal(nct,"Spectral")
         }
-        names(uniq.cols) <- levels(within_filter_rng)
+        names(uniq.cols) <- levels(custom_labs)
       }
-      cols <- uniq.cols[within_filter_rng]
-      is.na <- is.na(within_filter_rng)
+      cols <- uniq.cols[custom_labs]
+      is.na <- is.na(custom_labs)
       if(use.roi){
         within.rois <- x@within_rois
         is.na <- is.na | !within.rois
       }
 
       if(missing(cell.order)){
-        cell.order <- order(within_filter_rng,decreasing=T)
+        cell.order <- order(custom_labs,decreasing=T)
       }
       if(length(pch)==1){
-        pch <- rep(pch,length(within_filter_rng))
+        pch <- rep(pch,length(custom_labs))
       }
       if(length(cex)==1){
-        cex <- rep(cex,length(within_filter_rng))
+        cex <- rep(cex,length(custom_labs))
       }
       ttl <- ""
     }
@@ -192,7 +192,6 @@ setMethod("slidePlot", "Cycif",
     xy <- xys(x)
 
     xy$Y_centroid <- max(xy$Y) - xy$Y
-  	prs <- x@rois
 
   	if(!is.na(ncells) && nrow(xy) > ncells){
   	  set.seed(123)
@@ -239,7 +238,7 @@ setMethod("slidePlot", "Cycif",
   	         xy$Y[!is.na & cts!="unknown" & is.used],
   	         col=cols[!is.na & cts!="unknown" & is.used],
   	         pch=pch,cex=cex1*cex)
-  	}else if(plot_type=="filter"){
+  	}else if(plot_type=="custom"){
   	  points(xy$X,
   	         xy$Y,
   	         col=cols,
@@ -251,12 +250,10 @@ setMethod("slidePlot", "Cycif",
   	         pch=pch,cex=cex1*cex)
   	}
     if(draw.roi){
-      ncycles <- sapply(prs,function(x)x$cycle)
+      prs <- x@rois
+      # ncys <- sapply(prs,function(x)x$cycle) - guaranteed to be relevant to this ncycle
       for(i in seq(prs)){
         pr <- prs[[i]]
-        if(pr$cycle != roi.cycle){
-          next;
-        }
         # points(pr,pch=sub(".+(.)$","\\1",as.character(seq(length(pr$x)))))
         if(pr$dir=="positive"){
           col1 <- 2

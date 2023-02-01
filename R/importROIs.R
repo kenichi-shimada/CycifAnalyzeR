@@ -69,6 +69,13 @@ setMethod("importROIs", "Cycif",
       return(roi.obj)
     })
 
+    ## match ncycle
+    ncycle <- nCycles(x)
+    matched.cys <- sapply(lst.rois,function(x)x$cycle) <= ncycle
+    # stop(matched.cys)
+    # stop(length(lst.rois))
+    lst.rois <- lst.rois[matched.cys]
+
     x@rois <- lst.rois
     x <- setWithinROIs(x)
     return(x)
