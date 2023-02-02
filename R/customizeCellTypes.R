@@ -1,3 +1,4 @@
+#'@export
 customizeCellTypes <- function(ctype,uniq.cts,check=TRUE){
   pas <- ctype$Parent
   chs <- ctype$Child
@@ -43,6 +44,7 @@ customizeCellTypes <- function(ctype,uniq.cts,check=TRUE){
   return(ch.cts1)
 }
 
+#'@export
 switchCellTypes(x,ch.cts){
-  
+  return(ch.cts)
 }
