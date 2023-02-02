@@ -185,7 +185,9 @@ setMethod("slidePlot", "Cycif",
       if(length(cex)==1){
         cex <- rep(cex,length(custom_labs))
       }
-      ttl <- ""
+      if(missing(ttl)){
+        ttl <- ""
+      }
     }
 
  	  ## plot
