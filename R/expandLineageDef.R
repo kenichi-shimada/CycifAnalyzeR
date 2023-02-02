@@ -8,7 +8,7 @@ expandLineageDef <- function(ctype,cstate,ctype.full=TRUE){
   }
   uniq.cts <- ctype$Child
   uniq.abs <- names(ctype)[-c(1:2)]
-  is.str <- sapply(ctype[uniq.abs],function(x)any(x=="CAN"))
+  is.str <- sapply(ctype[uniq.abs],function(x)any(x=="CAN")) # markers used to stratify cell_types
   if(!any(is.str)){
     return(list(ctype=ctype,cstate=cstate))
   }else if(any(is.str) && !ctype.full){
@@ -16,8 +16,8 @@ expandLineageDef <- function(ctype,cstate,ctype.full=TRUE){
     abs1 <- uniq.abs[!is.str]
     ctype.sub <- ctype[,c("Parent","Child",abs1)]
 
-    unused.abs <- uniq.abs[!uniq.abs %in% abs1]
-    cstate.ext <- cbind(ctype[unused.abs],cstate)
+    str.abs <- uniq.abs[!uniq.abs %in% abs1]
+    cstate.ext <- cbind(ctype[str.abs],cstate)
     rownames(cstate.ext) <- ctype.sub$Child
     return(list(ctype=ctype.sub,cstate=cstate.ext))
   }else{# if(any(is.str) & ctype.full){
@@ -90,8 +90,9 @@ expandLineageDef <- function(ctype,cstate,ctype.full=TRUE){
     }
     idx <- match(pas1,chs)
     cstate <- cstate[idx,]
-    rownames(cstate) <- chs1
+    cstate.ext <- cbind(ct[str.abs],cstate)
+    rownames(cstate.ext) <- chs1
 
-    return(list(ctype=ct,cstate=cstate))
+    return(list(ctype=ct,cstate=cstate.ext))
   }
 }
