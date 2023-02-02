@@ -45,6 +45,6 @@ customizeCellTypes <- function(ctype,uniq.cts,check=TRUE){
 }
 
 #'@export
-switchCellTypes(x,ch.cts){
+switchCellTypes <- function(x,ch.cts){
   return(ch.cts)
 }
