@@ -23,7 +23,7 @@ setGeneric("lowDimPlot", function(x,...) standardGeneric("lowDimPlot"))
 setMethod("lowDimPlot", "Cycif",
   function(x,ld_name,plot_type=c("celltype","cluster","exp"),ab,
            na.col = "grey80",uniq.cols,with.labels = TRUE,leg=TRUE,
-           pch=".",main,p_thres=0.5,mar,cex.labs=1,...){
+           pch=".",main,p_thres=0.5,mar,cex.labs=1,cex.leg=1,...){
     if(missing(plot_type)){
       stop("Which plot type? (plot_type = celltype, cluster, exp)")
     }
@@ -129,7 +129,7 @@ setMethod("lowDimPlot", "Cycif",
 
     if(leg){
       par(xpd=T)
-      legend(par()$usr[2],par()$usr[4],levs,pch=pch,col=uniq.cols,cex=.9)
+      legend(par()$usr[2],par()$usr[4],levs,pch=pch,col=uniq.cols,cex=cex.leg)
       par(xpd=F)
     }
     if(with.labels){
@@ -192,8 +192,8 @@ setMethod("lowDimPlot", "CycifStack",
             }else if(plot_type=="celltype"){
               facs <- cell_types(x,
                                  ctype.full = cts.params$ctype.full,
-                                 leaves.only=cts.params$leaves.only,
-                                 strict=cts.params$strict)[is.used]
+                                 leaves.only=cts.params$leaves.only)[is.used]
+              levels(facs) <- sub(",.+","",levels(facs))
               if(!missing(cts.names)){
                 if(!all(names(cts.names) %in%  used.cts)){
                   stop("all names(cts.names) should be original cell type names")
