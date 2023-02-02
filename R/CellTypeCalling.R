@@ -19,7 +19,7 @@ CellTypeCalling <- function(cy,p_thres=0.5,ctype.full=TRUE){
   cell.types <- rep("all",nrow(lth))
   is.strict <- rep(TRUE,nrow(lth))
 
-  for(l in 1){#seq(length(ctlevs)-1)){
+  for(l in seq(length(ctlevs)-1)){
     pas <- ctlevs[[l]]
     chs <- ctlevs[[l+1]]
     i.others <- chs %in% "unknown" | grepl("_other$",chs)
