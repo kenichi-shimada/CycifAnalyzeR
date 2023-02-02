@@ -44,6 +44,7 @@ Collate:
     'barplotCTS.R'
     'barplotPosCells.R'
     'cell_types.R'
+    'customizeCellTypes.R'
     'cyApply.R'
     'cycif.R'
     'cycifStack.R'
