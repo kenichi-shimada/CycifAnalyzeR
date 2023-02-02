@@ -4,8 +4,7 @@
 #' @export
 setGeneric("defineCellTypes", function(x,...) standardGeneric("defineCellTypes"))
 setMethod("defineCellTypes", "Cycif", function(x,ctype,cstate,gates,p_thres=0.5,...){
-  # ctype and cstate is input
-  ## run CellTypeCycif
+  # load ctype, cstate, gates in Cycif obj (both stratification markers unexpanded and expanded)
   x@cell_type  <- CellTypeCycif(x,ctype,cstate,gates,ctype.full=FALSE)
   x@cell_type_full  <- CellTypeCycif(x,ctype,cstate,gates,ctype.full=TRUE)
 
