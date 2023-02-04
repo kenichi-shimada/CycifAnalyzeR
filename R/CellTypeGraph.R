@@ -1,5 +1,5 @@
 #'@export
-CellTypeGraph <- function(ctype,plot=F,transpose=T){
+CellTypeGraph <- function(ctype,plot=F,transpose=T,...){
   uniq.cts <- c("all",ctype$Child)
   ctgraph <- ctype[c("Parent","Child")]
   ctgraph$Parent <- factor(ctgraph$Parent,levels=uniq.cts)
@@ -21,8 +21,7 @@ CellTypeGraph <- function(ctype,plot=F,transpose=T){
          edge.arrow.size=.5, vertex.color="gold", vertex.size=40,
          vertex.frame.color=NA, vertex.label.color="black",
          vertex.label.cex=0.8, vertex.label.dist=0, edge.curved=0
-         )
-
+         ,...)
   }
   return(ctlevs)
 }
