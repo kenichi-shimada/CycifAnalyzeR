@@ -7,7 +7,8 @@ setMethod("slidePlot", "Cycif",
 	         remove.unknown=TRUE,cell.order,
 	         na.col="grey80",use.roi=TRUE,use.thres=TRUE,ncells=1e4,
 	         contour=FALSE,cont_nlevs=3,
-	         trim_th=1e-2,legend=FALSE, legend.pos="bottomright",mar=c(3,3,3,3),...){
+	         trim_th=1e-2,legend=FALSE, legend.pos="bottomright",mar=c(3,3,3,3),
+	         roi.sq,...){
 	  if(missing(plot_type)){
 	    stop("need to specify 'plot_type' argument: dna, exp, cell_type, custom")
 	  }
@@ -141,7 +142,7 @@ setMethod("slidePlot", "Cycif",
   	        uniq.cols <- colorRampPalette(RColorBrewer::brewer.pal(11,"Spectral")[-6])(nct)
 	        }else{
 	          # set.seed(12)
-  	        uniq.cols <- (RColorBrewer::brewer.pal(11,"Spectral"))[c(7,1,2,4,5,11:9,8)]
+  	        uniq.cols <- (RColorBrewer::brewer.pal(11,"Spectral"))[c(7,1,4,11:9,8)]
 	        }
 	        names(uniq.cols) <- uniq.cts
       }
@@ -193,7 +194,8 @@ setMethod("slidePlot", "Cycif",
  	  ## plot
     xy <- xys(x)
 
-    xy$Y_centroid <- max(xy$Y) - xy$Y
+    max.y <- max(xy$Y)
+    xy$Y_centroid <- max.y - xy$Y
 
   	if(!is.na(ncells) && nrow(xy) > ncells){
   	  set.seed(123)
@@ -224,8 +226,19 @@ setMethod("slidePlot", "Cycif",
   	  }
   	}
 
+  	if(!missing(roi.sq)){
+  	  roi.sq$y <- range(max.y - roi.sq$y)
+  	  is.na <- is.na |
+  	    xy$X < roi.sq$x[1] | xy$X > roi.sq$x[2] |
+  	    xy$Y < roi.sq$y[1] | xy$Y > roi.sq$y[2]
+  	  xlim <- roi.sq$x
+  	  ylim <- roi.sq$y
+  	}else{
+  	  xlim <- range(xy$X)
+  	  ylim <- range(xy$Y)
+  	}
   	par(mar=mar)
-  	plot(xy$X,xy$Y,main=ttl,asp=1,xlab="",ylab="",type="n")#,...)
+  	plot(xy$X,xy$Y,main=ttl,asp=1,xlab="",ylab="",type="n",xlim=xlim,ylim=ylim,...)
 
   	cex1 = 4.8 * 8/3 * (par()$pin[1]/par()$cin[2])/diff(par()$usr[1:2])
 
