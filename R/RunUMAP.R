@@ -35,7 +35,8 @@ setMethod("RunUMAP", "Cycif",
     }
 
     ## is.used
-    cts <- cell_types(x,ctype.full=ctype.full,strict=strict)
+    cts <- cell_types(x,ctype.full=ctype.full)
+    levels(cts) <- sub(",.+","",levels(cts))
 
     if(missing(used.cts)){
       used.cts <- levels(cts)
@@ -130,11 +131,13 @@ setMethod("RunUMAP", "CycifStack",
     }
 
     ## celltypes
-    cts <- cell_types(x,ctype.full=ctype.full,strict=strict)
+    cts <- cell_types(x,ctype.full=ctype.full)
+    levels(cts) <- sub(",.+","",levels(cts))
     if(missing(used.cts)){
       used.cts <- levels(cts)
       used.cts <- used.cts[used.cts != "unknown"]
     }else if(!all(used.cts %in% levels(cts))){
+      stop(used.cts)
       stop("all 'used.cts' should be observed cell types")
     }
     is.used <- cts %in% used.cts
@@ -168,7 +171,7 @@ setMethod("RunUMAP", "CycifStack",
 
     ##
     set.seed(init.seed)
-    ru <- uwot::umap(mat,n_neighbors=n_neighbors,...)
+    ru <- uwot::umap(mat,n_neighbors=n_neighbors)#,...)
 
     ru <- data.frame(ru)
     rownames(ru) <- rownames(mat)
