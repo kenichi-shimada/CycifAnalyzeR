@@ -20,6 +20,7 @@ setClass("LDCoords",
      cts_params = "list",
      ld_params = "list",
 
-     call = "call"
+     ld_call = "call",
+     clust_call = "call"
    )
 )

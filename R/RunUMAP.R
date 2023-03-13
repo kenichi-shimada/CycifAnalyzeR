@@ -91,7 +91,7 @@ setMethod("RunUMAP", "Cycif",
         init.seed = init.seed,
         n_neighbors = n_neighbors
       ),
-      call=call1)
+      ld_call=call1)
 
     x@ld_coords[[ld_name]] <- ld
     return(x)
@@ -132,6 +132,7 @@ setMethod("RunUMAP", "CycifStack",
 
     ## celltypes
     cts <- cell_types(x,ctype.full=ctype.full)
+    ncts <- cyApply(x,function(y)length(cell_types(y,ctype.full=F)),simplify=T)
     levels(cts) <- sub(",.+","",levels(cts))
     if(missing(used.cts)){
       used.cts <- levels(cts)
@@ -145,6 +146,7 @@ setMethod("RunUMAP", "CycifStack",
     ## set 'n.cells'
     ncells <- nCells(x)
     v.ncells <- rep(names(ncells),ncells)
+    # stop(length(is.used),"\t",length(v.ncells),"\t",sum(ncells))
     n.used <- table(factor(is.used,levels=c("TRUE","FALSE")),v.ncells)["TRUE",]
 
     ##
@@ -201,7 +203,8 @@ setMethod("RunUMAP", "CycifStack",
         init.seed = init.seed,
         n_neighbors = n_neighbors
       ),
-      call=call1)
+      ld_call=call1,
+      clust_call=call("function"))
 
     x@ld_coords[[ld_name]] <- ld
     return(x)
