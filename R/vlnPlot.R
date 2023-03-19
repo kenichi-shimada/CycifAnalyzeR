@@ -5,27 +5,27 @@ setGeneric("vlnPlot", function(x,...) standardGeneric("vlnPlot"))
 #' @export
 setMethod("vlnPlot", "CycifStack",
   function(x,strat.by=c("celltype","smpl"), ab="PDL1", ctype.full=FALSE,
-           type=c("raw","log_normalized","logTh_normalized"), strict=FALSE,
-           within.rois = TRUE,uniq.cts,uniq.smpls){
-    if(missing(type)){
-      type <- "log_normalized"
+           # type=c("raw","log_normalized","logTh_normalized"),
+           strict=FALSE,
+           within.rois = TRUE,uniq.cts,uniq.smpls,is.used){
+    if(1){ # missing(type)){
+      type <- "logTh_normalized"
     }
-    if(missing(ctype.full)){
-      ctype.full <- FALSE
-    }
+
     if(missing(ab)){
       stop("ab should be always specified")
     }
 
     ## gates
     ab_thres <- unlist(x@cell_type@gates[ab,])
-    if(type=="raw"){
-      ths <- expm1(ab_thres)
-    }else if(type=="log_normalized"){
-      ths <- ab_thres
-    }else if(type=="logTh_normalized"){
-      ths <- rep(0.5,length(ab_thres))
-    }
+    # if(type=="raw"){
+    #   ths <- expm1(ab_thres)
+    # }else if(type=="log_normalized"){
+    #   ths <- ab_thres
+    # }else if(type=="logTh_normalized"){
+    #   ths <- rep(0.5,length(ab_thres))
+    # }
+    ths <- rep(0.5,length(ab_thres))
 
     ## cell types
     cts <- cell_types(x,ctype.full=ctype.full,leaves.only=TRUE,within.rois=within.rois)
@@ -37,12 +37,16 @@ setMethod("vlnPlot", "CycifStack",
     }else{
       used <- within_rois(x)
     }
+    if(!missing(is.used)){
+      used <- used & is.used
+    }
+
     df <- exprs(x,type=type) %>%
       tibble::rownames_to_column(var="smpl") %>%
       mutate(smpl = sub("\\.[0-9]+$","",smpl)) %>%
       mutate(celltype=factor(cts)) %>%
       filter(used) %>%
-      left_join(pData(cs1) %>% rename(smpl=id),by="smpl") %>%
+      left_join(pData(x) %>% rename(smpl=id),by="smpl") %>%
       mutate(smpl = factor(smpl))
 
     if(strat.by=="smpl"){
@@ -52,7 +56,13 @@ setMethod("vlnPlot", "CycifStack",
         ttl <- paste0(ab,", all cells")
         uniq.cts <- levels(df$celltype)
       }else{
-        ttl <- paste0(ab,", ",uniq.cts)
+        if(length(uniq.cts)>1){
+          uc <- paste0(length(uniq.cts)," samples")
+        }else if(length(uniq.cts)>1){
+          uc <- uniq.cts
+        }
+
+        ttl <- paste0(ab,", ",uc)
       }
       if(missing(uniq.smpls)){
         uniq.smpls <- levels(df$smpl)
@@ -77,8 +87,11 @@ setMethod("vlnPlot", "CycifStack",
         theme(axis.text.x = element_text(angle = 90, vjust = 0.5, hjust=1))
       print(p)
     }else if(strat.by=="celltype"){ # not so useful?
-      if(missing(uniq.smpls) || length(uniq.smpls)!= 1){
-        stop("one sample should be set in 'uniq.smpls'")
+      # if(missing(uniq.smpls) || length(uniq.smpls)!= 1){
+      #   stop("one sample should be set in 'uniq.smpls'")
+      # }
+      if(missing(uniq.smpls)){
+        uniq.smpls <- levels(df$smpl)
       }
       if(missing(uniq.cts)){
         uniq.cts <- levels(df$celltype)
@@ -90,11 +103,16 @@ setMethod("vlnPlot", "CycifStack",
         filter(smpl %in% uniq.smpls) %>%
         filter(!is.na(celltype))
 
-      ttl <- paste0(ab,",",uniq.smpls)
+      if(length(uniq.smpls)==1){
+        us <- uniq.smpls
+      }else if(length(uniq.smpls)>1){
+        us <- paste0(length(uniq.smpls), " samples")
+      }
+      ttl <- paste0(ab,", ",us)
       p <- ggplot(df1,aes_string("celltype",ab)) +
         geom_violin(aes(fill = celltype)) +
         ggtitle(ttl) +
-        geom_hline(yintercept = ab_thres[[uniq.smpls]],col="black") +
+        geom_hline(yintercept = 0.5,col="black") + #ab_thres[[uniq.smpls]],col="black") +
         theme_bw() +
         theme(legend.position = "none") +
         theme(axis.text.x = element_text(angle = 90, vjust = 0.5, hjust=1))
