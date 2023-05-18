@@ -5,17 +5,25 @@
 \alias{show,Cycif-method}
 \title{Instantiate and show a Cycif object}
 \usage{
-Cycif(filename, path, suffix = "_cellRing")
+Cycif(
+  filename,
+  path = "",
+  mask_type = c("cellRing", "cell"),
+  mcmicro = FALSE,
+  use_scimap = FALSE
+)
 
 \S4method{show}{Cycif}(object)
 }
 \arguments{
-\item{filename}{quantification file (.csv)}
+\item{path}{path to the dir containing ft_filename}
 
-\item{suffix}{a common suffix of each file name or channel. If applicable, the suffix is
+\item{mask_type}{a common mask_type of each file name or channel. If applicable, the mask_type is
 removed from the channel names.}
 
 \item{object}{a Cycif object}
+
+\item{ft_filename}{quantification file (.csv)}
 }
 \description{
 Instantiate and show a Cycif object
