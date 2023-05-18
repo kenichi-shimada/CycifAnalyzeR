@@ -9,4 +9,6 @@ archive
 
 .Rdata
 .httr-oauth
-^R1$
+R1/*.R
+R1/_unused/*.R
+test.R
