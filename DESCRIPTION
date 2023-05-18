@@ -11,69 +11,37 @@ Encoding: UTF-8
 Roxygen: list(markdown = TRUE)
 RoxygenNote: 7.2.1
 Depends:
+    R (>= 4.1.0),
     methods
 Imports: 
+    parallel,
     magrittr,
+    graphics,
+    grDevices,
+    MASS,
+    stats,
+    tibble,
+    dplyr,
     ggplot2,
-    raster,
-    rasterVis,
-    openxlsx,
+    reticulate,
+    utils,
+    igraph,
+    concaveman,
+    dbscan,
+    sp,
     RColorBrewer,
     Seurat
 Collate: 
-    'CellType-class.R'
-    'CycifStack-class.R'
-    'AbsSummary.R'
-    'CellTypeCalling.R'
-    'CellTypeCycif.R'
-    'CellTypeCycifStack.R'
-    'CellTypeDefault.R'
-    'CellTypeGraph.R'
-    'Cycif-class.R'
-    'Cycif-utils.R'
-    'CycifStack-subset.R'
-    'CycifStack-utils.R'
-    'FindClusters.R'
-    'LDCoords-class.R'
-    'LDCoords-utils.R'
-    'LDCoords.R'
-    'RunUMAP.R'
-    'areaFilter.R'
-    'asCycif.R'
-    'asCycifStack.R'
-    'barplotCTS.R'
-    'barplotPosCells.R'
-    'cell_types.R'
-    'customizeCellTypes.R'
-    'cyApply.R'
+    'objects.R'
     'cycif.R'
-    'cycifStack.R'
-    'defineCellTypes.R'
-    'dep-dimRedPlot.R'
-    'dep-segmentHist.R'
-    'dep-segmentPlot.R'
-    'dep-slideAndSegment.R'
-    'dep-slideColor.R'
-    'dnaFilter.R'
-    'expandLineageDef.R'
-    'exprs.R'
-    'findCluster.R'
-    'gates.R'
-    'h3.R'
-    'heatmapSCExp.R'
-    'heatmapSummAb.R'
-    'importROIs.R'
-    'lowDimPlot.R'
-    'nCycles.R'
-    'normalize.R'
-    'nrPlot.R'
-    'pData.R'
-    'pipe.R'
-    'plotUsedCellRatio.R'
-    'roiFilter.R'
-    'slidePlot.R'
-    'statUsedCells.R'
-    'vlnPlot.R'
+    'cycifstack.R'
+    'celltype.R'
+    'phenotypes.R'
+    'visualization.R'
+    'preprocessing.R'
+    'dimensionality_reduction.R'
+    'clustering.R'
+    'spatial_analysis.R'
 Suggests: 
     testthat (>= 3.0.0)
 Config/testthat/edition: 3
