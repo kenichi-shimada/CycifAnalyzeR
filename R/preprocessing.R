@@ -7,12 +7,15 @@
 #' @importFrom dplyr filter mutate select
 #' @export
 setGeneric("importROIs", function(x,...) standardGeneric("importROIs"))
+
+#' @rdname importROIs
+#' @export
 setMethod("importROIs", "Cycif",
           function(x,exported.rois){
             if(missing(exported.rois) || nrow(exported.rois) == 0){
               stop("'exported.rois' with one or more rows should be provided.")
             }
-            # exported.rois <- rois.out[[smpl]]
+            # exported.rois <- exported.rois[[smpl]]
             exported.rois <- exported.rois %>%
               dplyr::filter(type %in% c("Rectangle","Polygon","Ellipse")) %>%
               dplyr::filter(grepl("^(pos|neg)([0-9]+)$",Text)) %>%
@@ -89,6 +92,24 @@ setMethod("importROIs", "Cycif",
           }
 )
 
+#' @rdname importROIs
+#' @export
+setMethod("importROIs", "CycifStack",
+          function(x,exported.rois){
+            smpls1 <- names(x)
+            nm.rois <- names(exported.rois)
+            if(!any(smpls1 %in% nm.rois)){
+              unused <- smpls1[!smpls1 %in% nm.rois]
+              stop("ROIs not available for samples: ",paste(unused,collapse=","))
+            }
+            for(smpl in smpls1){
+              cat("Loadin ROI for ",smpl,"...\n")
+              x[[smpl]] <- importROIs(x[[smpl]],exported.rois=exported.rois[[smpl]])
+            }
+            return(x)
+          }
+)
+
 # fun: setWithinROIs Cycif ----
 
 #' @importFrom sp point.in.polygon
@@ -114,7 +135,7 @@ setMethod("setWithinROIs", "Cycif",
                 pos.rois <- rois1[rts=="positive"]
                 passed.pos.rois <- as.matrix(sapply(pos.rois,function(pr){
                   xys2 <- pr$coords
-                  within.rois <- point.in.polygon(coords$X,max(coords$Y)-coords$Y,xys2$x,xys2$y)==1
+                  within.rois <- sp::point.in.polygon(coords$X,max(coords$Y)-coords$Y,xys2$x,xys2$y)==1
                 }))
               }else{
                 passed.pos.rois <- as.matrix(rep(TRUE,nCells(x)))
@@ -123,7 +144,7 @@ setMethod("setWithinROIs", "Cycif",
                 neg.rois <- rois1[rts=="negative"]
                 passed.neg.rois <- as.matrix(sapply(neg.rois,function(nr){
                   xys2 <- nr$coords
-                  within.rois <- point.in.polygon(coords$X,max(coords$Y)-coords$Y,xys2$x,xys2$y)==0
+                  within.rois <- sp::point.in.polygon(coords$X,max(coords$Y)-coords$Y,xys2$x,xys2$y)==0
                 }))
               }else{
                 passed.neg.rois <- as.matrix(rep(TRUE,nCells(x)))
@@ -258,7 +279,7 @@ setMethod("dnaFilter", "Cycif",
               }
 
               l <- layout(matrix(c(2,1),nrow=2),heights=c(2,3))
-              slidePlot(x,plot_type="dna",ab=channel,mar=c(3,3,0,3),ttl="",use.roi=FALSE)
+              slidePlot(x,plot_type="dna",ab=channel,mar=c(3,3,0,3),ttl="",use_rois=FALSE)
               hst <- hist_fun(x=m,ths=c(dna.ths1[i],dna.ths2[i]),brks1=brks,ttl1=ttl)
 
               smoothened <- hst$smoothened
@@ -266,7 +287,9 @@ setMethod("dnaFilter", "Cycif",
 
               ##
               if(!show.only){
-                cat(paste0("Filtering ",smpl,"...\n"))
+                if(i==1){
+                  cat(paste0("Filtering ",smpl,", cycle ",i,"...\n"))
+                }
                 # cat("Do you want to see the auto_filters?")
                 # ans <- readline(prompt="Y/N [N]:")
                 auto_filter <- FALSE
@@ -331,17 +354,6 @@ setMethod("dnaFilter", "Cycif",
                   dna.ths2[i] <- min(max(m),x.bunch.th)
 
                 }
-                if(0){
-                  ## show current dna.ths1 and dna.ths2
-                  in.rng <- factor((m > dna.ths1[i]) + (m > dna.ths2[i]) + 1,levels=c(2,1,3))
-                  cexs <- c(1,20)[(in.rng %in% as.character(c(1,3)))+1]
-
-                  slidePlot(x,plot_type="filter",within_filter_rng=in.rng,
-                            uniq.cols=c("grey80",4,2),
-                            cex=2,
-                            mar=c(3,3,0,3),ttl="")
-                  hist_fun(x=m,ths=c(dna.ths1[i],dna.ths2[i]),brks1=brks,ttl1=ttl)
-                }
 
                 # if(manual){
                 if(TRUE){
@@ -356,6 +368,7 @@ setMethod("dnaFilter", "Cycif",
                       if(ans=="1"){
                         lo <- locator(1)$x
                         abline(v=lo,col=4)
+                        # stop("done")
                       }else if(ans=="2"){
                         hi <- locator(1)$x
                         abline(v=hi,col=2)
@@ -370,12 +383,18 @@ setMethod("dnaFilter", "Cycif",
 
                       in.rng <- factor((m > lo) + (m > hi) + 1,levels=c(2,1,3))
                       cexs <- c(1,20)[(in.rng %in% as.character(c(1,3)))+1]
+                      # stop(paste(table(cexs),collapse=","))
 
                       ## update
-                      slidePlot(x,plot_type="filter",within_filter_rng=in.rng,
+                      slidePlot(x,
+                                plot_type="custom",
+                                custom_labs=in.rng,
                                 uniq.cols=c("grey80",4,2),
-                                cex=2,
-                                mar=c(3,3,0,3),ttl="")
+                                cex=cexs,
+                                mar=c(3,3,0,3),
+                                ttl="",
+                                use_rois=FALSE)
+                      # stop("after slideplot")
                       hist_fun(x=m,ths=c(lo,hi),brks1=brks,ttl1=ttl)
                     }else if(ans=="4"){
                       slidePlot(x,plot_type="dna",ab=channel,mar=c(3,3,0,3),ttl="")
@@ -412,12 +431,14 @@ setMethod("dnaFilter", "Cycif",
 
             uniq.cols <- colorRampPalette(brewer.pal(9,"YlGnBu"))(nc+2)[-(nc+(0:1))]
 
-            cat("Cell retention through each cycle:\n")
+            cat("Cell retention through all cycles are plotted.\n")
             l <- layout(matrix(c(1,2),nrow=2),heights=c(2,3))
             plotUsedCellRatio(x)
-            slidePlot(x,plot_type="filter",within_filter_rng=ret,
+            slidePlot(x,plot_type="custom",
+                      custom_labs=ret,
                       uniq.cols=uniq.cols,
-                      cex=2,ncells=1e4,
+                      cex=2,
+                      ncells=1e4,
                       mar=c(3,3,0,3),ttl="")
 
             # ## choose ROI
@@ -441,6 +462,34 @@ setMethod("dnaFilter", "Cycif",
             return(x)
           }
 )
+
+#' @rdname dnaFilter
+#' @export
+hist_fun <- function(x,n=1000,ths,mar=c(3,4,4,2)+.1,brks1,ttl1){
+  omar <- par()$mar
+  par(mar=mar)
+
+  n.ab <- trim_fun(x,trim_th=1e-2)
+  min.i <- which.min(abs(brks1-min(n.ab)))
+  max.i <- which.min(abs(brks1-max(n.ab)))
+  # stop(list(min.i,max.i))
+  uniq.cols <- colorRampPalette(rev(RColorBrewer::brewer.pal(11,"Spectral")))(max.i-min.i+1)
+  # stop(length(uniq.cols))
+  cols <- c(rep(uniq.cols[1],min.i-1),uniq.cols,rep(rev(uniq.cols)[1],n-max.i+1))
+  a <- hist(x,breaks=brks1,main=ttl1,freq=FALSE,xlab="",col=cols,border=NA)
+
+  ## smoothening the trail of histogram
+  loessMod <- loess(a$density[seq(n)] ~ brks1[seq(n)], span=0.02)
+  smoothened <- predict(loessMod)
+  lines(smoothened, x=brks1[seq(n)], col=1,lwd=2)
+
+  # cat("Showing current dna_thres\n")
+  abline(v=ths[1],col=4,lty=2,lwd=2)
+  abline(v=ths[2],col=2,lty=2,lwd=2)
+  par(mar=omar)
+  invisible(list(a=a,smoothened=smoothened))
+}
+
 
 #_ -------------------------------------------------------
 
@@ -532,17 +581,12 @@ setMethod("normalize", "Cycif",
             if(missing(method)){
               stop("normalize() should specify method: log, logTh, or invlog")
             }
-            if(length(x@cell_type@name)==0){
-              stop("CellTypeCycif() should be run first")
-            }
 
             used.abs <- as.character(abs_list(x)$ab)
 
             smpl <- x@name
             raw <- x@raw
             is.used <- cumUsedCells(x)
-
-            ctc <- x@cell_type
 
             ## treatment is different between methods
             if(method=="log"){
@@ -560,7 +604,16 @@ setMethod("normalize", "Cycif",
               )
               x@log_normalized <- norm
             }else if(method=="logTh"){
-              log_thres <- gates(ctc)
+              gt <- paste0("gates_",names(x))
+              if(!gt %in% names(abs_list(x))){
+                stop('Set gates first with setGates()')
+              }else{
+                gates <- abs_list(x)[c("ab",gt)]
+              }
+
+              log_thres <- gates[[gt]]
+              names(log_thres) <- gates$ab
+
               thres <- expm1(log_thres)
               used.abs <- names(which(!is.na(thres)))
 
@@ -625,7 +678,7 @@ transform <- function(r,method=c("log","logTh","Th","invlog"),th,p_thres=0.5,tri
   ## method: either 'Th' or 'logTh'
   if(method %in% c("logTh","Th")){
     if(missing(th)){
-      stop("'th' should be specified for this normalization method")
+      stop("'th' should be specified when 'method=\"logTh\"' or 'method=\"Th\"'")
     } # th is an essential input from user
 
     ## trimming outliers

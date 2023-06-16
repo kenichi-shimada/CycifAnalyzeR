@@ -23,45 +23,24 @@ setClass("file_paths",
 
 #_ -------------------------------------------------------
 
-# class: CellTypeDefault ----
-
-#' A class that defines cell types and antibodies in a CyCIF project (defunct)
-#'
-#' @export
-setClass("CellTypeDefault",
-         slots = c(
-           markers = "data.frame",
-           cell_lineage_def = "data.frame",
-           cell_state_def = "data.frame"
-         )
-)
-
-# class: CellTypeCycif ----
+# class: CellTypes ----
 
 #' A class that defines cell types in Cycif class, extending CellTypeDefault class
 #'
 #' @export
-setClass("CellTypeCycif",contains="CellTypeDefault",
+setClass("CellTypes",# switch this to 'CellTypes' class, remove the others
          slots = c(
-           name = "character",
+           cell_lineage_def = "data.frame",
+           cell_state_def = "data.frame",
+           markers = "data.frame",
            n_cycles = "numeric",
-           gates = "data.frame",
+           sample_names = "character",
            cell_types = "factor", # generated from gates and lineage
            is_strict = "logical"
          )
 )
-
-# class: CellTypeCycifStack ----
-
-#' A class that defines cell types in CycifStack class, extending CellTypeDefault class
-#'
-#' @export
-setClass("CellTypeCycifStack",contains="CellTypeCycif",
-         slots = c(
-           n_samples = "numeric"
-         )
-)
-
+# stop("CellTypes now has sample_names. defineCellTypes and cell_types() should change accordingly (should have the same # of cells with @cell_types)",
+#      "then change LDCoords and spatial info so we can make the computation tomorrow")
 
 #_ -------------------------------------------------------
 
@@ -104,6 +83,37 @@ setClass("LDCoords",
 
 #_ -------------------------------------------------------
 
+# class: interaction ----
+
+# this class will be used by spatial_count and spatial_cluster
+
+#' spatial_interaction
+#'
+#' A class that contains outputs of spatial interactions
+#'
+#'@export
+#'
+setClass("interaction",
+         slots = c(
+           # [neighbor_tyoe]
+           neighbor_type = "character", # spatial_interaction
+
+           # [used smpls, abs, celltypes]
+           smpls = "character",
+
+           # [cell_type]
+           params = "list",
+           # subset_phenotype = "character",
+           # subset_neighbour_phenotype = "character",
+
+           # [data]
+           data = "data.frame",
+
+           # [call]
+           call = "call"
+         )
+)
+
 # class: neighborhood ----
 
 # this class will be used by spatial_count and spatial_cluster
@@ -120,27 +130,23 @@ setClass("neighborhood",
 
            # [used smpls, abs, celltypes]
            smpls = "character",
-           used.abs = "character",
-           used.cts = "character",
-
-           # [n_cells]
-           n_cells_per_smpl = "numeric",
-           n_cells_total = "numeric",
 
            # [ld_coords, clusters]
-           neighborhood = "factor",
-           ne_clusters = "factor",
+           neighborhood = "data.frame",
+           neighborhood_clusters = "factor",
 
            # [is_used, cts_params,ld_params]
+
            is_used = "logical",
-           cts_params = "list",
-           ld_params = "list",
+           neighborhood_params = "list",
+           clust_params = "list",
 
            # [call]
            ld_call = "call",
            clust_call = "call"
          )
 )
+
 
 #_ -------------------------------------------------------
 
@@ -160,7 +166,7 @@ setClass("Cycif",
      n_cycles = "numeric", # n_cycles
      n_cells = "numeric", # total cells
 
-     # [abs_list]
+     # [abs_list] - adding gates and dynamic range
      abs_list = "data.frame", # cycle <= n_cycles (nrow = 3*n_cycles)
 
      # [quantification]
@@ -184,16 +190,21 @@ setClass("Cycif",
      logTh_normalized = "data.frame",
 
      # [cell types]
-     cell_type = "list", # CellTypeCycif
+     cell_types = "list", # CellTypeCycif
 
      # [ld_coords, clusters]
      ld_coords = "list", # list of ld_coords object
-     clusters = "numeric", # numeric
+     # clusters = "numeric", # numeric
 
      # [scimap,spatial]
-     adata = "anndata._core.anndata.AnnData",
+     adata = "ANY", #"anndata._core.anndata.AnnData",
 
-     neighbors = "list", #
+     interaction = "list", # spatial_interaction (uns$data)
+     neighborhoods = "list", # spatial_count, spatial_lda, etc
+
+     # [ranges]
+     qt_gates = "vector", # quantification gates - for cell type calling
+     ch_ranges = "vector", # channel gates
 
      # [call]
      calls = "list" # list of functions called
@@ -206,6 +217,9 @@ setClass("Cycif",
 #' @export
 setClass("CycifStack",
    slots = c(
+     # [list of Cycif objs]
+     samples = "list",
+
      # [sample basic info]
      names = "character",
      mask_type = "character",
@@ -216,23 +230,24 @@ setClass("CycifStack",
      max_cycles = "numeric",
      n_cells = "numeric",
 
-     # [abs_list]
+     # [abs_list] - should contain gates and dynamic ranges
      abs_list = "data.frame",
 
-     # [normalized]
-     log_normalized = "data.frame",
-     logTh_normalized = "data.frame",
+     # [normalized] -
+     # log_normalized = "data.frame",
+     # logTh_normalized = "data.frame",
 
      # [cell types]
-     cell_type = "list", # CellTypeCycifStack
+     cell_types = "list", # CellTypeCycifStack
 
-     # [ld_coords, clusters]
+     # [ld_coords]
      ld_coords = "list",
-     samples = "list",
 
-     # [ranges]
-     # qt_gates = "vector", # quantification gates - for cell type calling
-     # ch_ranges = "vector", # channel gates
+     # [scimap,spatial]
+     adata = "ANY", #"anndata._core.anndata.AnnData",
+
+     interaction = "list", # spatial_interaction (uns$data)
+     neighborhoods = "list", # spatial_count, spatial_lda, etc
 
      # [phenotypes]
      phenoData = "data.frame",

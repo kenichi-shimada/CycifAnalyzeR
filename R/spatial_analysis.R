@@ -21,15 +21,18 @@ setGeneric("defineTumorBed", function(x,...) standardGeneric("defineTumorBed"))
 #' @importFrom sp point.in.polygon
 #' @export
 setMethod("defineTumorBed", "Cycif",
-  function(x,strict=FALSE,dth,parallel=TRUE,min.pts=2,n.cores=7){
+  function(x,strict=FALSE,dth,parallel=TRUE,min.pts=2,n.cores=1,ct_name){
 
     ## coordinates on slides
     xy <- xys(x)
     ymax <- max(xy$Y_centroid)
     xy$Y_centroid <- ymax - xy$Y_centroid
+    seg.prop <- x@segment_property
+
+
 
     ## cell types
-    this.cts <- cell_types(x,strict=strict)
+    this.cts <- cell_types(x,strict=strict,ct_name=ct_name)$cell_types
     if(any(levels(this.cts)!="NA")){
       this.cts <- factor(this.cts,levels=c(levels(this.cts),"NA"))
     }
@@ -43,11 +46,12 @@ setMethod("defineTumorBed", "Cycif",
 
     ### find optimal eps (dth) for adjacent cells - from all the cells (not only tumors)
     if(missing(dth)){
-      fr <- frNN(xy,eps=100)
-      has.ns <- sapply(fr$dist,length)>0
-      min.ds <- sapply(fr$dist[has.ns],function(x)x[1])
-      # xh <- hist(min.ds,breaks=200,plot=TRUE)
-      dth <- quantile(min.ds,.99)
+      # fr <- dbscan::frNN(xy,eps=100)
+      # has.ns <- sapply(fr$dist,length)>0
+      # min.ds <- sapply(fr$dist[has.ns],function(x)x[1])
+      # # xh <- hist(min.ds,breaks=200,plot=TRUE)
+      # dth <- quantile(min.ds,.99)
+      dth <- median(seg.prop$MajorAxisLength)
     }
 
     ## dbscan clustering - only tumor cells
@@ -60,6 +64,11 @@ setMethod("defineTumorBed", "Cycif",
       tmp <- frt$id[[i]]
       tmp <- tmp[tmp > i] ## this gaurantees unique pairs
     })
+
+    ## compute the size of the tumor chunks
+    ## multinomial distribution? - check 'connectivity' of graph, or 'degree distribution'
+
+    table(table(cls))
 
     ## Find within tumors
     is.in <- edge.pts <- list()

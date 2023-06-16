@@ -12,3 +12,5 @@ archive
 R1/*.R
 R1/_unused/*.R
 test.R
+*.rda
+*.csv

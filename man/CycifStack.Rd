@@ -5,12 +5,18 @@
 \alias{show,CycifStack-method}
 \title{Instantiate and show a CycifStack object}
 \usage{
-CycifStack(filenames, path, mask_type = "_cellRing")
+CycifStack(
+  ft_filenames,
+  path = "",
+  mask_type = c("cellRing", "cell"),
+  mcmicro = FALSE,
+  use_scimap = FALSE
+)
 
 \S4method{show}{CycifStack}(object)
 }
 \arguments{
-\item{filenames}{quantification file (.csv)}
+\item{ft_filenames}{quantification file (.csv)}
 
 \item{path}{path to the dir containign filename}
 

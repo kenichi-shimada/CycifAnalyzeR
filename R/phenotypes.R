@@ -23,9 +23,8 @@ setMethod("pData<-", "CycifStack", function(x,value){
     stop("Input phenoData should be a data frame\n")
   }
   smpls <- names(x)
-  names(smpls) <- c()
   keys <- as.character(value$id)
-  if(!identical(smpls,keys)){
+  if(!all(smpls==keys)){
     stop("'value$id' should be identical to 'names(x)'")
   }
   x@phenoData <- value

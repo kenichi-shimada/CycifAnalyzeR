@@ -110,9 +110,16 @@ setGeneric("RunUMAP", function(x,...) standardGeneric("RunUMAP"))
 #' @rdname RunUMAP
 #' @export
 setMethod("RunUMAP", "Cycif",
-          function(x,norm_type=c("raw","log_normalized","logTh_normalized"),
-                   ld_name,ncells.per.smpl,used.abs,used.cts,ctype.full=FALSE,strict=TRUE,
-                   n_neighbors=20,init.seed=12345,...){
+          function(x,
+                   norm_type=c("raw","log_normalized","logTh_normalized"),
+                   ld_name,
+                   ct_name,
+                   ncells.per.smpl=NULL,
+                   used.abs,
+                   used.cts,
+                   strict=TRUE,
+                   n_neighbors=20,
+                   init.seed=12345,...){
             call1 <- sys.calls()[[1]]
             if(missing(ld_name)){
               stop("'ld_name' should be specified (it's used to retrieve the data later)")
@@ -129,7 +136,7 @@ setMethod("RunUMAP", "Cycif",
             }
 
             ## is.used
-            cts <- cell_types(x,ctype.full=ctype.full)
+            cts <- cell_types(x,ct_name=ct_name)
             levels(cts) <- sub(",.+","",levels(cts))
 
             if(missing(used.cts)){
@@ -141,7 +148,7 @@ setMethod("RunUMAP", "Cycif",
             ## Select 'ncells.per.smpl' cells from available.
             smpl <- names(x)
             n.used <- sum(is.used)
-            if(missing(ncells.per.smpl)){
+            if(!is.null(ncells.per.smpl) & missing(ncells.per.smpl)){
               ncells.per.smpl <- n.used
             }else if(n.used < ncells.per.smpl){
               ncells.per.smpl <- n.used
@@ -176,7 +183,6 @@ setMethod("RunUMAP", "Cycif",
               ld_coords = ru,
               is_used = is.used.1,
               cts_params = list(
-                ctype.full = ctype.full,
                 strict = strict,
                 leaves.only= TRUE,
                 within.rois = TRUE
@@ -194,9 +200,17 @@ setMethod("RunUMAP", "Cycif",
 #' @rdname RunUMAP
 #' @export
 setMethod("RunUMAP", "CycifStack",
-          function(x,norm_type=c("raw","log_normalized","logTh_normalized"),ld_name,
-                   smpls,used.abs,used.cts,ctype.full=FALSE,strict=TRUE,
-                   ncells.per.smpl,n_neighbors=20,init.seed=12345,
+          function(x,
+                   norm_type=c("raw","log_normalized","logTh_normalized"),
+                   ld_name,
+                   ct_name,
+                   smpls,
+                   used.abs,
+                   used.cts,
+                   strict=TRUE,
+                   ncells.per.smpl=NULL,
+                   n_neighbors=20,
+                   init.seed=12345,
                    save.coords=FALSE,...){
             call1 <- sys.calls()[[1]]
             if(missing(ld_name)){
@@ -225,8 +239,9 @@ setMethod("RunUMAP", "CycifStack",
             }
 
             ## celltypes
-            cts <- cell_types(x,ctype.full=ctype.full)
-            ncts <- cyApply(x,function(y)length(cell_types(y,ctype.full=F)),simplify=T)
+            cts.df <- cell_types(x,ct_name=ct_name)
+            cts <- cts.df$cell_types
+            # ncts <- cyApply(x,function(y)length(cell_types(y,ct_name=ct_name)),simplify=T)
             levels(cts) <- sub(",.+","",levels(cts))
             if(missing(used.cts)){
               used.cts <- levels(cts)
@@ -236,10 +251,21 @@ setMethod("RunUMAP", "CycifStack",
               stop("all 'used.cts' should be observed cell types")
             }
             is.used <- cts %in% used.cts
+            # stop(length(is.used))
+            # stop(paste(table(is.used),collapse=","))
+
+            ## ncells.per.smpl
+
+            if(is.null(ncells.per.smpl) || missing(ncells.per.smpl)){
+              smpls <- rep(names(x),nCells(x))
+              max.per.smpls <- max(table(is.used,smpls)["TRUE",])
+              ncells.per.smpl <- max.per.smpls
+            }
+
 
             ## set 'n.cells'
             ncells <- nCells(x)
-            v.ncells <- rep(names(ncells),ncells)
+            v.ncells <- rep(names(x),ncells)
             # stop(length(is.used),"\t",length(v.ncells),"\t",sum(ncells))
             n.used <- table(factor(is.used,levels=c("TRUE","FALSE")),v.ncells)["TRUE",]
 
@@ -258,16 +284,21 @@ setMethod("RunUMAP", "CycifStack",
             },as.CycifStack=FALSE)
 
             is.used.2 <- unlist(idx.list.mat)
+            # stop(paste(table(is.used.2),collapse=","))
+            # stop(paste(used.abs,collapse=","))
             mat <- exprs(x,type=norm_type)[is.used.2,used.abs,drop=F]
             has.na <- apply(is.na(mat),1,any)
+            # stop(paste(mat[1,],collapse=","))
+            # stop(paste(table(has.na),collapse=","))
             mat <- mat[!has.na,]
 
             is.used.3 <- is.used.2
             is.used.3[which(is.used.2)[has.na]] <- FALSE
 
+            # stop(paste(dim(mat),collapse=","))
             ##
             set.seed(init.seed)
-            ru <- uwot::umap(mat,n_neighbors=n_neighbors)#,...)
+            ru <- uwot::umap(mat,n_neighbors=n_neighbors,...)
 
             ru <- data.frame(ru)
             rownames(ru) <- rownames(mat)
@@ -288,7 +319,6 @@ setMethod("RunUMAP", "CycifStack",
               ld_coords = ru,
               is_used = is.used.3,
               cts_params = list(
-                ctype.full = ctype.full,
                 strict = strict,
                 leaves.only= TRUE,
                 within.rois = TRUE

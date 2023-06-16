@@ -1,10 +1,10 @@
 #_ -------------------------------------------------------
 
-# fun: FindClusters matrix, Cycif, CycifStack ----
+# fun: LdClustering matrix, Cycif, CycifStack ----
 #' Find clusters using Seurat functions
 #'
 #' @param x an object containing data to cluster
-#' @param ... additional arguments passed to FindClusters
+#' @param ... additional arguments passed to LdClustering
 #'
 #' @return an object of the same class with x
 #'
@@ -12,13 +12,13 @@
 #' @importFrom Seurat FindNeighbors FindClusters
 #'
 #' @export
-setGeneric("FindClusters", function(x,...) standardGeneric("FindClusters"))
+setGeneric("LdClustering", function(x,...) standardGeneric("LdClustering"))
 
 #' Find clusters in a matrix
 #'
 #' This function finds clusters in a given matrix using Seurat::FindNeighbors and Seurat::FindClusters functions.
 #'
-#' @rdname FindClusters
+#' @rdname LdClustering
 #'
 #' @param x A matrix object.
 #' @param k.param Integer scalar. The number of nearest neighbors.
@@ -34,12 +34,12 @@ setGeneric("FindClusters", function(x,...) standardGeneric("FindClusters"))
 #' @examples
 #' \dontrun{
 #' mat <- matrix(rnorm(100), nrow = 10)
-#' FindClusters(mat, k.param = 5)
+#' LdClustering(mat, k.param = 5)
 #' }
 #'
 #' @importFrom Seurat FindNeighbors FindClusters
 #' @export
-setMethod("FindClusters", "matrix",
+setMethod("LdClustering", "matrix",
           function(x, k.param = 20, initial.membership = NULL, node.sizes = NULL,
                    resolution = 0.8, algorithm = 1, with.labels = FALSE, ...) {
             ## fin neighbors
@@ -54,7 +54,7 @@ setMethod("FindClusters", "matrix",
 
 #' Find clusters in a Cycif object.
 #'
-#' @rdname FindClusters
+#' @rdname LdClustering
 #'
 #' @param x A \code{\link{Cycif}} object.
 #' @param ld_name A character scalar indicating the name of the layout to use.
@@ -70,13 +70,12 @@ setMethod("FindClusters", "matrix",
 #' @examples
 #' \dontrun{
 #' data("exampleCycif")
-#' clusters <- FindClusters(exampleCycif, "Layout1", k.param = 10)
+#' clusters <- LdClustering(exampleCycif, "Layout1", k.param = 10)
 #' }
 #'
-#' @importFrom Seurat FindClusters
 #' @export
-#' @method FindClusters Cycif
-setMethod("FindClusters", "Cycif",
+#' @method LdClustering Cycif
+setMethod("LdClustering", "Cycif",
           function(x,ld_name,k.param = 20,
                    initial.membership=NULL,node.sizes=NULL,resolution=0.8,algorithm=1,...){
             call1 <- sys.calls()[[1]]
@@ -94,7 +93,7 @@ setMethod("FindClusters", "Cycif",
 
             e <- exprs(x,type="logTh_normalized")
             e1 <- data.matrix(e[is.used,this.abs])
-            cls <- FindClusters(e1,
+            cls <- LdClustering(e1,
                                 k.param = k.param,
                                 initial.membership = initial.membership,
                                 node.sizes = node.sizes,
@@ -121,11 +120,11 @@ setMethod("FindClusters", "Cycif",
 #'
 #' @examples
 #' \dontrun{
-#' FindClusters(x, ld_name = "label_name")
+#' LdClustering(x, ld_name = "label_name")
 #' }
-#' @rdname FindClusters
+#' @rdname LdClustering
 #' @export
-setMethod("FindClusters", "CycifStack",
+setMethod("LdClustering", "CycifStack",
           function(x,ld_name,k.param = 20,
                    initial.membership,node.sizes,resolution=0.8,algorithm=1,...){
             call1 <- sys.calls()[[1]]
@@ -143,7 +142,7 @@ setMethod("FindClusters", "CycifStack",
 
             e <- exprs(x,type="logTh_normalized")
             e1 <- data.matrix(e[is.used,this.abs])
-            cls <- FindClusters(e1,
+            cls <- LdClustering(e1,
                                 k.param = k.param,
                                 initial.membership = initial.membership,
                                 node.sizes = node.sizes,

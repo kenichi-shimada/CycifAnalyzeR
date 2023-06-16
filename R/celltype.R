@@ -1,15 +1,129 @@
 #_ -------------------------------------------------------
 
 # utils CellType* ----
+
+#' @export
+setGeneric("ct_names", function(x)standardGeneric("ct_names"))
+
+#' @rdname ct_names
+#' @export
+setMethod("ct_names", "Cycif", function(x)names(x@cell_types))
+
+#' @rdname ct_names
+#' @export
+setMethod("ct_names", "CycifStack", function(x)names(x@cell_types))
+
+
+#_ -------------------------------------------------------
+
+# fun: getGates Cycif, CycifStack ----
+
 #' @rdname gates
 #' @export
-setMethod("gates", "CellTypeCycif", function(x)x@gates)
-setMethod("gates", "CellTypeCycifStack", function(x)x@gates)
+setGeneric("getGates", function(x)standardGeneric("getGates"))
+
+#' @rdname gates
+#' @export
+setMethod("getGates", "Cycif", function(x){
+  gate.names <- paste0("gates_",names(x))
+  if(!all(gate.names %in% names(abs_list(x)))){
+    stop("Run 'setGates()' to insert gates in a CycifStack object")
+  }else{
+    out <- abs_list(x) %>% dplyr::select(any_of(c("ab",gate.names)))
+  }
+  return(out)
+})
+
+#' @rdname gates
+#' @export
+setMethod("getGates", "CycifStack", function(x){
+  gate.names <- paste0("gates_",names(x))
+  if(!all(gate.names %in% names(abs_list(x)))){
+    stop("Run 'setGates()' to insert gates in a CycifStack object")
+  }else{
+    out <- abs_list(x) %>% dplyr::select(any_of(c("ab",gate.names)))
+  }
+  return(out)
+})
+
+# fun: setGates Cycif, CycifStack ----
+
+#' @rdname gates
+#' @export
+setGeneric("setGates", function(x,...)standardGeneric("setGates"))
+
+#' @rdname gates
+#' @export
+setMethod("setGates", "Cycif", function(x,gates.df,run_normalize=TRUE,p_thres=0.5,trim=1e-3){
+  if(!is(gates.df,"data.frame")){
+    "input should be in the data.frame"
+  }
+
+  if(all(rownames(gates.df) == as.character(seq(nrow(gates.df))))){
+    if(!"ab" %in% names(gates.df)){
+      stop("input obj should be a data.frame which contains two columns named 'ab', and 'gates_{smpl}'")
+    }
+  }else if(any(rownames(gates.df) %in% abs_list(x)$ab)){
+    gates.df <- gates.df %>% tibble::rownames_to_column("ab")
+  }
+
+  this.col <- paste0("gates_",names(x))
+  if(length(this.col)!=1 || !this.col %in% names(gates.df)){
+    stop("the name of the column should be 'gates_*', where * are sample names")
+  }else if(this.col %in% names(abs_list(x))){
+    stop("Gates, ", this.col," already exists")
+  }else{
+    gates.df <- gates.df %>% dplyr::select(any_of(c("ab",this.col)))
+  }
+
+  x@abs_list <- abs_list(x) %>% dplyr::left_join(gates.df,by="ab")
+
+  if(run_normalize){
+    x <- normalize(x,method="logTh",p_thres=p_thres,trim=trim)
+  }
+
+  return(x)
+})
+
+#' @rdname gates
+#' @export
+setMethod("setGates", "CycifStack", function(x,gates.df,run_normalize=TRUE,p_thres=0.5,trim=1e-3){
+  if(!is(gates.df,"data.frame")){
+    "input should be in the data.frame"
+  }
+
+  if(all(rownames(gates.df) == as.character(seq(nrow(gates.df))))){
+    if(!"ab" %in% names(gates.df)){
+      stop("either rownames should be abs or one of the column's names should be 'ab'")
+    }
+  }else if(any(rownames(gates.df) %in% abs_list(x)$ab)){
+    gates.df <- gates.df %>% tibble::rownames_to_column("ab")
+  }
+
+  this.col <- paste0("gates_",names(x))
+  gates.df <- gates.df %>% dplyr::select(any_of(c("ab",this.col)))
+
+  if(any(which(!this.col %in% names(gates.df)))){
+    non.existing <- sub("gates_","",this.col[!this.col %in% names(gates.df)])
+    stop("There are non-existing samples in the gates: ",non.existing)
+  }
+
+
+  x <- cyApply(x,function(cy){
+    nm <- names(cy)
+    cy <- setGates(cy,gates.df,run_normalize=run_normalize,p_thres=p_thres,trim=trim)
+    return(cy)
+  },as.CycifStack=TRUE)
+
+  return(x)
+})
 
 #_ -------------------------------------------------------
 
 # fun: expandLineageDef ctype,cstate ----
-#'@export
+
+#' internally used only within CellTypeSkeleton, so don't export
+#'
 expandLineageDef <- function(ctype,cstate,ctype.full=TRUE){
   if(!is.data.frame(ctype)){
     stop("ctype should be data.frame")
@@ -110,15 +224,55 @@ expandLineageDef <- function(ctype,cstate,ctype.full=TRUE){
 
 #_ -------------------------------------------------------
 
-# fun: constructor CellTypeDefault Cycif,CycifStack ----
+# fun: show CellTypes ----
 #' @export
-CellTypeDefault <- function(x,ctype,cstate,ctype.full=TRUE){
-  if(is(x,"Cycif") | is(x,"CycifStack")){
-    abs <- abs_list(x)
-    used.abs <- as.character(abs$ab)
-  }else{
-    stop("1st argument should be either a Cycif or CycifStack object")
-  }
+setMethod("show", "CellTypes", function(object){
+  nmk <- length(object@markers$ab)
+  cts <- object@cell_lineage_def$Child
+  cts <- cts[!cts == "unknown"]
+  nct <- length(cts)
+  mty <- apply(object@cell_lineage_def[-c(1:2)],2,function(x){
+    if(all(x %in% c("AND","OR","NOT","NOR",""))){
+      return("lin")
+    }else if(all(x %in% c("CAN",""))){
+      return("str")
+    }else{
+      return("others")
+    }
+  })
+  nty <- tapply(names(mty),mty,identity)
+  mst <- colnames(object@cell_state_def)
+
+  nlin <- length(nty$lin)
+  nst <- length(mst)
+
+  # cat(m)
+  cat("[",is(object)[[1]],"]\n",
+      "Sample name:\t",object@name,"\n",
+      "# cycles:\t",object@n_cycles,"\n\n",
+      "# cell types:\t",nct,"\n",
+      paste(cts,collapse=", "),"\n\n",
+
+      "# markers in total:\t", nmk,"\n",
+      "# cell lineage markers:",nlin,"\n",
+      "# cell state markers:\t",nst,"\n\n",
+
+      "lineage markers:",
+      paste(nty$lin,collapse=", "),"\n",
+      "state markers:",
+      paste(mst,collapse=", ")
+  )
+})
+
+#_ -------------------------------------------------------
+
+# fun: CellTypeSkeleton Character,Cycif,CycifStack ----
+#' @export
+setGeneric("CellTypeSkeleton", function(x,...)standardGeneric("CellTypeSkeleton"))
+
+#' @rdname CellTypeSkeleton
+#' @export
+setMethod("CellTypeSkeleton", "character",function(x,ctype,cstate,ctype.full=FALSE){
   if(missing(ctype) || missing(cstate)){
     stop("both lineage and state definitions should be provided")
   }
@@ -136,469 +290,84 @@ CellTypeDefault <- function(x,ctype,cstate,ctype.full=TRUE){
   smks <- colnames(cstate)
 
   mks <- unique(c(lmks,smks))
-  if(!all(mks %in% used.abs)){
+
+  if(!any(mks %in% x)){
+    stop("1st argument should be a character vector containing used abs")
+  }
+
+  if(!all(mks %in% x)){
     ## here ctype and cstate should be subsetted based on available mks
     ## Subsetting ctype and cstate so only used antibodies exist in the experiment
-    used.abs1 <- lmks[lmks %in% abs$ab]
-    unused.abs1 <- lmks[!lmks %in% abs$ab]
+    used.abs1 <- lmks[lmks %in% x]
+    unused.abs1 <- lmks[!lmks %in% x]
     used.ctype1 <- ctype[,used.abs1,drop=F]
     unused.ctype1 <- ctype[,unused.abs1,drop=F]
     is.used.ct <- !apply(unused.ctype1=="AND",1,any) #
 
-    used.abs2 <- smks[smks %in% abs$ab]
+    used.abs2 <- smks[smks %in% x]
 
     ctype <- ctype[is.used.ct,c("Parent","Child",used.abs1)]
     cstate <- cstate[is.used.ct,used.abs2]
 
-    ## up to here
-    unknown <- mks[!mks %in% used.abs]
   }
-  mks.info <- abs %>% dplyr::filter(ab %in% mks)
 
   elin <- expandLineageDef(ctype=ctype,cstate=cstate,ctype.full=ctype.full)
 
-  new("CellTypeDefault",
+  ctype <- elin$ctype
+  cstate <- elin$cstate
+
+  lmks1 <- names(ctype)[-c(1:2)]
+  smks1 <- colnames(cstate)
+
+  mks1 <- unique(c(lmks1,smks1))
+
+  mks.info <- data.frame(ab = mks1,
+                         lineage = mks1 %in% lmks1,
+                         state = mks1 %in% smks1)
+
+  new("CellTypes",
       cell_lineage_def = elin$ctype,
       cell_state_def = elin$cstate,
       markers = mks.info
   )
-}
-
-# fun: show CellTypeDefault ----
-#' @export
-setMethod("show", "CellTypeDefault", function(object){
-  nmk <- length(object@markers$ab)
-  cts <- object@cell_lineage_def$Child
-  cts <- cts[!cts == "unknown"]
-  nct <- length(cts)
-  mty <- apply(object@cell_lineage_def[-c(1:2)],2,function(x){
-    if(all(x %in% c("AND","OR","NOT","NOR",""))){
-      return("lin")
-    }else if(all(x %in% c("CAN",""))){
-      return("str")
-    }else{
-      return("others")
-    }
-  })
-  nty <- tapply(names(mty),mty,identity)
-  mst <- colnames(object@cell_state_def)
-
-  nlin <- length(nty$lin)
-  nstr <- length(nty$str)
-  nst <- length(mst)
-
-  # cat(m)
-  cat("[",is(object)[[1]],"]\n",
-      "# cell types:\t",nct,"\n",
-      paste(cts,collapse=", "),"\n\n",
-
-      "# markers in total:\t", nmk,"\n",
-      "# cell lineage markers:",nlin,"\n",
-      "# stratifying markers:\t",nstr,"\n",
-      "# cell state markers:\t",nst,"\n\n",
-      "lineage markers:",
-      paste(nty$lin,collapse=", "),"\n",
-      "stratifying markers:",
-      paste(nty$str,collapse=", "),"\n",
-      "state markers:",
-      paste(mst,collapse=", ")
-  )
 })
 
-#_ -------------------------------------------------------
+#' @rdname CellTypeSkeleton
+#' @export
+setMethod("CellTypeSkeleton", "Cycif",
+          function(x,ctype,cstate,ctype.full=FALSE){
+  abs <- abs_list(x)$ab
 
-# fun: constructor CellTypeCycif ----
-#'@export
-CellTypeCycif <- function(x,ctype,cstate,gates.df,ctype.full=FALSE){
-  if(is(x,"Cycif")){
-    abs <- abs_list(x)
-    used.abs <- as.character(abs$ab)
-  }else{
-    stop("1st argument should be a Cycif object")
-  }
-
-  if(is.matrix(gates.df)){
-    gates.df <- as.data.frame(gates.df)
-  }
   ## redefine ctype and cstate
-  ctd <- CellTypeDefault(x,ctype,cstate,ctype.full=ctype.full)
-  ctype <- ctd@cell_lineage_def
-  cstate <- ctd@cell_state_def
-  mks <- ctd@markers$ab
+  ctd <- CellTypeSkeleton(abs,ctype=ctype,cstate=cstate,ctype.full=ctype.full)
 
-  ##
-  g <- rep(NA,length(mks))
-  names(g) <- mks
-
-  smpl <- names(x)
-  g[] <- gates.df[mks,smpl]
-
-  abs <- abs %>% dplyr::filter(ab %in% mks)
-
-  new("CellTypeCycif",
-      name = x@name,
-      n_cycles = x@n_cycles,
-      cell_lineage_def = ctype,
-      cell_state_def = cstate,
-      markers = abs,
-      gates = g
-  )
-}
-
-# fun: show CellTypeCycif ----
-#' @export
-setMethod("show", "CellTypeCycif", function(object){
-  nmk <- length(object@markers$ab)
-  cts <- object@cell_lineage_def$Child
-  cts <- cts[!cts == "unknown"]
-  nct <- length(cts)
-  mty <- apply(object@cell_lineage_def[-c(1:2)],2,function(x){
-    if(all(x %in% c("AND","OR","NOT","NOR",""))){
-      return("lin")
-    }else if(all(x %in% c("CAN",""))){
-      return("str")
-    }else{
-      return("others")
-    }
-  })
-  nty <- tapply(names(mty),mty,identity)
-  mst <- colnames(object@cell_state_def)
-
-  nlin <- length(nty$lin)
-  nstr <- length(nty$str)
-  nst <- length(mst)
-
-  # cat(m)
-  cat("[",is(object)[[1]],"]\n",
-      "Sample name:\t",object@name,"\n",
-      "# cycles:\t",object@n_cycles,"\n\n",
-      "# cell types:\t",nct,"\n",
-      paste(cts,collapse=", "),"\n\n",
-
-      "# markers in total:\t", nmk,"\n",
-      "# cell lineage markers:",nlin,"\n",
-      "# stratifying markers:\t",nstr,"\n",
-      "# cell state markers:\t",nst,"\n\n",
-
-      "lineage markers:",
-      paste(nty$lin,collapse=", "),"\n",
-      "stratifying markers:",
-      paste(nty$str,collapse=", "),"\n",
-      "state markers:",
-      paste(mst,collapse=", ")
+  new("CellTypes",
+      sample_names = rep(names(x),nCells(x)),
+      n_cycles = nCycles(x),
+      cell_lineage_def = ctd@cell_lineage_def,
+      cell_state_def = ctd@cell_state_def,
+      markers = ctd@markers
   )
 })
 
-#_ -------------------------------------------------------
-
-# fun: constructor CellTypeCycifStack ----
+#' @rdname CellTypeSkeleton
 #' @export
-CellTypeCycifStack <- function(x,ctype.full=FALSE){
-  if(is(x,"CycifStack")){
-    abs <- abs_list(x)
-    used.abs <- as.character(abs$ab)
-  }else{
-    stop("1st argument should be a CycifStack object")
-  }
+setMethod("CellTypeSkeleton", "CycifStack",function(x,ctype,cstate,ctype.full=FALSE){
+  abs <- abs_list(x)$ab
 
-  nc <- nCycles(x)
-  min.i <- min(which(nc==max(nc)))
-  smpl <- names(x)[min.i]
-  x1 <- x[[smpl]]
+  ## redefine ctype and cstate
+  ctd <- CellTypeSkeleton(abs,ctype=ctype,cstate=cstate,ctype.full=ctype.full)
 
-  if(ctype.full){
-    ctc <- x1@cell_type_full
-  }else{
-    ctc <- x1@cell_type
-  }
-
-  ## load ctype and cstate
-  ctype <- ctc@cell_lineage_def
-  cstate <- ctc@cell_state_def
-
-  ## marker abs
-  lmks <- colnames(ctype)[-c(1:2)]
-  smks <- colnames(cstate)
-  mks <- c(lmks,smks)
-
-  ## compile gates
-  gates.df <- as.data.frame(cyApply(x,function(cy){
-    if(ctype.full){
-      ctc <- cy@cell_type_full
-    }else{
-      ctc <- cy@cell_type
-    }
-    ctc@gates[mks]
-  },simplify=TRUE))
-
-  gates.smpls <- names(gates.df)
-  smpls <- names(x)
-  if(!all(smpls %in% gates.smpls)){
-    stop("Check gates; All the samples should be gated before cell type calling")
-  }
-
-  is.ungated <- sapply(gates.df,function(g)all(is.na(g)))
-
-  if(any(is.ungated)){
-    warning("some samples are not gated:",paste(smpls[is.ungated],collapse=","))
-  }
-
-  abs <- abs %>% dplyr::filter(ab %in% mks)
-
-  new("CellTypeCycifStack",
-      n_samples = x@n_samples,
-      max_cycles = x@max_cycles,
-      cell_lineage_def = ctype,
-      cell_state_def = cstate,
-      markers = abs,
-      gates = gates.df
-  )
-}
-
-# fun: show CellTypeCycifStack ----
-#' @export
-setMethod("show", "CellTypeCycifStack", function(object){
-  nmk <- length(object@markers$ab)
-  cts <- object@cell_lineage_def$Child
-  cts <- cts[!cts == "unknown"]
-  nct <- length(cts)
-  mty <- apply(object@cell_lineage_def[-c(1:2)],2,function(x){
-    if(all(x %in% c("AND","OR","NOT","NOR",""))){
-      return("lin")
-    }else if(all(x %in% c("CAN",""))){
-      return("str")
-    }else{
-      return("others")
-    }
-  })
-  nty <- tapply(names(mty),mty,identity)
-  mst <- colnames(object@cell_state_def)
-
-  nlin <- length(nty$lin)
-  nstr <- length(nty$str)
-  nst <- length(mst)
-
-  is.gated <- sapply(object@gates,function(g){
-    any(!is.na(g))
-  })
-
-  # cat(m)
-  cat("[",is(object)[[1]],"]\n",
-      "# samples:\t",object@n_samples,
-      paste0("(",sum(is.gated)," gated)"),"\n",
-      "# max cycles:\t",object@max_cycles,"\n\n",
-      "# cell types:\t",nct,"\n",
-      paste(cts,collapse=", "),"\n\n",
-
-      "# markers in total:\t", nmk,"\n",
-      "# cell lineage markers:",nlin,"\n",
-      "# stratifying markers:\t",nstr,"\n",
-      "# cell state markers:\t",nst,"\n\n",
-
-      "lineage markers:",
-      paste(nty$lin,collapse=", "),"\n",
-      "stratifying markers:",
-      paste(nty$str,collapse=", "),"\n",
-      "state markers:",
-      paste(mst,collapse=", ")
+  new("CellTypes",
+      sample_names = rep(names(x),nCells(x)),
+      n_cycles = x@max_cycles,
+      cell_lineage_def = ctd@cell_lineage_def,
+      cell_state_def = ctd@cell_state_def,
+      markers = ctd@markers
   )
 })
 
-#_ -------------------------------------------------------
 
-# fun: cell_types CellTypeCycif, Cycif, CellTypeCycifStack, CycifStack ----
-#' @export
-setGeneric("cell_types", function(x,...) standardGeneric("cell_types"))
-
-#' @export
-setMethod("cell_types", "CellTypeCycif", function(x,leaves.only=TRUE,strict=FALSE){
-  cts <- x@cell_types
-  ctype <- x@cell_lineage_def
-  if(leaves.only){
-    leaves <- ctype$Child[!ctype$Child %in% ctype$Parent]
-    leaves <- c(leaves[!grepl("unknown",leaves)],"unknown")
-    cts <- factor(cts,levels=leaves)
-  }
-  if(strict){
-    is.strict <- x@is_strict
-    cts[!is.strict] <- NA
-  }
-  return(cts)
-})
-
-#' @export
-setMethod("cell_types", "CellTypeCycifStack", function(x,leaves.only=TRUE,strict=FALSE){
-  cts <- x@cell_types
-  ctype <- x@cell_lineage_def
-  if(leaves.only){
-    leaves <- ctype$Child[!ctype$Child %in% ctype$Parent]
-    leaves <- c(leaves[!grepl("unknown",leaves)],"unknown")
-    cts <- factor(cts,levels=leaves)
-  }
-  if(strict){
-    is.strict <- x@is_strict
-    cts[!is.strict] <- NA
-  }
-  return(cts)
-})
-
-#' @export
-setMethod("cell_types","Cycif",function(x,ctype.full=FALSE,leaves.only=TRUE,strict=FALSE,within.rois=TRUE){
-  if(ctype.full){
-    cts <- cell_types(x@cell_type_full,leaves.only=leaves.only,strict=strict)
-  }else{
-    cts <- cell_types(x@cell_type,leaves.only=leaves.only,strict=strict)
-  }
-  if(within.rois){
-    is.rois <- x@within_rois
-    cts[!is.rois] <- NA
-  }
-  return(cts)
-})
-
-#' @export
-setMethod("cell_types", "CycifStack", function(x,ctype.full=FALSE,leaves.only=TRUE,strict=FALSE,within.rois=TRUE){
-  if(ctype.full){
-    ctd <- x@cell_type_full
-  }else{
-    ctd <- x@cell_type
-  }
-  cts <- ctd@cell_types
-
-  if(leaves.only){
-    ctype <- ctd@cell_lineage_def
-    leaves <- ctype$Child[!ctype$Child %in% ctype$Parent]
-    cts <- factor(cts,levels=leaves)
-  }
-
-  if(strict){
-    is.strict <- ctd@is_strict
-    cts[!is.strict] <- NA
-  }
-
-  if(within.rois){
-    is.rois <- within_rois(x)
-    cts[!is.rois] <- NA
-  }
-  return(cts)
-})
-
-#_ -------------------------------------------------------
-
-# fun: CellTypeCalling Cycif ----
-#' Cell type calling function
-#' @param cy A cycif obj.
-#' @param p_thres A numerical between 0 and 1. A fixed probability that corresponds to the threshold intensity.
-#' @param ctype.full logical. if cell types with fuller definition (e.g., stratification with PD-1/PD-L1 status) should be used.
-#'
-#' @usage
-#' CellTypeCalling(cy,p_thres=0.5,ctype.full=TRUE)
-#' @export
-CellTypeCalling <- function(cy,p_thres=0.5,ctype.full=TRUE){
-  # return a character vector containing 'cell_types'
-  # cy <- x[[1]]
-  lth <- exprs(cy,type="logTh_normalized")
-  if (nrow(lth)==0) {
-    stop("run normalize(method=\"logTh\") before CellTypeCalling()")
-  }
-
-  if(ctype.full){
-    ctc <- cy@cell_type_full
-  }else{
-    ctc <- cy@cell_type
-  }
-  ctype <- ctc@cell_lineage_def
-
-  ctlevs <- CellTypeGraph(ctype,plot=F)
-
-  cell.types <- rep("all",nrow(lth))
-  is.strict <- rep(TRUE,nrow(lth))
-
-  for(l in seq(length(ctlevs)-1)){
-    pas <- ctlevs[[l]]
-    chs <- ctlevs[[l+1]]
-    i.others <- chs %in% "unknown" | grepl("_other$",chs)
-    chs1 <- chs[!i.others]
-
-    ct <- ctype %>% dplyr::filter(Parent %in% pas & Child %in% chs1)
-    uniq.pas <- unique(ct$Parent)
-
-    ## compute probability of being each child node in the following block
-    ## (not considering the parent node)
-    prs <- sapply(chs1,function(ch){
-      tmp <- unlist(ct %>% dplyr::filter(Child == ch))
-      pa <- tmp[1]
-      tmp <- tmp[-(1:2)]
-      abs.and <- names(which(tmp=="AND"))
-      abs.or <- names(which(tmp=="OR"))
-      abs.not <- names(which(tmp=="NOT"))
-      suppressWarnings({
-        if(length(abs.and)>0 & length(abs.or)>0){
-          a <- apply(lth[abs.and],1,min,na.rm=T)
-          a[a==-Inf] <- NA
-          b <- apply(lth[abs.or],1,max,na.rm=T)
-          b[b==-Inf] <- NA
-          pos.out <- pmin(a,b)
-        }else if(length(abs.and)>0){
-          pos.out <- apply(lth[abs.and],1,min,na.rm=T)
-          pos.out[pos.out==Inf] <- NA
-        }else if(length(abs.or)>0){
-          pos.out <- apply(lth[abs.or],1,max,na.rm=T)
-          pos.out[pos.out==-Inf] <- NA
-        }else{
-          pos.out <- rep(1,nrow(lth))
-        }
-
-        this.ct <- pos.out
-        if(length(abs.not)>0){
-          neg.out <- apply(lth[abs.not],1,max,na.rm=T)
-          neg.out[neg.out==-Inf] <- NA
-          this.ct[which(neg.out > p_thres)] <- 0
-          this.ct[is.na(neg.out)] <- NA
-        }
-      })
-      return(this.ct)
-    })
-
-    ## for each parent, show which child is more likely to be the cell type each cell is
-    for(pa in uniq.pas){
-      this.ind <- cell.types==pa
-      this.chs <- (ct %>% dplyr::filter(Parent==pa))$Child
-      this.chs <- colnames(prs)[colnames(prs) %in% this.chs]
-      prs1 <- prs[this.ind,this.chs,drop=F]
-      cell.types[this.ind] <- apply(prs1,1,function(pr){
-        if(all(is.na(pr))){
-          return(pa)
-        }
-        ind <- which(pr==max(pr,na.rm=T))
-        if(length(ind)>1){
-          return(pa)
-        }
-        if(pr[ind] > p_thres){
-          return(this.chs[ind])
-        }else{
-          ch1 <- paste0(pa,"_other")
-          if(ch1 == "all_other"){
-            ch1 <- "unknown"
-          }
-          return(ch1)
-        }
-      })
-      this.strict <- rowSums(prs1 > p_thres,na.rm=F) < 2
-      this.strict[is.na(this.strict)] <- FALSE
-      is.strict[this.ind] <- this.strict & is.strict[this.ind]
-    }
-  }
-
-  ## convert to factor: Q: how to order cell types from ctype df?
-  uniq.cts <- c("all",ctype$Child)
-  leaves <- uniq.cts[!uniq.cts %in% ctype$Parent]
-
-  uniq.cts <- c(uniq.cts[uniq.cts!="unknown"],"unknown")
-  cts <- factor(cell.types,levels=uniq.cts)
-
-  return(list(cell_type=cts,is_strict=is.strict))
-}
 
 #_ -------------------------------------------------------
 
@@ -651,7 +420,37 @@ modifyCellTypes <- function(ctype,uniq.cts,check=TRUE){
 
 #_ -------------------------------------------------------
 
-# fun: defineCellTypes Cycif, CycifStack ----
+# fun: CellTypeGraph ctype ----
+#'@export
+CellTypeGraph <- function(ctype,plot=F,transpose=T,...){
+  uniq.cts <- c("all",ctype$Child)
+  ctgraph <- ctype[c("Parent","Child")]
+  ctgraph$Parent <- factor(ctgraph$Parent,levels=uniq.cts)
+  ctgraph$Child <- factor(ctgraph$Child,levels=uniq.cts)
+  g <- igraph::graph_from_data_frame(ctgraph)
+  l <- igraph::layout_as_tree(g)
+  levs <- l[,2]
+  names(levs) <- names(igraph::V(g))
+  ctlevs <- rev(tapply(names(levs),levs,identity))
+  if(plot){
+    if(transpose){
+      l[,2] <- max(l[,2]) - l[,2]
+      l <- l[,2:1]
+    }
+    igraph::V(g)$shape <- "rectangle"
+    igraph::V(g)$label.family <- "Helvetica"
+
+    plot(g, layout=l,
+         edge.arrow.size=.5, vertex.color="gold", vertex.size=40,
+         vertex.frame.color=NA, vertex.label.color="black",
+         vertex.label.cex=0.8, vertex.label.dist=0, edge.curved=0
+         ,...)
+  }
+  return(ctlevs)
+}
+
+#_ -------------------------------------------------------
+# fun: defineCellTypes data.frame, Cycif, CycifStack ----
 #' Define cell types
 #'
 #'Perform a cell type calling function and set cell types in a Cycif or CycifStack object
@@ -659,11 +458,13 @@ modifyCellTypes <- function(ctype,uniq.cts,check=TRUE){
 #' @export
 setGeneric("defineCellTypes", function(x,...) standardGeneric("defineCellTypes"))
 
+
 #' @rdname defineCellTypes
 #'
 #' @param x A Cycif object.
 #' @param ctype a data.frame containing cell type definition
 #' @param cstate a data.frame containing cell state definition
+#' @param ct_anme name of the cell types
 #' @param gates a data.frame containing gates (n.samples x n.proteins)
 #' @param p_thres numerical between 0 and 1. A probability that corresponds to a threshold intensity
 #'
@@ -671,25 +472,178 @@ setGeneric("defineCellTypes", function(x,...) standardGeneric("defineCellTypes")
 #' defineCellTypes(x,ctype,cstate,gates,p_thres=0.5,...)
 #'
 #' @export
-setMethod("defineCellTypes", "Cycif", function(x,ctype,cstate,gates,p_thres=0.5,...){
-  # load ctype, cstate, gates in Cycif obj (both stratification markers unexpanded and expanded)
-  x@cell_type  <- CellTypeCycif(x,ctype,cstate,gates,ctype.full=FALSE)
-  x@cell_type_full  <- CellTypeCycif(x,ctype,cstate,gates,ctype.full=TRUE)
+setMethod("defineCellTypes", "data.frame",
+          function(x,
+                   ctype,
+                   cstate,
+                   gates,
+                   p_thres=0.5,...){
+  # return a character vector containing 'cell_types'
+  # cy <- x[[1]]
+  if (!is(x,"data.frame")){
+    stop("input should be a logTh_normalized expression (a data frame)")
+  }
+  if(nrow(x)==0) {
+    stop("run normalize(method=\"logTh\") before CellTypeCalling()")
+  }
 
-  ## normalize - should be done within CellTypeCycif
-  x <- normalize(x,method="logTh",p_thres=p_thres)
+  ctlevs <- CellTypeGraph(ctype,plot=F)
 
-  ## set CellTypeCycif object in the cell_type slot
-  cts.full <- CellTypeCalling(x,p_thres=p_thres,ctype.full=TRUE)
-  cts.short <- CellTypeCalling(x,p_thres=p_thres,ctype.full=FALSE)
+  cell.types <- rep("all",nrow(x))
+  is.strict <- rep(TRUE,nrow(x))
 
-  x@cell_type_full@cell_types <- cts.full$cell_type
-  x@cell_type_full@is_strict <- cts.full$is_strict
-  x@cell_type@cell_types <- cts.short$cell_type
-  x@cell_type@is_strict <- cts.short$is_strict
+  for(l in seq(length(ctlevs)-1)){
+    pas <- ctlevs[[l]]
+    chs <- ctlevs[[l+1]]
+    i.others <- chs %in% "unknown" | grepl("_other$",chs)
+    chs1 <- chs[!i.others]
 
-  return(x)
+    ct <- ctype %>% dplyr::filter(Parent %in% pas & Child %in% chs1)
+    uniq.pas <- unique(ct$Parent)
+
+    ## compute probability of being each child node in the following block
+    ## (not considering the parent node)
+    prs <- sapply(chs1,function(ch){
+      tmp <- unlist(ct %>% dplyr::filter(Child == ch))
+      pa <- tmp[1]
+      tmp <- tmp[-(1:2)]
+      abs.and <- names(which(tmp=="AND"))
+      abs.or <- names(which(tmp=="OR"))
+      abs.not <- names(which(tmp=="NOT"))
+      suppressWarnings({
+        if(length(abs.and)>0 & length(abs.or)>0){
+          a <- apply(x[abs.and],1,min,na.rm=T)
+          a[a==-Inf] <- NA
+          b <- apply(x[abs.or],1,max,na.rm=T)
+          b[b==-Inf] <- NA
+          pos.out <- pmin(a,b)
+        }else if(length(abs.and)>0){
+          pos.out <- apply(x[abs.and],1,min,na.rm=T)
+          pos.out[pos.out==Inf] <- NA
+        }else if(length(abs.or)>0){
+          pos.out <- apply(x[abs.or],1,max,na.rm=T)
+          pos.out[pos.out==-Inf] <- NA
+        }else{
+          pos.out <- rep(1,nrow(x))
+        }
+
+        this.ct <- pos.out
+        if(length(abs.not)>0){
+          neg.out <- apply(x[abs.not],1,max,na.rm=T)
+          neg.out[neg.out==-Inf] <- NA
+          this.ct[which(neg.out > p_thres)] <- 0
+          this.ct[is.na(neg.out)] <- NA
+        }
+      })
+      return(this.ct)
+    })
+
+    ## for each parent, show which child is more likely to be the cell type each cell is
+    for(pa in uniq.pas){
+      this.ind <- cell.types==pa
+      this.chs <- (ct %>% dplyr::filter(Parent==pa))$Child
+      this.chs <- colnames(prs)[colnames(prs) %in% this.chs]
+      prs1 <- prs[this.ind,this.chs,drop=F]
+      cell.types[this.ind] <- apply(prs1,1,function(pr){
+        if(all(is.na(pr))){
+          return(pa)
+        }
+        ind <- which(pr==max(pr,na.rm=T))
+        if(length(ind)>1){
+          return(pa)
+        }
+        if(pr[ind] > p_thres){
+          return(this.chs[ind])
+        }else{
+          ch1 <- paste0(pa,"_other")
+          if(ch1 == "all_other"){
+            ch1 <- "unknown"
+          }
+          return(ch1)
+        }
+      })
+      this.strict <- rowSums(prs1 > p_thres,na.rm=F) < 2
+      this.strict[is.na(this.strict)] <- FALSE
+      is.strict[this.ind] <- this.strict & is.strict[this.ind]
+    }
+  }
+
+  ## convert to factor: Q: how to order cell types from ctype df?
+  uniq.cts <- c("all",ctype$Child)
+  leaves <- uniq.cts[!uniq.cts %in% ctype$Parent]
+
+  uniq.cts <- c(uniq.cts[uniq.cts!="unknown"],"unknown")
+  cts <- factor(cell.types,levels=uniq.cts)
+
+  return(data.frame(cell_types=cts,is_strict=is.strict))
 })
+
+#' @rdname defineCellTypes
+#'
+#' @param x A Cycif object.
+#' @param ctype a data.frame containing cell type definition
+#' @param cstate a data.frame containing cell state definition
+#' @param ct_anme name of the cell types
+#' @param gates a data.frame containing gates (n.samples x n.proteins)
+#' @param p_thres numerical between 0 and 1. A probability that corresponds to a threshold intensity
+#'
+#' @usage
+#' defineCellTypes(x,ctype,cstate,gates,p_thres=0.5,...)
+#'
+#' @export
+setMethod("defineCellTypes", "Cycif",
+          function(x,
+                   ctype,
+                   cstate,
+                   ct_name=c("default","full"),
+                   p_thres=0.5,
+                   ctype.full=FALSE,
+                   overwrite=FALSE,...){
+            if(missing(ct_name)){
+              if(ctype.full){
+                ct_name <- "full"
+              }else{
+                ct_name <- "default"
+              }
+            }
+
+            ## ct_name exists?
+            if(ct_name %in% names(x@cell_types) && !overwrite){
+              stop("cell type named '",ct_name,"' already exists and 'overwrite=FALSE'")
+            }
+
+            ## gates
+            gates <- getGates(x)
+
+            ## x@logTh_normalized exists?
+            ex <- exprs(x,type="logTh_normalized")
+            if(!is(ex,"data.frame") && nrow(ex)>0){
+              stop('normalize(method="logTh") should run first')
+            }
+
+            # load ctype, cstate, gates in Cycif obj (both stratification markers unexpanded and expanded)
+            ctc  <- CellTypeSkeleton(x,ctype=ctype,cstate=cstate,ctype.full=ctype.full)
+
+            ctype <- ctc@cell_lineage_def
+            cstate <- ctc@cell_state_def
+
+            ## set plut info into defineCellTypes(df)
+            cts <- defineCellTypes(ex,
+                                   ctype=ctype,
+                                   cstate=cstate,
+                                   gates=gates,
+                                   p_thres=p_thres)
+
+            ctc@cell_types <- cts$cell_types
+            ctc@is_strict <- cts$is_strict
+
+            ctc@sample_names <- rep(names(x),nCells(x))
+
+            x@cell_types[[ct_name]] <- ctc
+
+            return(x)
+          }
+)
 
 #'#' Define cell types for a CycifStack object
 #'
@@ -701,24 +655,145 @@ setMethod("defineCellTypes", "Cycif", function(x,ctype,cstate,gates,p_thres=0.5,
 #' @export
 #' @rdname defineCellTypes
 #' @method defineCellTypes CycifStack
-setMethod("defineCellTypes", "CycifStack", function(x,...){
-  # x <- cyApply(x,defineCellTypes,ctype=ctype,cstate=cstate,gates=gates,p_thres=p_thres)
-  nct <- cyApply(x,function(y)length(y@cell_type@cell_types),simplify=T)
-  if(any(nct == 0)){
-    stop("run defineCellTypes() for each Cycif object")
-  }
-  x@cell_type <- CellTypeCycifStack(x,ctype.full=FALSE)
-  x@cell_type_full <- CellTypeCycifStack(x,ctype.full=TRUE)
+setMethod("defineCellTypes", "CycifStack",
+  function(x,
+           ctype,
+           cstate,
+           ct_name=c("default","full"),
+           p_thres=0.5,
+           ctype.full=FALSE,
+           overwrite=FALSE,...){
+    if(missing(ct_name)){
+      if(ctype.full){
+        ct_name <- "full"
+      }else{
+        ct_name <- "default"
+      }
+    }
 
-  x@cell_type@cell_types <- unlist(cyApply(x,function(cy)cy@cell_type@cell_types))
-  x@cell_type@is_strict <- unlist(cyApply(x,function(cy)cy@cell_type@is_strict))
-  x@cell_type_full@cell_types <- unlist(cyApply(x,function(cy)cy@cell_type_full@cell_types))
-  x@cell_type_full@is_strict <- unlist(cyApply(x,function(cy)cy@cell_type_full@is_strict))
+    ## ct_name exists?
+    if(ct_name %in% names(x@cell_types) && !overwrite){
+      stop("cell type named '",ct_name,"' already exists and 'overwrite=FALSE'")
+    }else{
+      cat(paste0("Compute cell_types, and save the result under ct_name='",ct_name,"'\n"))
+    }
 
-  return(x)
+    ## create celltypeskeleton
+    ctc  <- CellTypeSkeleton(x,ctype=ctype,cstate=cstate,ctype.full=ctype.full)
+
+    ctype <- ctc@cell_lineage_def
+    cstate <- ctc@cell_state_def
+
+    ## defineCellTypes for each sample (Cycif)
+    for(nm in names(x)){
+      cy <- x[[nm]]
+      cat(paste0("Processing ",names(cy),"...\n"))
+      cy <- defineCellTypes(cy,
+                            ct_name=ct_name,
+                            ctype=ctype,
+                            cstate=cstate,
+                            p_thres=p_thres,
+                            ctype.full=ctype.full,
+                            overwrite=overwrite)
+      x[[nm]] <- cy
+    }
+    cat("Aggregating 'cell_types'...\n")
+    ctc@cell_types <- unlist(cyApply(x,function(cy)cy@cell_types[[ct_name]]@cell_types))
+    cat("Aggregating 'is_strict' flag...\n")
+    ctc@is_strict <- unlist(cyApply(x,function(cy)cy@cell_types[[ct_name]]@is_strict))
+    cat("Aggregating 'samples'...\n")
+    ctc@sample_names <- unlist(cyApply(x,function(cy)cy@cell_types[[ct_name]]@sample_names))
+    x@cell_types[[ct_name]] <- ctc
+
+    return(x)
 })
 
+#_ -------------------------------------------------------
 
+# fun: cell_types Cycif, CycifStack, CellTypeCycif, CellTypeCycifStack ----
+#' @export
+setGeneric("cell_types", function(x,...) standardGeneric("cell_types"))
+
+#' @export
+setMethod("cell_types", "CellTypes",
+          function(x,
+                   leaves.only=TRUE,
+                   strict=FALSE,
+                   uniq_cts){
+  cts <- x@cell_types
+  ctype <- x@cell_lineage_def
+  if(leaves.only){
+    leaves <- ctype$Child[!ctype$Child %in% ctype$Parent]
+    leaves <- c(leaves[!grepl("unknown",leaves)],"unknown")
+    cts <- factor(cts,levels=leaves)
+  }
+  if(strict){
+    is.strict <- x@is_strict
+    cts[!is.strict] <- NA
+  }
+
+  if(!missing(uniq_cts) && !is.null(uniq_cts)){
+    # stop("uniq_cts not null")
+    do.exist <- uniq_cts %in% levels(cts)
+    if(!all(do.exist)){
+      stop("non-existing cell_types specified in 'uniq_cts':",uniq_cts[!do.exist])
+    }else{
+      cts <- factor(cts,levels=uniq_cts)
+    }
+  }
+  return(cts)
+})
+
+#' @export
+setMethod("cell_types","Cycif",
+          function(x,
+                   ct_name="default",
+                   leaves.only=TRUE,
+                   strict=FALSE,
+                   use_rois=TRUE,
+                   uniq_cts=NULL){
+  if(!ct_name %in% ct_names(x)){
+    stop("ct_name doesn't exist: ",ct_name)
+  }
+  cts <- cell_types(x=x@cell_types[[ct_name]],
+                    leaves.only=leaves.only,
+                    strict=strict,
+                    uniq_cts=uniq_cts)
+
+  if(use_rois){
+    is.rois <- x@within_rois
+    cts[!is.rois] <- NA
+  }
+
+  smpls <- x@cell_types[[ct_name]]@sample_names
+  df <- data.frame(sample=smpls,cell_types=cts)
+
+  return(df)
+})
+
+#' @export
+setMethod("cell_types", "CycifStack",
+          function(x,
+                   ct_name="default",
+                   leaves.only=TRUE,
+                   strict=FALSE,
+                   use_rois=TRUE,
+                   uniq_cts=NULL){
+  if(!ct_name %in% ct_names(x)){
+    stop("ct_name doesn't exist: ",ct_name)
+  }
+  cts <- cyApply(x,function(cy){
+    cell_types(x=cy,
+               ct_name=ct_name,
+               leaves.only=leaves.only,
+               strict=strict,
+               use_rois=use_rois,
+               uniq_cts=uniq_cts)
+  })
+  df <- do.call(rbind,cts)
+
+  return(df)
+})
 
 #_ -------------------------------------------------------
 
@@ -734,7 +809,7 @@ setGeneric("barplotPosCells", function(x,...) standardGeneric("barplotPosCells")
 setMethod("barplotPosCells", "Cycif",function(x,type=c("one","two"),mar,...){
   smpl <- names(x)
   lth <- exprs(x,type="logTh_normalized")
-  ct <-  x@cell_type
+  ct <-  x@cell_types
   used.abs <- c(names(ct@cell_lineage_def)[-(1:2)],names(ct@cell_state_def))
   lin.abs <- colnames(ct@cell_lineage_def)[-(1:2)]
 
@@ -824,7 +899,7 @@ setMethod("barplotPosCells", "Cycif",function(x,type=c("one","two"),mar,...){
 
 #' @export
 setMethod("barplotPosCells", "CycifStack",function(x,ab,mar,...){
-  ct <-  x@cell_type
+  ct <-  x@cell_types
   used.abs <- c(names(ct@cell_lineage_def)[-(1:2)],names(ct@cell_state_def))
   lin.abs <- names(ct@cell_lineage_def)[-(1:2)]
 

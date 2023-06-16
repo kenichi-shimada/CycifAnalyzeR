@@ -124,16 +124,6 @@ setMethod("nCycles<-", "Cycif", function(x,value){
   return(x)
 })
 
-#' Show gates in a Cycif/CycifStack/CellTypeCycif/CellTypeCicyfStack object
-#'
-#' @rdname gates
-#' @export
-setGeneric("gates", function(x) standardGeneric("gates"))
-
-#' @rdname gates
-#' @export
-setMethod("gates", "Cycif", function(x)x@cell_type@gates)
-
 #_ -------------------------------------------------------
 
 # fun: parse_ft path ----
@@ -154,7 +144,7 @@ parse_ft <- function(path){
   }else if(!ftype1 && !ftype2){
     stop("feature table file format is incorrect")
   }else{
-    f1 <- strsplit(ft_filename,"[-_]")[[1]]
+    f1 <- sub("\\.csv","",strsplit(ft_filename,"[-_]")[[1]])
     if(ftype1){
       smpl <- f1[2]
       mask_type <- f1[3]
@@ -223,16 +213,16 @@ find_mcmicro_output_path <- function(smpl.path,mask_type=c("cellRing","cell")){
 #'
 #' @export
 Cycif <- function(
-    filename,
-    path="",
+    ft_filename,
+    path=".",
     mask_type=c("cellRing","cell"),
     mcmicro=FALSE,
     use_scimap=FALSE){
-  filename <- file.path(path,filename)
+  filename <- file.path(path,ft_filename)
   if(missing(filename)){
     stop("'filename' is missing.")
   }
-  if(!file.exists(file.path(path,ft_filename))){
+  if(!file.exists(filename)){
     stop("the provided path doesn't exist")
   }
 
@@ -268,17 +258,33 @@ Cycif <- function(
   }
 
   i.dna <- grep("^DNA",ch.list)
+
+  ## cycles
+  cycles <- rep(1,length(ch.list))
+  cycles[i.dna] <- seq(i.dna)
+  j <- 1
+  for(i in seq(cycles)){
+    if(cycles[i] == j + 1){
+      j <- j+1
+    }
+    cycles[i] <- j
+  }
+
+  n.cycles <- max(cycles)
+
+  ## abs_list
   ab.list <- ch.list[-i.dna]
+  cycles <- cycles[-i.dna]
 
   n.abs <- length(ab.list)
 
-  n.cycles <- (n.abs/3)
 
   abs_list <- data.frame(ab=ab.list,
-                         cycle=rep(seq(n.cycles),each=3),
-                         channel=rep(1:3,times=n.cycles),
+                         cycle=cycles,
+                         # channel=rep(1:3,times=cycles),
                          stringsAsFactors=FALSE)
 
+  ## dna.list
   dna.list <- ch.list[i.dna]
 
   ## raw and dna
@@ -300,6 +306,7 @@ Cycif <- function(
                             "MinorAxisLength", "Eccentricity","Solidity",
                             "Extent","Orientation")]
 
+  ## adata
   obj <- new("Cycif",
       name = name,
       file_paths = fp,
@@ -309,6 +316,7 @@ Cycif <- function(
       abs_list = abs_list,
       raw = raw,
       dna = dna,
+      cell_types=list(),
       xy_coords = xy_coords,
       segment_property = segment_property)
 
@@ -328,25 +336,40 @@ Cycif <- function(
 
 
 # fun: setValidity Cycif ----
-setValidity("Cycif", function(object) {
-  if (!all(sapply(object@rois, inherits, "roi"))) {
-    "All elements of roi_list must be of class 'roi'"
-  }
-})
+# setValidity("Cycif", function(object) {
+#   if (!is(object, "Cycif")) {
+#     stop("Invalid object: 'object' is not of class 'Cycif'.")
+#   }
+#   if (!is.null(object@adata)) {
+#     if (!inherits(object@adata, "anndata._core.anndata.AnnData")) {
+#       stop("Invalid object: 'adata' slot is not of the expected class.")
+#     }
+#   }
+#   if (!all(sapply(object@rois, inherits, "roi"))) {
+#     "All elements of roi_list must be of class 'roi'"
+#   }
+# })
 
 # fun: show Cycif ----
 #' @rdname Cycif
 #' @export
 setMethod("show", "Cycif", function(object) {
-  m <- matrix(as.character(abs_list(object)$ab),nrow=3)
-  rownames(m) <- c("R","G","B")
+  n.ch <- max(table(abs_list(object)$cycle))
+  m <- do.call(cbind,tapply(abs_list(object)$ab,abs_list(object)$cycle,
+              function(x){
+                tmp <- rep(NA,n.ch)
+                tmp[seq(x)] <- x
+                return(tmp)
+  }))
+
+  rownames(m) <- paste0("Ch",seq(n.ch))
   colnames(m) <- paste0("Cycle",seq(nCycles(object)))
   m <- data.frame(m)
 
   nd <- nrow(dna_thres(object)) > 0
   nln <- nrow(object@log_normalized) > 0
   nltn <- nrow(object@logTh_normalized) > 0
-  nct <- length(object@cell_type@cell_types) > 0
+  nct <- length(object@cell_types) > 0
   # cat(m)
   cat("[",is(object)[[1]], " object]\n\n",
       "Name: ", object@name, "\n",
@@ -418,7 +441,7 @@ setMethod("list2Cycif", "list",function(x){
 #'  at each cycle. If FALSE, actual actual number is provided.
 #'
 #' @usage
-#' cumUsedCells(x,within.rois=TRUE)
+#' cumUsedCells(x,use_rois=TRUE)
 #'
 #' @return cumUsedCells() returns a matrix where rows correspond to cells
 #'   and columns correspond to cycles. statUsedCells() returns a table sumarizing
@@ -427,17 +450,19 @@ setMethod("list2Cycif", "list",function(x){
 #' @export
 setGeneric("cumUsedCells", function(x,...) standardGeneric("cumUsedCells"))
 setMethod("cumUsedCells", "Cycif",
-          function(x,within.rois=TRUE){
+          function(x,use_rois=TRUE){
             u <- x@used_cells
-            w <- x@within_rois
 
             u <- sapply(seq(ncol(u)),function(i){
               id <- rowSums(u[,seq(i),drop=F]==1)==i
               return(id)
             })
 
-            if(within.rois & length(w)>0){
-              u <- u & w
+            if(use_rois){
+              w <- x@within_rois
+              if(length(w)>0){
+                u <- u & w
+              }
             }
 
             return(u)
@@ -454,18 +479,18 @@ setGeneric("statUsedCells", function(x,...) standardGeneric("statUsedCells"))
 #'
 #' @param cumulative logical. If TRUE, return the number of cells available from cycle 1 to N. FALSE, return the number of cells in each cycle. Default is TRUE.
 #' @param ratio logical. If TRUE, return the ratio of available cells over all the cells. Default is TRUE.
-#' @param within.rois logical. If TRUE, compute available cells within pre-specified ROIs.
+#' @param use_rois logical. If TRUE, compute available cells within pre-specified ROIs.
 #'
 #' @usage
-#' statUsedCells(x, cumulative=TRUE, ratio=TRUE, within.rois=TRUE)
+#' statUsedCells(x, cumulative=TRUE, ratio=TRUE, use_rois=TRUE)
 #'
 #' @order 2
 #' @export
 setMethod("statUsedCells", "Cycif",
-          function(x,cumulative=TRUE,ratio=TRUE,within.rois=TRUE){
+          function(x,cumulative=TRUE,ratio=TRUE,use_rois=TRUE){
             stopifnot(nrow(x@used_cells)>0)
             if(cumulative){
-              mat <- cumUsedCells(x,within.rois=within.rois)
+              mat <- cumUsedCells(x,use_rois=use_rois)
             } else{
               mat <- x@used_cells == 1 # 0 - dropped, 1 - alive, 2 - bunched
             }

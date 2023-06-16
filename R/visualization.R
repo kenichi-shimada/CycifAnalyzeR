@@ -52,12 +52,12 @@ AbsSummary <- function(x,show.cycles.in.row=FALSE,...){
 setGeneric("slidePlot", function(x,...) standardGeneric("slidePlot"))
 setMethod("slidePlot", "Cycif",
           function(x,pch=20,cex=2,plot_type=c("dna","exp","cell_type","custom"),
-                   custom_labs,ctype.full=FALSE,strict=FALSE,ttl,ab,
-                   uniq.cts,uniq.cols,draw.roi=TRUE,
+                   custom_labs,ct_name="default",strict=FALSE,ttl,ab,
+                   uniq_cts,uniq.cols,draw.roi=TRUE,
                    remove.unknown=TRUE,cell.order,
-                   na.col="grey80",use.roi=TRUE,use.thres=TRUE,ncells=1e4,
+                   na.col="grey80",use_rois=TRUE,use.thres=TRUE,ncells=1e4,
                    contour=FALSE,cont_nlevs=3,
-                   trim_th=1e-2,legend=FALSE, legend.pos="bottomright",mar=c(3,3,3,3),
+                   trim_th=1e-2,legend=FALSE, legend.pos,mar=c(3,3,3,3),
                    roi.sq,...){
             if(missing(plot_type)){
               stop("need to specify 'plot_type' argument: dna, exp, cell_type, custom")
@@ -84,12 +84,12 @@ setMethod("slidePlot", "Cycif",
               rn <- range(n.ab,na.rm=T)
 
               is.na <- is.na(n.ab)
-              if(use.roi){
+              if(use_rois){
                 within.rois <- x@within_rois
                 if(length(within.rois)){
-                  stop("ROIs not defined yet; 'use.roi' should be FALSE")
+                  stop("ROIs not defined yet; 'use_rois' should be FALSE")
                 }
-                is.na <- is.na | !within.rois
+                is.na <- is.na | !use_rois
               }
 
               if(missing(uniq.cols)){
@@ -113,19 +113,23 @@ setMethod("slidePlot", "Cycif",
                 ttl <- paste0(smpl," (",ab1,")")
               }
             }else if(plot_type=="exp"){
-              cts <- cell_types(x,ctype.full=ctype.full,leaves.only=TRUE,within.rois=use.roi,strict=strict)
-              if(missing(uniq.cts)){
-                uniq.cts <- levels(cts)
-                if(any(uniq.cts=="unknown")){
+              cts <- cell_types(x,
+                                ct_name=ct_name,
+                                leaves.only=cts.params$leaves.only,
+                                strict=cts.params$strict,
+                                use_rois=use_rois)
+              if(missing(uniq_cts)){
+                uniq_cts <- levels(cts)
+                if(any(uniq_cts=="unknown")){
                   if(remove.unknown){
-                    uniq.cts <- uniq.cts[uniq.cts!="unknown"]
+                    uniq_cts <- uniq_cts[uniq_cts!="unknown"]
                   }else{
-                    ui <- which(uniq.cts=="unknown")
-                    uniq.cts <- c(uniq.cts[-ui],"unknown")
+                    ui <- which(uniq_cts=="unknown")
+                    uniq_cts <- c(uniq_cts[-ui],"unknown")
                   }
                 }
               }
-              cts <- factor(cts,levels=uniq.cts)
+              cts <- factor(cts,levels=uniq_cts)
 
               if(missing(ab) || !ab %in% abs_list(x)$ab){
                 stop(ab, " is not specified or available in the sample ", names(x))
@@ -136,7 +140,7 @@ setMethod("slidePlot", "Cycif",
               n.ab <- trim_fun(n[[ab]],trim_th=trim_th)
               rn <- range(n.ab,na.rm=T)
               is.na <- is.na(n.ab)
-              if(use.roi){
+              if(use_rois){
                 within.rois <- x@within_rois
                 is.na <- is.na | !within.rois
               }
@@ -158,51 +162,42 @@ setMethod("slidePlot", "Cycif",
                 ttl <- paste0(smpl,", ",ab," expression")
               }
             }else if(plot_type=="cell_type"){
-              cts <- cell_types(x,ctype.full=ctype.full,leaves.only=TRUE,within.rois=use.roi,strict=strict)
 
+              ## cell types
+              cts <- cell_types(x,
+                                leaves.only=TRUE,
+                                use_rois=use_rois,
+                                strict=strict,
+                                ct_name=ct_name,
+                                uniq_cts=uniq_cts)$cell_types
+
+              if(missing(uniq_cts)){
+                uniq_cts <- levels(cts)
+              }
+
+              ## fill plot title
               if(missing(ttl)){
-                if(missing(uniq.cts)){
-                  ttl <- paste0(smpl,", cell-types")
-                }else{
-                  ttl <- paste0(smpl,", ",paste0(uniq.cts,collapse=","))
-                }
+                ttl <- paste0(smpl,", cell-types")
               }
-              if(missing(uniq.cts)){
-                uniq.cts <- levels(cts)
 
-                if(any(uniq.cts=="Immune_other")){
-                  ui <- which(uniq.cts=="Immune_other")
-                  uniq.cts <- c(uniq.cts[-ui],"Immune_other")
-                }
-
-                if(any(uniq.cts=="unknown")){
-                  if(remove.unknown){
-                    uniq.cts <- uniq.cts[uniq.cts!="unknown"]
-                  }else{
-                    ui <- which(uniq.cts=="unknown")
-                    uniq.cts <- c(uniq.cts[-ui],"unknown")
-                  }
-                }
-              }
-              cts <- factor(cts,levels=uniq.cts)
-
+              ## set colors
               if(missing(uniq.cols)){
                 nct <- nlevels(cts)
                 if(nct>10){
                   uniq.cols <- grDevices::colorRampPalette(RColorBrewer::brewer.pal(11,"Spectral")[-6])(nct)
                 }else{
-                  # set.seed(12)
-                  uniq.cols <- (RColorBrewer::brewer.pal(11,"Spectral"))[c(7,1,4,11:9,8)]
+                  uniq.cols <- (RColorBrewer::brewer.pal(nct,"Spectral"))
                 }
-                names(uniq.cols) <- uniq.cts
+                names(uniq.cols) <- uniq_cts
               }
               cols <- uniq.cols[cts]
+
+              ##
               is.na <- is.na(cts)
-              if(use.roi){
+              if(use_rois){
                 within.rois <- x@within_rois
                 is.na <- is.na | !within.rois
               }
-
 
             }else if(plot_type=="custom"){
               if(missing(custom_labs)){
@@ -211,6 +206,7 @@ setMethod("slidePlot", "Cycif",
               if(!is(custom_labs,"factor")){
                 custom_labs <- factor(custom_labs)
               }
+              # stop(paste0(table(custom_labs),collapse=","))
               if(missing(uniq.cols)){
                 nct <- nlevels(custom_labs)
                 if(nct>11){
@@ -220,9 +216,10 @@ setMethod("slidePlot", "Cycif",
                 }
                 names(uniq.cols) <- levels(custom_labs)
               }
+
               cols <- uniq.cols[custom_labs]
               is.na <- is.na(custom_labs)
-              if(use.roi){
+              if(use_rois){
                 within.rois <- x@within_rois
                 is.na <- is.na | !within.rois
               }
@@ -288,7 +285,7 @@ setMethod("slidePlot", "Cycif",
               ylim <- range(xy$Y)
             }
             graphics::par(mar=mar)
-            plot(xy$X,xy$Y,main=ttl,asp=1,xlab="",ylab="",type="n",xlim=xlim,ylim=ylim,...)
+            plot(xy$X,xy$Y,main=ttl,asp=1,xlab="",ylab="",type="n",xlim=xlim,ylim=ylim)#,...)
 
             cex1 = 4.8 * 8/3 * (graphics::par()$pin[1]/graphics::par()$cin[2])/diff(graphics::par()$usr[1:2])
 
@@ -304,15 +301,18 @@ setMethod("slidePlot", "Cycif",
                      col=cols[!is.na & cts!="unknown" & is.used],
                      pch=pch,cex=cex1*cex)
             }else if(plot_type=="custom"){
-              graphics::points(xy$X,
+              graphics::points(
+                     xy$X,
                      xy$Y,
                      col=cols,
-                     pch=pch,cex=cex1*cex)
+                     pch=pch,
+                     cex=cex1*cex)
             }else{
               graphics::points(xy$X[!is.na & is.used],
                      xy$Y[!is.na & is.used],
                      col=cols[!is.na & is.used],
-                     pch=pch,cex=cex1*cex)
+                     pch=pch,
+                     cex=cex1*cex)
             }
             if(draw.roi){
               prs <- x@rois
@@ -329,14 +329,22 @@ setMethod("slidePlot", "Cycif",
               }
             }
             if(plot_type=="cell_type" && contour){
-              this.idx <- !is.na & cts %in% uniq.cts & is.used
+              this.idx <- !is.na & cts %in% uniq_cts & is.used
               f1 <- MASS::kde2d(xy$X[this.idx],xy$Y[this.idx], n = 1000, lims = graphics::par()$usr,
                           h = c(width.SJ(xy$X), width.SJ(xy$Y)))
               contour(f1, nlevels  = cont_nlevs, add=T, labels=rep("",3),col="grey50")
             }
             if(legend){
-              legend(legend.pos,names(uniq.cols),col=uniq.cols,pch=20)
+              par(xpd=T)
+              if(missing(legend.pos)){
+                legend(par()$usr[2],par()$usr[4],names(uniq.cols),col=uniq.cols,pch=20)
+              }else{
+                legend(legend.pos,names(uniq.cols),col=uniq.cols,pch=20)
+              }
+              par(xpd=F)
+
             }
+
             graphics::par(mar=omar)
           }
 )
@@ -364,7 +372,7 @@ setGeneric("plotUsedCellRatio",function(x,...) standardGeneric("plotUsedCellRati
 #' @export
 setMethod("plotUsedCellRatio", "Cycif", function(x,cumulative=TRUE,ncycle,mar=c(5,5,4,10),
                                                  main="# cells attached on slide",...){
-  x <- as.CycifStack(list(x))
+  x <- list2CycifStack(list(x))
   ret <- plotUsedCellRatio(x,cumulative=cumulative,ncycle=ncycle,mar=mar,main=main,...)
   return(invisible(ret))
 })
@@ -372,25 +380,23 @@ setMethod("plotUsedCellRatio", "Cycif", function(x,cumulative=TRUE,ncycle,mar=c(
 
 #' @rdname plotUsedCellRatio
 #' @export
-setMethod("plotUsedCellRatio", "CycifStack", function(x,cumulative=TRUE,ncycle,mar=c(5,5,4,10),
-                                                      main="# cells attached on slide",smpl.cols,ncol=1,
-                                                      leg.cex=0.8,within.rois=NULL,...){
-  stopifnot(all(cyApply(x,is,"Cycif")))
+setMethod("plotUsedCellRatio", "CycifStack",
+          function(x,cumulative=TRUE,ncycle,mar=c(5,5,4,10),
+                   main="# cells attached on slide",smpl.cols,ncol=1,
+                   leg.cex=0.8,use_rois=TRUE,...){
+  stopifnot(all(cyApply(x,function(x)is(x,"Cycif"),simplify=TRUE)))
   stopifnot(all(unlist(cyApply(x,function(cy)nrow(cy@used_cells))>0)))
-  ncycles <- unlist(cyApply(x,nCycles))
+
   if(missing(ncycle)){
-    ncycle <- max(ncycles)
+    ncycle <- unique(nCycles(x))
+    if(length(ncycle)>1){
+      stop("there are more than one value in 'ncycle'; provide the argument explicitly")
+    }
   }
 
   used.ratio <- data.frame(sapply(names(x),function(n){
     y <- x[[n]]
-    rs <- within.rois[[n]]
-    # if(!is.null(within.rois)){
-    #   rs <- within.rois[[n]]
-    # }else{
-    #   rs <- FALSE
-    # }
-    nc.ratio <- statUsedCells(y,within.rois=rs,cumulative=TRUE,ratio=TRUE)
+    nc.ratio <- statUsedCells(y,use_rois=use_rois,cumulative=TRUE,ratio=TRUE)
     if(length(nc.ratio) > ncycle){
       nc.ratio <- nc.ratio[seq(ncycle)]
     }
@@ -496,7 +502,7 @@ setMethod("vlnPlot", "CycifStack",
           function(x,strat.by=c("celltype","smpl"), ab="PDL1", ctype.full=FALSE,
                    # type=c("raw","log_normalized","logTh_normalized"),
                    strict=FALSE,
-                   within.rois = TRUE,uniq.cts,uniq.smpls,is.used){
+                   use_rois = TRUE,uniq_cts,uniq.smpls,is.used){
             if(1){ # missing(type)){
               type <- "logTh_normalized"
             }
@@ -517,7 +523,7 @@ setMethod("vlnPlot", "CycifStack",
             ths <- rep(0.5,length(ab_thres))
 
             ## cell types
-            cts <- cell_types(x,ctype.full=ctype.full,leaves.only=TRUE,within.rois=within.rois)
+            cts <- cell_types(x,leaves.only=TRUE,use_rois=use_rois,strict=strict,ct_name=ct_name,uniq_cts=uniq_cts)$cell_types
             is.strict <- unlist(cyApply(x,function(cy)cy@cell_type@is_strict))
             # table(cts) ## all zeros!!!
 
@@ -539,16 +545,16 @@ setMethod("vlnPlot", "CycifStack",
               dplyr::mutate(smpl = factor(smpl))
 
             if(strat.by=="smpl"){
-              if(missing(uniq.cts) || length(uniq.cts) != 1){
-                stop("one celltype or 'all' should be set in 'uniq.cts'")
-              }else if(uniq.cts == "all"){
+              if(missing(uniq_cts) || length(uniq_cts) != 1){
+                stop("one celltype or 'all' should be set in 'uniq_cts'")
+              }else if(uniq_cts == "all"){
                 ttl <- paste0(ab,", all cells")
-                uniq.cts <- levels(df$celltype)
+                uniq_cts <- levels(df$celltype)
               }else{
-                if(length(uniq.cts)>1){
-                  uc <- paste0(length(uniq.cts)," samples")
-                }else if(length(uniq.cts)>1){
-                  uc <- uniq.cts
+                if(length(uniq_cts)>1){
+                  uc <- paste0(length(uniq_cts)," samples")
+                }else if(length(uniq_cts)>1){
+                  uc <- uniq_cts
                 }
 
                 ttl <- paste0(ab,", ",uc)
@@ -558,7 +564,7 @@ setMethod("vlnPlot", "CycifStack",
               }
               df1 <- df %>%
                 dplyr::filter(smpl %in% uniq.smpls) %>%
-                dplyr::filter(celltype %in% uniq.cts) %>%
+                dplyr::filter(celltype %in% uniq_cts) %>%
                 dplyr::filter(TimePoint %in% c("BS","BX2","BX3")) %>%
                 dplyr::mutate(TimePoint = factor(TimePoint)) %>%
                 dplyr::mutate(thres=ab_thres[as.character(smpl)])
@@ -582,13 +588,13 @@ setMethod("vlnPlot", "CycifStack",
               if(missing(uniq.smpls)){
                 uniq.smpls <- levels(df$smpl)
               }
-              if(missing(uniq.cts)){
-                uniq.cts <- levels(df$celltype)
-                uniq.cts <- c(uniq.cts[uniq.cts != "Immune_other"],"Immune_other")
-                uniq.cts <- c(uniq.cts[uniq.cts != "unknown"],"unknown")
+              if(missing(uniq_cts)){
+                uniq_cts <- levels(df$celltype)
+                uniq_cts <- c(uniq_cts[uniq_cts != "Immune_other"],"Immune_other")
+                uniq_cts <- c(uniq_cts[uniq_cts != "unknown"],"unknown")
               }
               df1 <- df %>%
-                dplyr::mutate(celltype=factor(celltype,levels=uniq.cts)) %>%
+                dplyr::mutate(celltype=factor(celltype,levels=uniq_cts)) %>%
                 dplyr::filter(smpl %in% uniq.smpls) %>%
                 dplyr::filter(!is.na(celltype))
 
@@ -999,6 +1005,7 @@ h3 <- function (x, Rowv = NULL, Colv = if (symm) "Rowv" else NULL,
     x <- x[, iy]
   }
   else iy <- 1L:nr
+  # browser()
   image(1L:nc, 1L:nr, x, xlim = 0.5 + c(0, nc), ylim = 0.5 +
           c(0, nr), axes = FALSE, xlab = "", ylab = "", col = col,
         useRaster = useRaster, ...)
@@ -1085,7 +1092,7 @@ setMethod("heatmapSummAb", "CycifStack",
           function(x,norm_type=c("log_normalized","logTh_normalized"), ab,
                    sum_type=c("freq","mean","median","x percentile"),
                    ctype.full=FALSE,rois = TRUE,
-                   uniq.cts,uniq.smpls,strict=FALSE,scale="row",...){
+                   uniq_cts,uniq.smpls,strict=FALSE,scale="row",...){
             options(dplyr.summarise.inform = FALSE)
 
             if(missing(sum_type)){
@@ -1093,9 +1100,6 @@ setMethod("heatmapSummAb", "CycifStack",
             }
             if(missing(norm_type)){
               norm_type <- "log_normalized"
-            }
-            if(missing(ctype.full)){
-              ctype.full <- FALSE
             }
             if(missing(ab)){
               stop("ab should be always specified")
@@ -1129,7 +1133,7 @@ setMethod("heatmapSummAb", "CycifStack",
             }
 
             ## cell types
-            cts <- cell_types(x,ctype.full=ctype.full,leaves.only=TRUE,within.rois=rois,strict=strict)
+            cts <- cell_types(x,ct_name=ct_name,leaves.only=TRUE,use_rois=use_rois,strict=strict,uniq_cts=uniq_cts)$cell_types
 
             df <- exprs(x,type=norm_type) %>%
               tibble::rownames_to_column(var="smpl") %>%
@@ -1139,9 +1143,9 @@ setMethod("heatmapSummAb", "CycifStack",
             if(missing(uniq.smpls)){
               uniq.smpls <- unique(df$smpl)
             }
-            if(missing(uniq.cts)){
-              uniq.cts <- levels(df$celltype)
-              uniq.cts <- uniq.cts[!uniq.cts %in% c("Immune_other","unknown")]
+            if(missing(uniq_cts)){
+              uniq_cts <- levels(df$celltype)
+              uniq_cts <- uniq_cts[!uniq_cts %in% c("Immune_other","unknown")]
             }
 
             pd <- pData(x) %>% rename(smpl=id)
@@ -1149,8 +1153,8 @@ setMethod("heatmapSummAb", "CycifStack",
               filter(within_rois(x)) %>%
               filter(!is.na(celltype)) %>%
               filter(smpl %in% uniq.smpls) %>%
-              filter(celltype %in% uniq.cts) %>%
-              mutate(celltype=factor(celltype,levels=uniq.cts)) %>%
+              filter(celltype %in% uniq_cts) %>%
+              mutate(celltype=factor(celltype,levels=uniq_cts)) %>%
               rename(this_ab=as.symbol(ab)) %>%
               mutate(thres1 = thres[smpl]) %>%
               group_by(smpl,celltype) %>%
@@ -1189,7 +1193,8 @@ setGeneric("heatmapSCExp", function(x,...) standardGeneric("heatmapSCExp"))
 #' @export
 setMethod("heatmapSCExp", "CycifStack",
           function(x,ld_name,norm_type=c("logTh_normalized","log_normalized"),
-                   summarize=FALSE,summarize.by=c("BOR","TimePoint"),
+                   summarize=FALSE,summarize.by=c("BOR","TimePoint","Clusters"),
+                   balanceColor=TRUE,
                    order="cBTgP",margins=c(7,5),used.abs,ttl,...){
             options(dplyr.summarise.inform = FALSE)
             if(missing(norm_type)){
@@ -1267,39 +1272,25 @@ setMethod("heatmapSCExp", "CycifStack",
             if(missing(ttl)){
               ttl <- paste0(ld_name,", ",sub("_.+","",norm_type)," (no scaling)")
             }
-            h3(n1,Colv=NA,Rowv=NA,scale="none",RowSideColors=rsc,useRaster=F,main=ttl,margins=margins,RowSideLabs=rsl,...)
+            # browser()
+
+            if(norm_type=="logTh_normalized"){
+              n1 <- n1 - 0.5 ## hardcode!!!!
+              balanceCol=TRUE
+            }
+            # stop(paste(rownames(n1),collapse=","))
+            n1 <- n1[order(as.numeric(rownames(n1)),decreasing=T),]
+
+            h3(n1,Colv=NA,Rowv=NA,#symm=TRUE,
+               scale="none",
+               RowSideColors=rsc,
+               useRaster=F,
+               main=ttl,
+               margins=margins,
+               balanceColor=balanceColor,
+               RowSideLabs=rsl,...)
           })
 
-#_ -------------------------------------------------------
-
-# fun: CellTypeGraph ctype ----
-#'@export
-CellTypeGraph <- function(ctype,plot=F,transpose=T,...){
-  uniq.cts <- c("all",ctype$Child)
-  ctgraph <- ctype[c("Parent","Child")]
-  ctgraph$Parent <- factor(ctgraph$Parent,levels=uniq.cts)
-  ctgraph$Child <- factor(ctgraph$Child,levels=uniq.cts)
-  g <- igraph::graph_from_data_frame(ctgraph)
-  l <- igraph::layout_as_tree(g)
-  levs <- l[,2]
-  names(levs) <- names(igraph::V(g))
-  ctlevs <- rev(tapply(names(levs),levs,identity))
-  if(plot){
-    if(transpose){
-      l[,2] <- max(l[,2]) - l[,2]
-      l <- l[,2:1]
-    }
-    igraph::V(g)$shape <- "rectangle"
-    igraph::V(g)$label.family <- "Helvetica"
-
-    plot(g, layout=l,
-         edge.arrow.size=.5, vertex.color="gold", vertex.size=40,
-         vertex.frame.color=NA, vertex.label.color="black",
-         vertex.label.cex=0.8, vertex.label.dist=0, edge.curved=0
-         ,...)
-  }
-  return(ctlevs)
-}
 
 #_ -------------------------------------------------------
 
@@ -1329,8 +1320,13 @@ setGeneric("lowDimPlot", function(x,...) standardGeneric("lowDimPlot"))
 #' @export
 setMethod("lowDimPlot", "Cycif",
           function(x,ld_name,plot_type=c("celltype","cluster","exp"),ab,
-                   na.col = "grey80",uniq.cols,with.labels = TRUE,leg=TRUE,
-                   pch=".",main,p_thres=0.5,mar,cex.labs=1,cex.leg=1,cex.main=2,...){
+                   ct_name=ct_name,
+                   na.col = "grey80",
+                   uniq.cols,
+                   with.labels = TRUE,
+                   leg=TRUE,
+                   pch=".",
+                   main,p_thres=0.5,mar,cex.labs=1,cex.leg=1,cex.main=2,...){
             if(missing(plot_type)){
               stop("Which plot type? (plot_type = celltype, cluster, exp)")
             }
@@ -1373,11 +1369,11 @@ setMethod("lowDimPlot", "Cycif",
               plot_type <- paste0(ab,"(exp)")
 
             }else if(plot_type=="celltype"){
-              facs <- cell_types(x,
-                                 ctype.full = cts.params$ctype.full,
-                                 leaves.only = cts.params$leaves.only,
-                                 strict = cts.params$strict)[is.used]
-              facs <- factor(facs,levels = used.cts)
+              facs <- cell_types(x,ct_name=ct_name,
+                                 leaves.only=cts.params$leaves.only,
+                                 strict=cts.params$strict,
+                                 use_rois=use_rois,
+                                 uniq_cts=used.cts)$cell_types[is.used]
               plot_type <- "Cell types"
             }else if(plot_type=="cluster"){
               facs <- ld@clusters
@@ -1455,6 +1451,7 @@ setMethod("lowDimPlot", "Cycif",
 setMethod("lowDimPlot", "CycifStack",
           function(x,ld_name,plot_type=c("celltype","cluster","exp"),ab,
                    na.col = "grey80",uniq.cols,with.labels = TRUE,leg=TRUE,
+                   ct_name=ct_name,use_rois=TRUE,
                    cts.names,pal.name,cex.main=2,
                    pch=".",main,p_thres=0.5,mar,cex.labs=1,cex.leg=.5,cex=cex,...){
             if(missing(plot_type)){
@@ -1499,9 +1496,14 @@ setMethod("lowDimPlot", "CycifStack",
               plot_type <- paste0(ab,"(exp)")
 
             }else if(plot_type=="celltype"){
+              # browser()
               facs <- cell_types(x,
-                                 ctype.full = cts.params$ctype.full,
-                                 leaves.only=cts.params$leaves.only)[is.used]
+                                 ct_name = ct_name,
+                                 strict=cts.params$strict,
+                                 leaves.only=cts.params$leaves.only,
+                                 use_rois=use_rois,
+                                 uniq_cts=used.cts)$cell_types[is.used]
+              #stop(paste0(table(facs),collapse=","))
               levels(facs) <- sub(",.+","",levels(facs))
               if(!missing(cts.names)){
                 if(!all(names(cts.names) %in%  used.cts)){
@@ -1553,10 +1555,35 @@ setMethod("lowDimPlot", "CycifStack",
             ## colors - when plot_type
             if(!grepl("exp",plot_type)){
               levs <- levels(facs)
-              if(missing(uniq.cols)){
-                ## levels
-                nlev <- nlevels(facs)
+              nlev <- nlevels(facs)
 
+              ## TALAVE specific term
+              if(plot_type == "smpl"){
+                uniq.cols <- colorRampPalette(RColorBrewer::brewer.pal(11,"Spectral"))(nlev)
+                names(uniq.cols) <- levs
+              }else if(plot_type == "celltype"){
+                ct.cols <- c((RColorBrewer::brewer.pal(11,"Spectral"))[c(7,1,2,3,5,11:10,8)],"grey80")
+                names(ct.cols) <- c("Tumor","Fibro","CD8T","Th","T_other",
+                                    "Mac_CD68","Mac_CD68_CD163","Mac_CD163","unknown")
+                uniq.cols <- ct.cols
+              }else if(plot_type == "BOR"){
+                uniq.cols <- brewer.pal(3,"Set1")[c(1,3,2)]
+                names(uniq.cols) <- levs
+              }else if(plot_type == "TimePoint"){
+                uniq.cols <- brewer.pal(3,"Set2")
+                names(uniq.cols) <- levs
+              }else if(plot_type == "Subtype"){
+                uniq.cols <- brewer.pal(3,"Dark2")[1:2]
+                names(uniq.cols) <- levs
+              }else if(plot_type == "gBRCA.status"){
+                col2 <- c("grey20","grey80")
+                names(col2) <- c("WT","MUT")
+                uniq.cols <- col2
+              }else if(plot_type == "Patient.ID"){
+                uniq.cols <- colorRampPalette(RColorBrewer::brewer.pal(11,"Spectral"))(nlev)
+                names(uniq.cols) <- levs
+              }else if(missing(uniq.cols)){
+                ## levels
                 if(nlev < 9){
                   if(missing(pal.name)){
                     pal.name <- "Dark2"

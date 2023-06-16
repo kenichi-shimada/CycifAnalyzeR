@@ -1,6 +1,6 @@
-Package: CycifDataAnalysis
+Package: CycifAnalyzeR
 Title: A package for containing, pre-processing, and analyzing Cycif data
-Version: 0.0.0.9001
+Version: 0.0.1
 Authors@R: 
     person("Kenichi", "Shimada", , "kenichi_shimada@hms.harvard.edu", role = c("aut", "cre"),
            comment = c(ORCID = "0000-0001-8540-9785"))
@@ -42,6 +42,7 @@ Collate:
     'dimensionality_reduction.R'
     'clustering.R'
     'spatial_analysis.R'
+    'zzz.R'
 Suggests: 
     testthat (>= 3.0.0)
 Config/testthat/edition: 3

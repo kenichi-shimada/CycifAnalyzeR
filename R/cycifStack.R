@@ -1,5 +1,5 @@
 #_ -------------------------------------------------------
-# utils CycifStack-slots ----
+# utils CycifStack ----
 #' Accessing slots in a CellTypeCycifStack object
 #'
 #' @param x A CycifStack object
@@ -7,6 +7,9 @@
 #' @export
 setGeneric("nSamples", function(x)standardGeneric("nSamples"))
 setMethod("nSamples", "CycifStack", function(x) x@n_samples)
+
+#' @export
+setMethod("length","CycifStack",function(x)x@n_samples)
 
 #' @export
 setMethod("names", "CycifStack", function(x) x@names)
@@ -28,10 +31,9 @@ setGeneric("maxCycles", function(x)standardGeneric("maxCycles"))
 setMethod("maxCycles", "CycifStack", function(x) x@max_cycles)
 
 #' @export
-setMethod("nCells", "CycifStack", function(x) x@n_cells)
-
-#' @export
-setMethod("length","CycifStack",function(x)length(x@samples))
+setMethod("nCells", "CycifStack", function(x){
+  cyApply(x,nCells,simplify=T)
+})
 
 #' @rdname nCycles
 #' @export
@@ -39,7 +41,7 @@ setMethod("nCycles", "CycifStack", function(x){
   if(!is.null(x@n_cycles)){
     return(x@n_cycles)
   }else{
-    return(cyApply(x,nCycles))
+    return(cyApply(x,nCycles,simplify=T))
   }
 })
 
@@ -47,7 +49,7 @@ setMethod("nCycles", "CycifStack", function(x){
 #' @export
 setMethod("nCycles<-", "CycifStack", function(x,value){
   if(!is.numeric(value) | length(value) != 1){
-    stop("CycifStack@nCycles should be a single numeric value now (not accepting a vector with length of x)")
+    warning("CycifStack@n_cycles will not accept a vector but a scalar in the future update")
   }
 
   ## subsetting samples - trimming ones not reaching the cycle specified
@@ -67,14 +69,6 @@ setMethod("nCycles<-", "CycifStack", function(x,value){
   x@abs_list <- abs_list(x[[1]]) ## all the samples should have same # of cycles
   this.abs <- as.character(abs_list(x)$ab)
 
-  if(all(this.abs %in% names(x@log_normalized))){
-    x@log_normalized <- x@log_normalized[this.abs]
-  }
-
-  if(all(this.abs %in% names(x@logTh_normalized))){
-    x@logTh_normalized <- x@logTh_normalized[this.abs]
-  }
-
   x@names <- smpls <- names(x)
   x@n_samples <- length(x)
   x@samples <- x@samples[smpls]
@@ -88,16 +82,16 @@ setMethod("nCycles<-", "CycifStack", function(x,value){
   return(x)
 })
 
-#' @rdname gates
 #' @export
-setMethod("gates", "CycifStack", function(x)x@cell_type@gates)
-
+setMethod("within_rois", "CycifStack", function(x){
+  unlist(cyApply(x,within_rois))
+})
 #_ -------------------------------------------------------
 
 # fun: constructor CycifStack ----
 #' Instantiate and show a CycifStack object
 #'
-#' @param filenames quantification file (.csv)
+#' @param ft_filenames quantification file (.csv)
 #' @param path path to the dir containign filename
 #' @param mask_type a common mask_type of each channel. If applicable, the mask_type is
 #'   removed from the channel names.
@@ -105,19 +99,30 @@ setMethod("gates", "CycifStack", function(x)x@cell_type@gates)
 #'
 #' @rdname CycifStack
 #' @export
-CycifStack <- function(filenames,path,mask_type="_cellRing"){
-  stopifnot(all(file.exists(file.path(path,filenames))))
-  cat("Trying to load ",length(filenames)," samples.\n",sep="")
+CycifStack <- function(ft_filenames,
+                       path=".",
+                       mask_type=c("cellRing","cell"),
+                       mcmicro=FALSE,
+                       use_scimap=FALSE){
+  stopifnot(all(file.exists(file.path(path,ft_filenames))))
+  cat("Trying to load ",length(ft_filenames)," samples.\n",sep="")
 
-  n.samples <- length(filenames)
-  samples <- lapply(filenames,function(filename){
-    if(grepl(mask_type,filename)){
-      name <- sub(paste0("unmicst-(.+)",mask_type,"\\.csv"),"\\1",filename)
+  n.samples <- length(ft_filenames)
+  samples <- lapply(ft_filenames,function(ft_filename){
+    has.mask_types <- sapply(mask_type,function(mt)grepl(paste0("_",mt,"\\."),ft_filename))
+    if(any(has.mask_types)){
+      mk <- mask_type[min(which(has.mask_types))]
+      smpl <- sub(paste0("unmicst-(.+)_",mk,"\\.csv"),"\\1",ft_filename)
     }else{
-      name <- sub(paste0("unmicst-(.+)\\.csv"),"\\1",filename)
+      mk <- mask_types
+      smpl <- sub(paste0("unmicst-(.+)\\.csv"),"\\1",ft_filename)
     }
-    cat("Loading ",name,"...\n",sep="")
-    smpl <- Cycif(filename,path=path,mask_type=mask_type)
+    cat("Loading ",smpl,"...\n",sep="")
+    smpl <- Cycif(ft_filename=ft_filename,
+                  path=path,
+                  mask_type=mk,
+                  mcmicro=mcmicro,
+                  use_scimap=use_scimap)
     return(smpl)
   })
 
@@ -145,14 +150,28 @@ CycifStack <- function(filenames,path,mask_type="_cellRing"){
   new("CycifStack",
       names = nms,
       mask_type = mask_type,
-      abs_list = abs_list,
       n_samples = n.samples,
       n_cycles = n_cycles,
       max_cycles = max_cycles,
       n_cells = n_cells,
+      abs_list = abs_list,
+      cell_types = list(),
+      ld_coords = list(),
+      adata = list(),
       samples = samples
   )
 }
+
+# fun: setValidity CycifStack ----
+setValidity("CycifStack", function(object) {
+  if (!is(object, "CycifStack")) {
+    stop("Invalid object: 'object' is not of class 'CycifStack'.")
+  }
+
+  # if (!all(sapply(object@rois, inherits, "roi"))) {
+  #   "All elements of roi_list must be of class 'roi'"
+  # }
+})
 
 # fun: show CycifStack ----
 #' @rdname CycifStack
@@ -164,9 +183,17 @@ setMethod("show", "CycifStack", function(object) {
     nCells = object@n_cells)
   rownames(df) <- c()
 
-  m <- matrix(object@abs_list$ab,nrow=3)
-  rownames(m) <- c("R","G","B")
-  colnames(m) <- paste0("Cycle",seq(object@max_cycles))
+  n.ch <- max(table(abs_list(object)$cycle))
+  m <- do.call(cbind,tapply(abs_list(object)$ab,abs_list(object)$cycle,
+                            function(x){
+                              tmp <- rep(NA,n.ch)
+                              tmp[seq(x)] <- x
+                              return(tmp)
+                            }))
+
+  max.cycles <- max(nCycles(object))
+  rownames(m) <- paste0("Ch",seq(n.ch))
+  colnames(m) <- paste0("Cycle",seq(max.cycles))
   m <- data.frame(m)
 
   cat(is(object)[[1]], "\n")
@@ -208,16 +235,17 @@ setMethod("list2CycifStack", "list",function(x){
   max_cycles <- max(n_cycles)
 
   idx <- which(n_cycles == max_cycles)[1]
-  abs_list <- abs_list(xs[[idx]])
-  # thres <- as.data.frame(sapply(xs,function(y){
-  #   if(.hasSlot(y,"threshold")){
-  #     thres <- y@threshold
-  #   }
-  # }))
+
+  al <- abs_list(xs[[idx]])[1:2]
+  for(i in seq(xs)){
+    al <- al %>% dplyr::left_join(abs_list(xs[[i]]),by=c("ab","cycle"))
+  }
+
+
   new("CycifStack",
       n_samples = n.samples,
       names = nms,
-      abs_list = abs_list,
+      abs_list = al,
       n_cycles = n_cycles,
       max_cycles = max_cycles,
       n_cells = n_cells,
@@ -276,6 +304,21 @@ setMethod("[",
               x@n_cycles <- n_cycles
               x@max_cycles <- max_cycles
               x@n_cells <- n_cells
+
+              ph <- x@phenoData
+              if(is.data.frame(ph) & nrow(ph)>0){
+                ph <- ph %>% dplyr::filter(id %in% nms)
+                x@phenoData <- ph
+              }
+
+              if(0){ # to be done
+                ct_names <- ct_names(x)
+                for(ct_name in ct_names){
+                  ct <- x@cell_types[[ct_name]]
+                  ct@name <- nms
+                }
+              }
+
               return(x)
             }
           }
@@ -294,32 +337,32 @@ setMethod("[[",
 
 #' @rdname CycifStack-subset
 #' @export
-setMethod("[<-",
-          "CycifStack",
-          function(x, i, value){
-            stopifnot(is(value,"Cycif"))
-            x@samples[[i]] <- value
-
-            n_samples <- length(x@samples)
-            nms <- 	names(x@samples) <- sapply(x@samples,names)
-            n_cells <- 	sapply(x@samples,nCells)
-            n_cycles <- sapply(x@samples,nCycles)
-            max_cycles <- max(n_cycles)
-
-            idx <- which(n_cycles == max_cycles)[1]
-            abs_list <- abs_list(x@samples[[idx]])
-
-            x@names <- nms
-            x@abs_list <- abs_list
-            x@n_samples <- x@n_samples
-            x@n_cycles <- n_cycles
-            x@max_cycles <- max_cycles
-            x@n_cells <- n_cells
-
-            # validObject(x)
-            return(x)
-          }
-)
+# setMethod("[<-",
+#           "CycifStack",
+#           function(x, i, value){
+#             stopifnot(is(value,"Cycif"))
+#             x@samples[[i]] <- value
+#
+#             n_samples <- length(x@samples)
+#             nms <- 	names(x@samples) <- sapply(x@samples,names)
+#             n_cells <- 	sapply(x@samples,nCells)
+#             n_cycles <- sapply(x@samples,nCycles)
+#             max_cycles <- max(n_cycles)
+#
+#             idx <- which(n_cycles == max_cycles)[1]
+#             abs_list <- abs_list(x@samples[[idx]])
+#
+#             x@names <- nms
+#             x@abs_list <- abs_list
+#             x@n_samples <- x@n_samples
+#             x@n_cycles <- n_cycles
+#             x@max_cycles <- max_cycles
+#             x@n_cells <- n_cells
+#
+#             # validObject(x)
+#             return(x)
+#           }
+# )
 
 #' @rdname CycifStack-subset
 #' @export
