@@ -13,7 +13,15 @@ defineCellTypes(x,ctype,cstate,gates,p_thres=0.5,...)
 
 defineCellTypes(x,ctype,cstate,gates,p_thres=0.5,...)
 
-\S4method{defineCellTypes}{CycifStack}(x, ...)
+\S4method{defineCellTypes}{CycifStack}(
+  x,
+  ctype,
+  cstate,
+  ct_name = "default",
+  p_thres = 0.5,
+  overwrite = FALSE,
+  ...
+)
 }
 \arguments{
 \item{x}{a CycifStack object}

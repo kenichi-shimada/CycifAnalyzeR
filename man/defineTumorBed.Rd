@@ -13,7 +13,8 @@ defineTumorBed(x, ...)
   dth,
   parallel = TRUE,
   min.pts = 2,
-  n.cores = 7
+  n.cores = 1,
+  ct_name
 )
 }
 \arguments{

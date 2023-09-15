@@ -173,6 +173,41 @@ setValidity("CycifStack", function(object) {
   # }
 })
 
+# fun: check_abs ----
+setGeneric("check_abs", function(x)standardGeneric("check_abs"))
+setMethod("check_abs", "CycifStack", function(x){
+  abs <- cyApply(x,function(x){
+    ab <- abs_list(x)$ab
+  })
+  n.abs <- sapply(abs,length)
+  if(length(unique(n.abs))>1 | n.abs[1]==0){
+    warning("not all the samples have the same # of abs;\nrun 'barplot(cyApply(x,function(cy)nrow(abs_list(cy)),simplify=T),las=2)'\n")
+    warning("Run nCycles() to set a fixed # of cycles and/or drop samples that don't meet the criteria.")
+  }else if(length(unique(n.abs))>1 | n.abs[1]==0){
+    warning("not all the samples have the same Ab names;\nrun 'apply(do.call(cbind,cyApply(x,function(cy)abs_list(cy)$ab)),1,unique)'\n")
+    warning("Run set_abs() to set the identical names in the Abs.")
+  }
+})
+
+# fun: set_abs ----
+setMethod("set_abs<-", "CycifStack", function(x,value){
+    new.abs <- value
+    abs <- abs_list(x)$ab
+    if(length(abs)!=length(new.abs)){
+      stop("The number of 'new.abs' should be the same as the number of abs in abs_list(x)")
+    }
+    if(!all(names(new.abs)==abs)){
+      ("The names of the 'new.abs' should be the identical to abs_list(x)$ab")
+    }
+    x@abs_list$ab <- new.abs
+    x <- cyApply(x,function(cy){
+      set_abs(cy) <- new.abs
+      return(cy)
+    },)
+    return(x)
+  }
+)
+
 # fun: show CycifStack ----
 #' @rdname CycifStack
 #' @export
@@ -201,6 +236,7 @@ setMethod("show", "CycifStack", function(object) {
   cat("Abs:\n")
   print(m)
 })
+
 
 #_ -------------------------------------------------------
 
@@ -235,7 +271,6 @@ setMethod("list2CycifStack", "list",function(x){
   max_cycles <- max(n_cycles)
 
   idx <- which(n_cycles == max_cycles)[1]
-
   al <- abs_list(xs[[idx]])[1:2]
   for(i in seq(xs)){
     al <- al %>% dplyr::left_join(abs_list(xs[[i]]),by=c("ab","cycle"))

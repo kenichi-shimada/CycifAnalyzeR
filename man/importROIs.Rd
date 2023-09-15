@@ -2,9 +2,15 @@
 % Please edit documentation in R/preprocessing.R
 \name{importROIs}
 \alias{importROIs}
+\alias{importROIs,Cycif-method}
+\alias{importROIs,CycifStack-method}
 \title{Import Polygon coordinates of ROIs from OMERO}
 \usage{
 importROIs(x, ...)
+
+\S4method{importROIs}{Cycif}(x, exported.rois)
+
+\S4method{importROIs}{CycifStack}(x, exported.rois)
 }
 \description{
 Import Polygon coordinates of ROIs from OMERO

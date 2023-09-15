@@ -26,7 +26,7 @@ plotUsedCellRatio(x, ...)
   smpl.cols,
   ncol = 1,
   leg.cex = 0.8,
-  within.rois = NULL,
+  use_rois = TRUE,
   ...
 )
 }

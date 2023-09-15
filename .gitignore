@@ -5,7 +5,7 @@
 .RData
 .Ruserdata
 .DS_Store
-archive
+*archive*
 
 .Rdata
 .httr-oauth

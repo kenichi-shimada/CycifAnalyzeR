@@ -2,20 +2,23 @@
 % Please edit documentation in R/preprocessing.R
 \name{dnaFilter}
 \alias{dnaFilter}
+\alias{hist_fun}
 \title{Filtering out unavaialble cells based on nuclei staining}
 \usage{
 dnaFilter(x, ...)
+
+hist_fun(x, n = 1000, ths, mar = c(3, 4, 4, 2) + 0.1, brks1, ttl1)
 }
 \arguments{
 \item{x}{A Cycif object}
+
+\item{n}{numeric. The number of breaks in the histogram.}
 
 \item{manual}{logical. If TRUE, lower and upper limits of DNA intensity should be chosen
 interactively by clicking the limit values in the heatmap. FALSE by default.}
 
 \item{ratio}{logical. If TRUE, the ratio of DNA intensity between each cycle and cycle 0 will be used.
 If FALSE, raw values of DNA intensity will be used.}
-
-\item{n}{numeric. The number of breaks in the histogram.}
 
 \item{n1}{numeric. indices from 1 through n1 will be plugged into loess().}
 

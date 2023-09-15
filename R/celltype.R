@@ -422,16 +422,18 @@ modifyCellTypes <- function(ctype,uniq.cts,check=TRUE){
 
 # fun: CellTypeGraph ctype ----
 #'@export
-CellTypeGraph <- function(ctype,plot=F,transpose=T,...){
+CellTypeGraph <- function(ctype,plot=F,transpose=T,with.hierarchy=FALSE,...){
   uniq.cts <- c("all",ctype$Child)
   ctgraph <- ctype[c("Parent","Child")]
   ctgraph$Parent <- factor(ctgraph$Parent,levels=uniq.cts)
   ctgraph$Child <- factor(ctgraph$Child,levels=uniq.cts)
   g <- igraph::graph_from_data_frame(ctgraph)
   l <- igraph::layout_as_tree(g)
+
   levs <- l[,2]
   names(levs) <- names(igraph::V(g))
-  ctlevs <- rev(tapply(names(levs),levs,identity))
+  ctlevs <- rev(tapply(names(levs),levs,function(x)uniq.cts[uniq.cts %in% x]))
+
   if(plot){
     if(transpose){
       l[,2] <- max(l[,2]) - l[,2]
@@ -446,7 +448,21 @@ CellTypeGraph <- function(ctype,plot=F,transpose=T,...){
          vertex.label.cex=0.8, vertex.label.dist=0, edge.curved=0
          ,...)
   }
-  return(ctlevs)
+  if(with.hierarchy){
+    d <- igraph::distances(g,mode="out")[uniq.cts,uniq.cts]
+
+    cts.hierarchy <- as.data.frame(apply(which(d > 0 & d < Inf,arr.ind=T),2,function(idx)uniq.cts[idx]))
+    names(cts.hierarchy) <- c("ancestor","descendant")
+
+    leaves <- ctype$Child[!ctype$Child %in% ctype$Parent]
+    non.leaves <- unique(ctype$Parent[!ctype$Parent %in% leaves])
+
+    cts.hierarchy <- cts.hierarchy %>% filter(ancestor %in% non.leaves & descendant %in% leaves) ## 41 -> 33
+    cts.hierarchy <- cts.hierarchy
+    return(list(ctlevs=ctlevs,hierarchy=cts.hierarchy))
+  }else{
+    return(ctlevs)
+  }
 }
 
 #_ -------------------------------------------------------
@@ -492,11 +508,19 @@ setMethod("defineCellTypes", "data.frame",
   cell.types <- rep("all",nrow(x))
   is.strict <- rep(TRUE,nrow(x))
 
+  cat("ct_level=")
   for(l in seq(length(ctlevs)-1)){
+  # for(l in 1){
+    # cat(paste0(l,":"))
+    cat(l)
     pas <- ctlevs[[l]]
-    chs <- ctlevs[[l+1]]
-    i.others <- chs %in% "unknown" | grepl("_other$",chs)
-    chs1 <- chs[!i.others]
+    chs1 <- chs <- ctlevs[[l+1]]
+    # if(0){
+    #   i.others <- chs %in% "unknown" | grepl("_other",chs)
+    #   chs1 <- chs[!i.others]
+    # }else{
+    #   chs1 <- chs
+    # }
 
     ct <- ctype %>% dplyr::filter(Parent %in% pas & Child %in% chs1)
     uniq.pas <- unique(ct$Parent)
@@ -513,7 +537,7 @@ setMethod("defineCellTypes", "data.frame",
       suppressWarnings({
         if(length(abs.and)>0 & length(abs.or)>0){
           a <- apply(x[abs.and],1,min,na.rm=T)
-          a[a==-Inf] <- NA
+          a[a==Inf] <- NA
           b <- apply(x[abs.or],1,max,na.rm=T)
           b[b==-Inf] <- NA
           pos.out <- pmin(a,b)
@@ -524,7 +548,7 @@ setMethod("defineCellTypes", "data.frame",
           pos.out <- apply(x[abs.or],1,max,na.rm=T)
           pos.out[pos.out==-Inf] <- NA
         }else{
-          pos.out <- rep(1,nrow(x))
+          pos.out <- rep(p_thres,nrow(x)) # changed from 1 to p_thres
         }
 
         this.ct <- pos.out
@@ -543,37 +567,53 @@ setMethod("defineCellTypes", "data.frame",
       this.ind <- cell.types==pa
       this.chs <- (ct %>% dplyr::filter(Parent==pa))$Child
       this.chs <- colnames(prs)[colnames(prs) %in% this.chs]
+      i.other <- grep("other",this.chs)
+
       prs1 <- prs[this.ind,this.chs,drop=F]
       cell.types[this.ind] <- apply(prs1,1,function(pr){
-        if(all(is.na(pr))){
-          return(pa)
+        if(pa=="all"){
+          pr1 <- pr[-i.other]
+          if(all(is.na(pr1))){
+            return("unknown")
+          }
         }
         ind <- which(pr==max(pr,na.rm=T))
         if(length(ind)>1){
-          return(pa)
-        }
-        if(pr[ind] > p_thres){
-          return(this.chs[ind])
-        }else{
-          ch1 <- paste0(pa,"_other")
-          if(ch1 == "all_other"){
-            ch1 <- "unknown"
+          if(length(ind)==2 & length(i.other)==1 & any(ind==i.other)){
+            ind <- ind[ind != i.other]
+          }else if(pr[ind[1]] >= p_thres){
+            ind <- ind[1] # return("inc")
+          }else{
+            return("unknown")
           }
-          return(ch1)
+        }
+        if(pr[ind] >= p_thres){
+          return(this.chs[ind])
         }
       })
       this.strict <- rowSums(prs1 > p_thres,na.rm=F) < 2
       this.strict[is.na(this.strict)] <- FALSE
       is.strict[this.ind] <- this.strict & is.strict[this.ind]
     }
+    # cat(paste0(sum(is.na(cell.types)),"..."))
+    cat("...")
   }
 
-  ## convert to factor: Q: how to order cell types from ctype df?
-  uniq.cts <- c("all",ctype$Child)
-  leaves <- uniq.cts[!uniq.cts %in% ctype$Parent]
+  ## convert to factor
+  uniq.cts <- "all"
+  for(l in seq(length(ctlevs)-1)){
+    pas <- ctlevs[[l]]
+    chs <- ctlevs[[l+1]]
+    ct <- ctype %>% dplyr::filter(Parent %in% pas & Child %in% chs)
+    tct <- tapply(ct$Child,ct$Parent,identity)
+    for(i in seq(tct)){
+      pa1 <- names(tct)[i]
+      ch1 <- tct[[i]]
+      uniq.cts <- unlist(replace(uniq.cts,which(uniq.cts==pa1),list(ch1)))
+    }
+  }
 
-  uniq.cts <- c(uniq.cts[uniq.cts!="unknown"],"unknown")
-  cts <- factor(cell.types,levels=uniq.cts)
+  cts <- factor(cell.types,levels=c(uniq.cts,"unknown"))
 
   return(data.frame(cell_types=cts,is_strict=is.strict))
 })
@@ -595,16 +635,11 @@ setMethod("defineCellTypes", "Cycif",
           function(x,
                    ctype,
                    cstate,
-                   ct_name=c("default","full"),
+                   ct_name="default",
                    p_thres=0.5,
-                   ctype.full=FALSE,
                    overwrite=FALSE,...){
             if(missing(ct_name)){
-              if(ctype.full){
-                ct_name <- "full"
-              }else{
-                ct_name <- "default"
-              }
+              ct_name <- "default"
             }
 
             ## ct_name exists?
@@ -622,7 +657,7 @@ setMethod("defineCellTypes", "Cycif",
             }
 
             # load ctype, cstate, gates in Cycif obj (both stratification markers unexpanded and expanded)
-            ctc  <- CellTypeSkeleton(x,ctype=ctype,cstate=cstate,ctype.full=ctype.full)
+            ctc  <- CellTypeSkeleton(x,ctype=ctype,cstate=cstate,ctype.full=FALSE)
 
             ctype <- ctc@cell_lineage_def
             cstate <- ctc@cell_state_def
@@ -659,16 +694,11 @@ setMethod("defineCellTypes", "CycifStack",
   function(x,
            ctype,
            cstate,
-           ct_name=c("default","full"),
+           ct_name="default",
            p_thres=0.5,
-           ctype.full=FALSE,
            overwrite=FALSE,...){
     if(missing(ct_name)){
-      if(ctype.full){
-        ct_name <- "full"
-      }else{
-        ct_name <- "default"
-      }
+      ct_name <- "default"
     }
 
     ## ct_name exists?
@@ -679,7 +709,7 @@ setMethod("defineCellTypes", "CycifStack",
     }
 
     ## create celltypeskeleton
-    ctc  <- CellTypeSkeleton(x,ctype=ctype,cstate=cstate,ctype.full=ctype.full)
+    ctc  <- CellTypeSkeleton(x,ctype=ctype,cstate=cstate,ctype.full=FALSE)
 
     ctype <- ctc@cell_lineage_def
     cstate <- ctc@cell_state_def
@@ -687,15 +717,15 @@ setMethod("defineCellTypes", "CycifStack",
     ## defineCellTypes for each sample (Cycif)
     for(nm in names(x)){
       cy <- x[[nm]]
-      cat(paste0("Processing ",names(cy),"...\n"))
+      cat(paste0("Processing ",names(cy),"..."))
       cy <- defineCellTypes(cy,
                             ct_name=ct_name,
                             ctype=ctype,
                             cstate=cstate,
                             p_thres=p_thres,
-                            ctype.full=ctype.full,
                             overwrite=overwrite)
       x[[nm]] <- cy
+      cat("done\n")
     }
     cat("Aggregating 'cell_types'...\n")
     ctc@cell_types <- unlist(cyApply(x,function(cy)cy@cell_types[[ct_name]]@cell_types))
@@ -715,31 +745,13 @@ setMethod("defineCellTypes", "CycifStack",
 setGeneric("cell_types", function(x,...) standardGeneric("cell_types"))
 
 #' @export
-setMethod("cell_types", "CellTypes",
-          function(x,
-                   leaves.only=TRUE,
-                   strict=FALSE,
-                   uniq_cts){
+setMethod("cell_types", "CellTypes",function(x,strict=FALSE){
   cts <- x@cell_types
   ctype <- x@cell_lineage_def
-  if(leaves.only){
-    leaves <- ctype$Child[!ctype$Child %in% ctype$Parent]
-    leaves <- c(leaves[!grepl("unknown",leaves)],"unknown")
-    cts <- factor(cts,levels=leaves)
-  }
+
   if(strict){
     is.strict <- x@is_strict
     cts[!is.strict] <- NA
-  }
-
-  if(!missing(uniq_cts) && !is.null(uniq_cts)){
-    # stop("uniq_cts not null")
-    do.exist <- uniq_cts %in% levels(cts)
-    if(!all(do.exist)){
-      stop("non-existing cell_types specified in 'uniq_cts':",uniq_cts[!do.exist])
-    }else{
-      cts <- factor(cts,levels=uniq_cts)
-    }
   }
   return(cts)
 })
@@ -748,21 +760,17 @@ setMethod("cell_types", "CellTypes",
 setMethod("cell_types","Cycif",
           function(x,
                    ct_name="default",
-                   leaves.only=TRUE,
                    strict=FALSE,
-                   use_rois=TRUE,
-                   uniq_cts=NULL){
+                   use_rois=TRUE){
   if(!ct_name %in% ct_names(x)){
     stop("ct_name doesn't exist: ",ct_name)
   }
-  cts <- cell_types(x=x@cell_types[[ct_name]],
-                    leaves.only=leaves.only,
-                    strict=strict,
-                    uniq_cts=uniq_cts)
-
+  cts <- cell_types(x=x@cell_types[[ct_name]],strict=strict)
   if(use_rois){
     is.rois <- x@within_rois
-    cts[!is.rois] <- NA
+    levs <- c(levels(cts),"outOfROI")
+    cts <- factor(cts,levels=levs)
+    cts[!is.rois] <- "outOfROI"
   }
 
   smpls <- x@cell_types[[ct_name]]@sample_names
@@ -775,20 +783,16 @@ setMethod("cell_types","Cycif",
 setMethod("cell_types", "CycifStack",
           function(x,
                    ct_name="default",
-                   leaves.only=TRUE,
                    strict=FALSE,
-                   use_rois=TRUE,
-                   uniq_cts=NULL){
+                   use_rois=TRUE){
   if(!ct_name %in% ct_names(x)){
     stop("ct_name doesn't exist: ",ct_name)
   }
   cts <- cyApply(x,function(cy){
     cell_types(x=cy,
                ct_name=ct_name,
-               leaves.only=leaves.only,
                strict=strict,
-               use_rois=use_rois,
-               uniq_cts=uniq_cts)
+               use_rois=use_rois)
   })
   df <- do.call(rbind,cts)
 

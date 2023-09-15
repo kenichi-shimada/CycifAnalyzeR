@@ -7,7 +7,7 @@
 \usage{
 Cycif(
   ft_filename,
-  path = "",
+  path = ".",
   mask_type = c("cellRing", "cell"),
   mcmicro = FALSE,
   use_scimap = FALSE

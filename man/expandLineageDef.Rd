@@ -2,10 +2,10 @@
 % Please edit documentation in R/celltype.R
 \name{expandLineageDef}
 \alias{expandLineageDef}
-\title{internally used only within CellTypeDefault, so don't export}
+\title{internally used only within CellTypeSkeleton, so don't export}
 \usage{
 expandLineageDef(ctype, cstate, ctype.full = TRUE)
 }
 \description{
-internally used only within CellTypeDefault, so don't export
+internally used only within CellTypeSkeleton, so don't export
 }

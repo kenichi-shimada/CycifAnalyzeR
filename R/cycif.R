@@ -293,10 +293,7 @@ Cycif <- function(
 
   raw <- sub.txt[ab.list]
   dna <- sub.txt[dna.list]
-  if(dna.list[1]=="DNA0"){
-    dna.list <- paste0("DNA",seq(dna.list))
-    names(dna) <- dna.list
-  }
+  names(dna) <- paste0("DNA",seq(dna.list))
 
   ## xy_coords
   xy_coords <- txt[c("X_centroid","Y_centroid")]
@@ -321,6 +318,7 @@ Cycif <- function(
       segment_property = segment_property)
 
   ## anndata
+  use_scimap=FALSE ## decided not to use scimap in this package for the moment (9/13/2023)
   if(use_scimap){
     if(!reticulate::py_module_available("scimap")){
       stop("'scimap' in python is not available.\n",
@@ -428,6 +426,37 @@ setMethod("list2Cycif", "list",function(x){
      mask_type = mask_type
   )
 })
+
+#_ -------------------------------------------------------
+
+# fun: set_abs ----
+setGeneric("set_abs<-", function(x,...,value)standardGeneric("set_abs<-"))
+setMethod("set_abs<-", "Cycif", function(x,value){
+  new.abs <- value
+  abs <- abs_list(x)$ab
+
+  if(length(abs)!=length(new.abs)){
+    stop("The number of 'new.abs' should be the same as the number of abs in abs_list(x)")
+  }else if(!all(names(new.abs)==abs)){
+    warning(names(new.abs))
+    warning(paste(abs,collapse="\n"))
+    stop("The names of the 'new.abs' should be the identical to abs_list(x)$ab")
+  }
+
+  x@abs_list$ab <- new.abs
+  names(x@raw) <- new.abs
+
+  if(nrow(x@log_normalized)>0){
+    names(x@log_normalized) <- new.abs
+  }
+
+  if(nrow(x@logTh_normalized)>0){
+    names(x@logTh_normalized) <- new.abs
+  }
+
+  return(x)
+})
+
 
 #_ -------------------------------------------------------
 

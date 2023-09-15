@@ -51,18 +51,20 @@ AbsSummary <- function(x,show.cycles.in.row=FALSE,...){
 #' @export
 setGeneric("slidePlot", function(x,...) standardGeneric("slidePlot"))
 setMethod("slidePlot", "Cycif",
-          function(x,pch=20,cex=2,plot_type=c("dna","exp","cell_type","custom"),
+          function(x,pch=20,cex=2,bg.col,
+                   plot_type=c("dna","exp","cell_type","custom"),
                    custom_labs,ct_name="default",strict=FALSE,ttl,ab,
                    uniq_cts,uniq.cols,draw.roi=TRUE,
                    remove.unknown=TRUE,cell.order,
-                   na.col="grey80",use_rois=TRUE,use.thres=TRUE,ncells=1e4,
-                   contour=FALSE,cont_nlevs=3,
+                   na.col="grey80",use_rois=TRUE,use.thres=TRUE,
+                   contour=FALSE,cont_nlevs=3,border=FALSE,ncells=1e4,
                    trim_th=1e-2,legend=FALSE, legend.pos,mar=c(3,3,3,3),
                    roi.sq,...){
             if(missing(plot_type)){
               stop("need to specify 'plot_type' argument: dna, exp, cell_type, custom")
             }
 
+            # oldpar <- par(no.readonly=TRUE)
             smpl <- names(x)
 
             if(!missing(cell.order)){
@@ -115,17 +117,16 @@ setMethod("slidePlot", "Cycif",
             }else if(plot_type=="exp"){
               cts <- cell_types(x,
                                 ct_name=ct_name,
-                                leaves.only=cts.params$leaves.only,
-                                strict=cts.params$strict,
-                                use_rois=use_rois)
+                                strict=strict,
+                                use_rois=use_rois)$cell_types
               if(missing(uniq_cts)){
                 uniq_cts <- levels(cts)
-                if(any(uniq_cts=="unknown")){
+                if(any(uniq_cts %in% c("unknown","outOfROI"))){
                   if(remove.unknown){
-                    uniq_cts <- uniq_cts[uniq_cts!="unknown"]
+                    uniq_cts <- uniq_cts[!uniq_cts %in% c("unknown","outOfROI")]
                   }else{
-                    ui <- which(uniq_cts=="unknown")
-                    uniq_cts <- c(uniq_cts[-ui],"unknown")
+                    ui <- which(uniq_cts %in% c("unknown","outOfROI"))
+                    uniq_cts <- c(uniq_cts[-ui],uniq_cts[ui])
                   }
                 }
               }
@@ -135,7 +136,7 @@ setMethod("slidePlot", "Cycif",
                 stop(ab, " is not specified or available in the sample ", names(x))
               }
 
-              n <- exprs(x,plot_type="log_normalized")
+              n <- exprs(x,type="log_normalized")
 
               n.ab <- trim_fun(n[[ab]],trim_th=trim_th)
               rn <- range(n.ab,na.rm=T)
@@ -165,11 +166,9 @@ setMethod("slidePlot", "Cycif",
 
               ## cell types
               cts <- cell_types(x,
-                                leaves.only=TRUE,
                                 use_rois=use_rois,
                                 strict=strict,
-                                ct_name=ct_name,
-                                uniq_cts=uniq_cts)$cell_types
+                                ct_name=ct_name)$cell_types
 
               if(missing(uniq_cts)){
                 uniq_cts <- levels(cts)
@@ -182,7 +181,7 @@ setMethod("slidePlot", "Cycif",
 
               ## set colors
               if(missing(uniq.cols)){
-                nct <- nlevels(cts)
+                nct <- nlevels(cts$cell_types)
                 if(nct>10){
                   uniq.cols <- grDevices::colorRampPalette(RColorBrewer::brewer.pal(11,"Spectral")[-6])(nct)
                 }else{
@@ -251,7 +250,6 @@ setMethod("slidePlot", "Cycif",
               is.used <- rep(TRUE,nrow(xy))
             }
 
-            omar <- graphics::par()$mar
             ##
             if(!missing(cell.order)){
               xy <- xy[cell.order,]
@@ -285,7 +283,10 @@ setMethod("slidePlot", "Cycif",
               ylim <- range(xy$Y)
             }
             graphics::par(mar=mar)
-            plot(xy$X,xy$Y,main=ttl,asp=1,xlab="",ylab="",type="n",xlim=xlim,ylim=ylim)#,...)
+            if(!missing(bg.col)){
+              graphics::par(bg=bg.col)
+            }
+            plot(xy$X,xy$Y,main=ttl,asp=1,xlab="",ylab="",type="n",xlim=xlim,ylim=ylim,axes=border)#,...)
 
             cex1 = 4.8 * 8/3 * (graphics::par()$pin[1]/graphics::par()$cin[2])/diff(graphics::par()$usr[1:2])
 
@@ -344,8 +345,7 @@ setMethod("slidePlot", "Cycif",
               par(xpd=F)
 
             }
-
-            graphics::par(mar=omar)
+            # on.exit(graphics::par(oldpar))
           }
 )
 
@@ -499,12 +499,23 @@ setGeneric("vlnPlot", function(x,...) standardGeneric("vlnPlot"))
 
 #' @export
 setMethod("vlnPlot", "CycifStack",
-          function(x,strat.by=c("celltype","smpl"), ab="PDL1", ctype.full=FALSE,
-                   # type=c("raw","log_normalized","logTh_normalized"),
-                   strict=FALSE,
-                   use_rois = TRUE,uniq_cts,uniq.smpls,is.used){
-            if(1){ # missing(type)){
-              type <- "logTh_normalized"
+          function(x,strat.by=c("celltype","smpl"), ab="PDL1",
+                   anno,fill.ab,
+                   type=c("raw","log_normalized","logTh_normalized"),
+                   strict=FALSE,ct_name="default",ttl,
+                   use_rois = TRUE,uniq_cts,uniq.smpls){
+            ## cell types
+            cts <- cell_types(x,
+                              use_rois=use_rois,
+                              strict=strict,
+                              ct_name=ct_name)$cell_types
+            uniq.cts <- levels(cts)
+            uniq.cts <- uniq.cts[!uniq.cts %in% c("unknown","outOfROI")]
+            cts <- factor(cts,levels=uniq.cts)
+
+            if(missing(type)){
+              type <- "log_normalized"
+              warning('type is set to "log_normalized"')
             }
 
             if(missing(ab)){
@@ -512,68 +523,85 @@ setMethod("vlnPlot", "CycifStack",
             }
 
             ## gates
-            ab_thres <- unlist(x@cell_type@gates[ab,])
-            # if(type=="raw"){
-            #   ths <- expm1(ab_thres)
-            # }else if(type=="log_normalized"){
-            #   ths <- ab_thres
-            # }else if(type=="logTh_normalized"){
-            #   ths <- rep(0.5,length(ab_thres))
-            # }
-            ths <- rep(0.5,length(ab_thres))
-
-            ## cell types
-            cts <- cell_types(x,leaves.only=TRUE,use_rois=use_rois,strict=strict,ct_name=ct_name,uniq_cts=uniq_cts)$cell_types
-            is.strict <- unlist(cyApply(x,function(cy)cy@cell_type@is_strict))
-            # table(cts) ## all zeros!!!
-
-            if(strict){
-              used <- within_rois(x) & is.strict
-            }else{
-              used <- within_rois(x)
-            }
-            if(!missing(is.used)){
-              used <- used & is.used
+            if(type=="log_normalized"){
+              gates.df <- cyApply(x,function(cy){
+                tmp <- abs_list(cy)
+                idx1 <- grep("gates",names(tmp))
+                if(length(idx1)>0){
+                  tmp[[idx1]]
+                }else{
+                  stop("no gates found on smpl:",names(cy))
+                }
+              },simplify=T)
+              rownames(gates.df) <- abs_list(x[[1]])$ab
+            }else if(type=="logTh_normalized"){
+              gates.df <- array(0.5,c(nrow(abs_list(x)),nSamples(x)))
+              rownames(gates.df) <- abs_list(x)$ab
+              colnames(gates.df) <- names(x)
+              # stop(dim(gates.df))
+              # stop('here')
             }
 
-            df <- exprs(x,type=type) %>%
+            ab_thres <- gates.df[ab,]
+
+            ## expression
+            df <- exprs(x,type=type)
+            df <- df %>%
               tibble::rownames_to_column(var="smpl") %>%
-              dplyr::mutate(smpl = sub("\\.[0-9]+$","",smpl)) %>%
-              dplyr::mutate(celltype=factor(cts)) %>%
-              dplyr::filter(used) %>%
-              dplyr::left_join(pData(x) %>% dplyr::rename(smpl=id),by="smpl") %>%
-              dplyr::mutate(smpl = factor(smpl))
+              dplyr::mutate(smpl = factor(sub("\\.[0-9]+$","",smpl))) %>%
+              dplyr::mutate(celltype=cts)
 
             if(strat.by=="smpl"){
-              if(missing(uniq_cts) || length(uniq_cts) != 1){
-                stop("one celltype or 'all' should be set in 'uniq_cts'")
-              }else if(uniq_cts == "all"){
-                ttl <- paste0(ab,", all cells")
+              ## if multiple samples should be shown, uniq_cts should be specified
+              if(missing(uniq_cts)){
+              #
+              # } || length(uniq_cts) != 1){
+              #   stop("one celltype or 'all' should be set in 'uniq_cts'")
+              # }else if(uniq_cts == "all"){
                 uniq_cts <- levels(df$celltype)
+                if(missing(ttl)){
+                  ttl <- paste0(ab,", all cells")
+                }
               }else{
                 if(length(uniq_cts)>1){
                   uc <- paste0(length(uniq_cts)," samples")
                 }else if(length(uniq_cts)>1){
                   uc <- uniq_cts
                 }
-
-                ttl <- paste0(ab,", ",uc)
+                if(missing(ttl)){
+                  ttl <- paste0(ab,", ",uc)
+                }
               }
+              ## uniq.smlps can be subsetted, or unspecified
               if(missing(uniq.smpls)){
-                uniq.smpls <- levels(df$smpl)
+                uniq.smpls <- names(x)
               }
-              df1 <- df %>%
+
+              ## can add additional information
+              if(!missing(anno)){
+                if(missing(fill.ab)){
+                  stop("when 'anno' is specified, 'fill.ab' can't be missed")
+                }
+                df1 <- df %>% dplyr::left_join(anno,by="smpl")
+              }else{
+                df1 <- df
+              }
+
+              df1 <- df1 %>%
                 dplyr::filter(smpl %in% uniq.smpls) %>%
+                dplyr::mutate(smpl = factor(smpl,levels=uniq.smpls)) %>%
                 dplyr::filter(celltype %in% uniq_cts) %>%
-                dplyr::filter(TimePoint %in% c("BS","BX2","BX3")) %>%
-                dplyr::mutate(TimePoint = factor(TimePoint)) %>%
+                # dplyr::filter(TimePoint %in% c("BS","BX2","BX3")) %>%
+                # dplyr::mutate(TimePoint = factor(TimePoint)) %>%
                 dplyr::mutate(thres=ab_thres[as.character(smpl)])
-              p <- ggplot(df1,aes_string(x="Patient.ID",y=ab,fill="TimePoint")) +
-                geom_violin(position = position_dodge(width = 0.9)) +
+
+              p <- ggplot(df1,aes_string(x="smpl",y=ab)) +
+                # geom_violin(position = position_dodge(width = 0.9),aes_string(fill=fill.ab)) +
+                geom_violin(position = position_dodge(width = 0.9),aes_string(fill=fill.ab)) +
                 ylab(paste0(ab," (",sub("_"," ",type),")")) +
                 ggtitle(ttl) +
-                geom_point(data=unique(df1 %>% select(Patient.ID,thres,TimePoint)),
-                           aes(x=Patient.ID,y=thres,color=as.factor(TimePoint)),
+                geom_point(data=unique(df1 %>% select(smpl,thres)),
+                           aes(x=smpl,y=thres),
                            position = position_dodge(width = 0.9),
                            shape = 95, size=10, show.legend=F) +
                 scale_color_manual(values=rep("black",3),drop=F) +
@@ -589,9 +617,7 @@ setMethod("vlnPlot", "CycifStack",
                 uniq.smpls <- levels(df$smpl)
               }
               if(missing(uniq_cts)){
-                uniq_cts <- levels(df$celltype)
-                uniq_cts <- c(uniq_cts[uniq_cts != "Immune_other"],"Immune_other")
-                uniq_cts <- c(uniq_cts[uniq_cts != "unknown"],"unknown")
+                uniq_cts <- uniq.cts
               }
               df1 <- df %>%
                 dplyr::mutate(celltype=factor(celltype,levels=uniq_cts)) %>%
@@ -604,10 +630,13 @@ setMethod("vlnPlot", "CycifStack",
                 us <- paste0(length(uniq.smpls), " samples")
               }
               ttl <- paste0(ab,", ",us)
+              if(type=="logTh_normalized" || length(uniq.smpls)==1){
+                th <- unique(gates.df[ab,uniq.smpls])
+              }
               p <- ggplot(df1,aes_string("celltype",ab)) +
                 geom_violin(aes(fill = celltype)) +
                 ggtitle(ttl) +
-                geom_hline(yintercept = 0.5,col="black") + #ab_thres[[uniq.smpls]],col="black") +
+                geom_hline(yintercept = th,col="black") + #ab_thres[[uniq.smpls]],col="black") +
                 theme_bw() +
                 theme(legend.position = "none") +
                 theme(axis.text.x = element_text(angle = 90, vjust = 0.5, hjust=1))
@@ -1091,8 +1120,8 @@ setGeneric("heatmapSummAb", function(x,...) standardGeneric("heatmapSummAb"))
 setMethod("heatmapSummAb", "CycifStack",
           function(x,norm_type=c("log_normalized","logTh_normalized"), ab,
                    sum_type=c("freq","mean","median","x percentile"),
-                   ctype.full=FALSE,rois = TRUE,
-                   uniq_cts,uniq.smpls,strict=FALSE,scale="row",...){
+                   use_rois = TRUE,ct_name="default",
+                   uniq_cts,uniq.smpls,strict=FALSE,scale="none",...){
             options(dplyr.summarise.inform = FALSE)
 
             if(missing(sum_type)){
@@ -1133,34 +1162,36 @@ setMethod("heatmapSummAb", "CycifStack",
             }
 
             ## cell types
-            cts <- cell_types(x,ct_name=ct_name,leaves.only=TRUE,use_rois=use_rois,strict=strict,uniq_cts=uniq_cts)$cell_types
+            cts <- cell_types(x,ct_name=ct_name,use_rois=use_rois,strict=strict)$cell_types
+            table( cell_types(x,ct_name=ct_name,use_rois=use_rois,strict=strict)[2:1])
 
             df <- exprs(x,type=norm_type) %>%
               tibble::rownames_to_column(var="smpl") %>%
               mutate(smpl = sub("\\.[0-9]+$","",smpl)) %>%
-              mutate(celltype=factor(cts))
+              mutate(celltype=cts)
 
             if(missing(uniq.smpls)){
               uniq.smpls <- unique(df$smpl)
             }
             if(missing(uniq_cts)){
               uniq_cts <- levels(df$celltype)
-              uniq_cts <- uniq_cts[!uniq_cts %in% c("Immune_other","unknown")]
+              uniq_cts <- uniq_cts[!uniq_cts %in% c("all","T","Mac","Immune","unknown","outOfROI")]
             }
 
-            pd <- pData(x) %>% rename(smpl=id)
+            # pd <- pData(x) %>% rename(smpl=id)
             df <- df %>%
-              filter(within_rois(x)) %>%
-              filter(!is.na(celltype)) %>%
+              # filter(within_rois(x)) %>%
               filter(smpl %in% uniq.smpls) %>%
+              mutate(smpl = factor(smpl,levels=uniq.smpls)) %>%
               filter(celltype %in% uniq_cts) %>%
               mutate(celltype=factor(celltype,levels=uniq_cts)) %>%
+              filter(!is.na(celltype)) %>%
               rename(this_ab=as.symbol(ab)) %>%
-              mutate(thres1 = thres[smpl]) %>%
+              # mutate(thres1 = thres[smpl]) %>%
               group_by(smpl,celltype) %>%
-              summarise(sum_ab=sum_fun(this_ab,thres1)) %>%
-              left_join(pd,by="smpl") %>%
-              mutate(smpl = factor(smpl))
+              summarise(sum_ab=sum_fun(this_ab,thres1))# %>%
+              # left_join(pd,by="smpl") %>%
+              # mutate(smpl = factor(smpl))
 
             ttl <- paste0(ab,",",sum_type,",",sub("_.+","",norm_type),",(scale:",scale,")")
             m1 <- as.matrix(with(df, sparseMatrix(as.integer(smpl), as.integer(celltype), x=sum_ab)))
@@ -1171,6 +1202,7 @@ setMethod("heatmapSummAb", "CycifStack",
             rownames(m1) <- levels(df$smpl)
             colnames(m1) <- levels(df$celltype)
             m1 <- m1[rev(seq(nrow(m1))),]
+            # m1 <- m1[rowSums(is.na(m1))!=ncol(m1),colSums(is.na(m1))!=nrow(m1)]
 
             if(sum_type!="freq" && norm_type=="logTh_normalized"){
               m1 <- m1 - 0.5 ## hardcode!!!!

@@ -4,7 +4,7 @@
 \alias{cumUsedCells}
 \title{Show available cells at each cycle}
 \usage{
-cumUsedCells(x,within.rois=TRUE)
+cumUsedCells(x,use_rois=TRUE)
 }
 \arguments{
 \item{x}{A Cycif object}

@@ -64,9 +64,9 @@ setMethod("importROIs", "Cycif",
                 # }
               }else if(roi.type=="Rectangle"){
                 df <- tmp[c("X","Y","Width","Height")]
+                x <- df$X + df$Width * c(0,1,1,0,0)
+                y <- df$Y + df$Height * c(0,0,1,1,0)
                 df$Y <- max.y - df$Y
-                x <- df$X + df$Width/2 * c(-1,1,1,-1,-1)
-                y <- df$Y + df$Height/2 * c(-1,-1,1,1,-1)
                 df <- as.data.frame(cbind(x=x,y=y))
                 roi.type <- "Polygon"
               }
