@@ -10,9 +10,9 @@ RunUMAP(x, ...)
 
 \S4method{RunUMAP}{Cycif}(
   x,
-  norm_type = c("raw", "log_normalized", "logTh_normalized"),
+  norm_type = c("raw", "log", "logTh"),
   ld_name,
-  ct_name,
+  ct_name = "default",
   ncells.per.smpl = NULL,
   used.abs,
   used.cts,
@@ -24,9 +24,9 @@ RunUMAP(x, ...)
 
 \S4method{RunUMAP}{CycifStack}(
   x,
-  norm_type = c("raw", "log_normalized", "logTh_normalized"),
+  norm_type = c("raw", "log", "logTh"),
   ld_name,
-  ct_name,
+  ct_name = "default",
   smpls,
   used.abs,
   used.cts,

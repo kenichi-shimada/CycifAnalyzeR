@@ -68,7 +68,7 @@ setClass("LDCoords",
 
      # [ld_coords, clusters]
      ld_coords = "data.frame",
-     clusters = "factor",
+     clusters = "factor", # cluster should be contained within ld_coords
 
      # [is_used, cts_params,ld_params]
      is_used = "logical",

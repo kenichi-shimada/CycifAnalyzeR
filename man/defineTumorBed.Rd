@@ -12,9 +12,10 @@ defineTumorBed(x, ...)
   strict = FALSE,
   dth,
   parallel = TRUE,
-  min.pts = 2,
+  min.pts = 3,
   n.cores = 1,
-  ct_name
+  ct_name = "default",
+  verbose = TRUE
 )
 }
 \arguments{

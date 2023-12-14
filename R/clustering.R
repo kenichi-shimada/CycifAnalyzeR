@@ -139,8 +139,9 @@ setMethod("LdClustering", "CycifStack",
             used.cts <- ld@used.cts
             this.abs <- ld@used.abs
             is.used <- ld@is_used
+            norm_type <- ld@norm_type
 
-            e <- exprs(x,type="logTh_normalized")
+            e <- exprs(x,type=norm_type)
             e1 <- data.matrix(e[is.used,this.abs])
             cls <- LdClustering(e1,
                                 k.param = k.param,

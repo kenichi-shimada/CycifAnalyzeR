@@ -451,10 +451,33 @@ setMethod("cyApply", "CycifStack", function(x,fun,simplify=FALSE,as.CycifStack=T
     out <- sapply(x@samples,fun,...)
   }else{
     out <- lapply(x@samples,fun,...)
-    if(all(sapply(out,is,"Cycif")) && as.CycifStack){
-      out <- list2CycifStack(out)
+  }
+  if(all(sapply(out,is,"Cycif")) && as.CycifStack){
+    out <- list2CycifStack(out)
+
+    if(length(x@cell_types)>0){
+      out@cell_types <- x@cell_types
+    }
+    if(length(x@ld_coords)>0){
+      out@ld_coords <- x@ld_coords
+    }
+    if(length(x@adata)>0){
+      out@adata <- x@adata
+    }
+    if(length(x@interaction)>0){
+      out@interaction <- x@interaction
+    }
+    if(length(x@neighborhoods)>0){
+      out@neighborhoods <- x@neighborhoods
+    }
+    if(nrow(x@phenoData)>0){
+      pData(out) <- x@phenoData
+    }
+    if(length(x@calls)>0){
+      out@calls <- x@calls
     }
   }
+
   return(out)
 })
 

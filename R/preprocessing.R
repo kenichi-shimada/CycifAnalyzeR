@@ -43,7 +43,7 @@ setMethod("importROIs", "Cycif",
               }
               roi.type <- tmp$type
               if(roi.type=="Polygon"){
-                coords <- do.call(rbind,strsplit(unlist(strsplit(tmp$all_points," ")),","))
+                coords <- data.frame(do.call(rbind,strsplit(unlist(strsplit(tmp$all_points," ")),",")))
                 df <- as.data.frame(apply(coords,2,as.numeric))
                 names(df) <- c("x","y")
                 df$y <- max.y - df$y
@@ -243,14 +243,24 @@ setMethod("roiFilter", "Cycif",
 #' @export
 setGeneric("dnaFilter", function(x,...) standardGeneric("dnaFilter"))
 setMethod("dnaFilter", "Cycif",
-          function(x,show.only=FALSE){
+          function(x,ncells=1e5,dna.thres,show.only=FALSE){
+            set.seed(1)
             mat <- x@dna
+
+            nr <- nrow(mat)
+            ncells <- min(ncells,nr)
+            idx <- sample(nrow(mat),ncells)
+            mat1 <- mat[idx,]
+            x1 <- x
+            x1@dna <- mat1
+            x1@xy_coords <- x1@xy_coords[idx,]
+
             smpl <- x@name
             n <- n1 <- 1000
 
-            dna.list <- names(mat)
-            mat <- cbind(log1p(mat[[1]]),as.data.frame(lapply(mat,function(x)log1p(x/mat[[1]])))[-1])
-            names(mat) <- dna.list
+            dna.list <- names(mat1)
+            mat1 <- cbind(log1p(mat1[[1]]),as.data.frame(lapply(mat1,function(x)log1p(x/mat1[[1]])))[-1])
+            names(mat1) <- dna.list
 
             dna.thres <- x@dna_thres
 
@@ -259,104 +269,104 @@ setMethod("dnaFilter", "Cycif",
               dna.ths2 <- x@dna_thres$high
               names(dna.ths1) <- names(dna.ths2) <- dna.list
             }else{
-              dna.ths1 <- sapply(mat,min)
-              dna.ths2 <- sapply(mat,max)
+              dna.ths1 <- sapply(mat1,min)
+              dna.ths2 <- sapply(mat1,max)
               names(dna.ths1) <- names(dna.ths2) <- dna.list
             }
 
-            for(i in seq(length(dna.list))){
-              channel <- dna.list[i]
-              m <- mat[[channel]]
+            if(missing(dna.thres)){
+              for(i in seq(length(dna.list))){
+                channel <- dna.list[i]
+                m <- mat1[[channel]]
 
-              xmax <- max(m)
+                xmax <- max(m)
 
-              if(i==1){
-                ttl <- channel
-                brks <- seq(min(m),max(m),length=(n+1))
-              }else{
-                ttl <- paste0(channel," / ",dna.list[1])
-                brks <- seq(0,xmax,length=(n+1))
-              }
-
-              l <- layout(matrix(c(2,1),nrow=2),heights=c(2,3))
-              slidePlot(x,plot_type="dna",ab=channel,mar=c(3,3,0,3),ttl="",use_rois=FALSE)
-              hst <- hist_fun(x=m,ths=c(dna.ths1[i],dna.ths2[i]),brks1=brks,ttl1=ttl)
-
-              smoothened <- hst$smoothened
-              a <- hst$a
-
-              ##
-              if(!show.only){
                 if(i==1){
-                  cat(paste0("Filtering ",smpl,", cycle ",i,"...\n"))
+                  ttl <- channel
+                  brks <- seq(min(m),max(m),length=(n+1))
+                }else{
+                  ttl <- paste0(channel," / ",dna.list[1])
+                  brks <- seq(0,xmax,length=(n+1))
                 }
-                # cat("Do you want to see the auto_filters?")
-                # ans <- readline(prompt="Y/N [N]:")
-                auto_filter <- FALSE
 
-                if(auto_filter){
-                  ## auto_filter thresholding
-                  th.up <- quantile(m,.9)
+                l <- layout(matrix(c(2,1),nrow=2),heights=c(2,3))
+                slidePlot(x1,plot_type="dna",ab=channel,mar=c(3,3,0,3),ttl="",use_rois=FALSE)
+                hst <- hist_fun(x=m,ths=c(dna.ths1[i],dna.ths2[i]),brks1=brks,ttl1=ttl)
 
-                  ind.v <- which(diff(sign(diff(smoothened)))>0  & a$mids[c(-1,-n1)] < th.up) # idx of valleys
-                  ind.p <- which(diff(sign(diff(smoothened)))<0  & a$mids[c(-1,-n1)] < th.up) # idx of peaks
-                  idx <- sort(c(ind.v,ind.p))
+                smoothened <- hst$smoothened
+                a <- hst$a
 
-                  ## if idx is left to idx.lo, remove them (loess gets bumpy at the edge)
-                  idx.diff.th <- 13
-
-                  while(any(diff(idx)<= idx.diff.th)){
-                    k <- which.min(diff(idx))
-                    idx <- idx[-c(k,k+1)]
-                    ind.v <- ind.v[ind.v %in% idx]
-                    ind.p <- ind.p[ind.p %in% idx]
+                ##
+                if(!show.only){
+                  if(i==1){
+                    cat(paste0("Filtering ",smpl,", cycle ",i,"...\n"))
                   }
+                  # cat("Do you want to see the auto_filters?")
+                  # ans <- readline(prompt="Y/N [N]:")
+                  auto_filter <- FALSE
 
-                  ## identify removed cells
-                  if(length(ind.v)>0){
-                    ind.v <- ind.v
-                    tmp <- a$mids[max(ind.v)]
-                    if(tmp < 0.25){
-                      x.drop.th <- tmp
+                  if(auto_filter){
+                    ## auto_filter thresholding
+                    th.up <- quantile(m,.9)
+
+                    ind.v <- which(diff(sign(diff(smoothened)))>0  & a$mids[c(-1,-n1)] < th.up) # idx of valleys
+                    ind.p <- which(diff(sign(diff(smoothened)))<0  & a$mids[c(-1,-n1)] < th.up) # idx of peaks
+                    idx <- sort(c(ind.v,ind.p))
+
+                    ## if idx is left to idx.lo, remove them (loess gets bumpy at the edge)
+                    idx.diff.th <- 13
+
+                    while(any(diff(idx)<= idx.diff.th)){
+                      k <- which.min(diff(idx))
+                      idx <- idx[-c(k,k+1)]
+                      ind.v <- ind.v[ind.v %in% idx]
+                      ind.p <- ind.p[ind.p %in% idx]
+                    }
+
+                    ## identify removed cells
+                    if(length(ind.v)>0){
+                      ind.v <- ind.v
+                      tmp <- a$mids[max(ind.v)]
+                      if(tmp < 0.25){
+                        x.drop.th <- tmp
+                      }else{
+                        x.drop.th <- 0
+                      }
                     }else{
                       x.drop.th <- 0
                     }
-                  }else{
-                    x.drop.th <- 0
-                  }
 
-                  dna.ths1[i] <- max(min(m),x.drop.th)
+                    dna.ths1[i] <- max(min(m),x.drop.th)
 
-                  ## identify bunching cells
-                  idx.hi <- 40
+                    ## identify bunching cells
+                    idx.hi <- 40
 
-                  if(length(ind.p)>0){
-                    if(max(ind.p) > idx.hi){
-                      p.max <- max(ind.p)
-                      x.max <- a$mids[p.max]
-                      y.max <- a$density[p.max]
-                      dist.half.max <- which.min(abs(a$density - y.max/2)[-seq(p.max)])
-                      x.half.max <- dist.half.max
-                      ind.bu <- p.max + x.half.max*3
-                      if(ind.bu < n){
-                        x.bunch.th <- a$mids[ind.bu]
+                    if(length(ind.p)>0){
+                      if(max(ind.p) > idx.hi){
+                        p.max <- max(ind.p)
+                        x.max <- a$mids[p.max]
+                        y.max <- a$density[p.max]
+                        dist.half.max <- which.min(abs(a$density - y.max/2)[-seq(p.max)])
+                        x.half.max <- dist.half.max
+                        ind.bu <- p.max + x.half.max*3
+                        if(ind.bu < n){
+                          x.bunch.th <- a$mids[ind.bu]
+                        }else{
+                          x.bunch.th <- Inf
+                        }
+                        abline(v=x.max,col=1)
+                        abline(v=x.half.max,col=1)
+                        abline(v=x.bunch.th,col=2)
                       }else{
                         x.bunch.th <- Inf
                       }
-                      abline(v=x.max,col=1)
-                      abline(v=x.half.max,col=1)
-                      abline(v=x.bunch.th,col=2)
-                    }else{
-                      x.bunch.th <- Inf
                     }
+
+                    dna.ths2[i] <- min(max(m),x.bunch.th)
+
                   }
 
-                  dna.ths2[i] <- min(max(m),x.bunch.th)
-
-                }
-
-                # if(manual){
-                if(TRUE){
+                  ## manually adjust the thresholds
                   cat("How do you want to modify the 'dna.ths'?\n")
                   ans <- "init"
                   lo <- dna.ths1[i]
@@ -386,7 +396,7 @@ setMethod("dnaFilter", "Cycif",
                       # stop(paste(table(cexs),collapse=","))
 
                       ## update
-                      slidePlot(x,
+                      slidePlot(x1,#ncells=ncells,
                                 plot_type="custom",
                                 custom_labs=in.rng,
                                 uniq.cols=c("grey80",4,2),
@@ -397,7 +407,7 @@ setMethod("dnaFilter", "Cycif",
                       # stop("after slideplot")
                       hist_fun(x=m,ths=c(lo,hi),brks1=brks,ttl1=ttl)
                     }else if(ans=="4"){
-                      slidePlot(x,plot_type="dna",ab=channel,mar=c(3,3,0,3),ttl="")
+                      slidePlot(x1,plot_type="dna",ab=channel,mar=c(3,3,0,3),ttl="")
                       hist_fun(x=m,ths=c(lo,hi),brks1=brks,ttl1=ttl)
                     }
                   }
@@ -405,10 +415,17 @@ setMethod("dnaFilter", "Cycif",
                   dna.ths2[i] <- hi
                 }
               }
+            }else{
+              dna.ths1 <- dna.thres$low
+              dna.ths2 <- dna.thres$high
+              names(dna.ths1) <- names(dna.ths2) <- names(mat)
             }
 
-            used.cells <- sapply(names(mat),function(channel){
-              ind <- (mat[[channel]] > dna.ths1[channel]) + (mat[[channel]] > dna.ths2[channel])
+            ##
+            mat2 <- cbind(log1p(mat[[1]]),as.data.frame(lapply(mat,function(x)log1p(x/mat[[1]])))[-1])
+            names(mat2) <- names(mat)
+            used.cells <- sapply(names(mat2),function(channel){
+              ind <- (mat2[[channel]] > dna.ths1[channel]) + (mat2[[channel]] > dna.ths2[channel])
               return(ind)
             })
 
@@ -431,34 +448,17 @@ setMethod("dnaFilter", "Cycif",
 
             uniq.cols <- colorRampPalette(brewer.pal(9,"YlGnBu"))(nc+2)[-(nc+(0:1))]
 
-            cat("Cell retention through all cycles are plotted.\n")
-            l <- layout(matrix(c(1,2),nrow=2),heights=c(2,3))
-            plotUsedCellRatio(x)
-            slidePlot(x,plot_type="custom",
-                      custom_labs=ret,
-                      uniq.cols=uniq.cols,
-                      cex=2,
-                      ncells=1e4,
-                      mar=c(3,3,0,3),ttl="")
-
-            # ## choose ROI
-            # cat("Do you want to select ROIs?\n")
-            # ans <- readline(prompt="Y/N [Y]")
-            # pos.rois <- list()
-            # if(!grepl("^[nN]",ans)){
-            #   cat("Positive ROIs, negative ROIs, or Cancel?")
-            #   ans <- readline(prompt="P/N/C []")
-            #   while(!grepl("[Cc]",ans)){
-            #     if(grepl("^[Pp]",ans)){
-            #       x <- roiFilter(x,roi_type="positive")
-            #     }else if(grepl("^[nN]",ans)){
-            #       x <- roiFilter(x,roi_type="negative")
-            #     }
-            #     cat("More positive ROIs, negative ROIs, or Cancel?")
-            #     ans <- readline(prompt="P/N/C []")
-            #   }
-            #   x <- isPassedROIs(x)
-            # }
+            if(0){
+              cat("Cell retention through all cycles are plotted.\n")
+              l <- layout(matrix(c(1,2),nrow=2),heights=c(2,3))
+              plotUsedCellRatio(x)
+              slidePlot(x,plot_type="custom",
+                        custom_labs=ret,
+                        uniq.cols=uniq.cols,
+                        cex=2,
+                        ncells=1e4,
+                        mar=c(3,3,0,3),ttl="")
+            }
             return(x)
           }
 )
@@ -509,26 +509,27 @@ hist_fun <- function(x,n=1000,ths,mar=c(3,4,4,2)+.1,brks1,ttl1){
 setGeneric("exprs", function(x,...) standardGeneric("exprs"))
 
 #' @export
-setMethod("exprs", "Cycif", function(x,type=c("raw","log_normalized","logTh_normalized")){
+setMethod("exprs", "Cycif", function(x,type=c("raw","log","logTh")){
   if(missing(type)){
-    # cat("Error: specify type: \"raw\" or \"normalized\"\n")
     stop("'type'argument should be specified\n")
   }
 
-  if(type=="log_normalized" && !("log_normalized" %in% slotNames(x))){
-    stop("Error: slot @log_normalized not found.\n")
+  if(type=="log" && nrow(x@log_normalized)==0){ #    !("log_normalized" %in% slotNames(x)))
+    stop("Error: log_transformed data not found. normalize() first.\n")
   }
 
-  if(type=="logTh_normalized" && !("logTh_normalized" %in% slotNames(x))){
-    stop("Error: slot @logTh_normalized not found.\n")
+  if(type=="logTh" && nrow(x@logTh_normalized)==0){#!("logTh_normalized" %in% slotNames(x))){
+    stop("Error: logTh transformed data not found.\n")
   }
 
   if(type == "raw"){
     return(x@raw)
-  }else if(type == "log_normalized"){
+  }else if(type == "log"){
     return(x@log_normalized)
-  }else if(type == "logTh_normalized"){
+  }else if(type == "logTh"){
     return(x@logTh_normalized)
+  }else{
+    stop("'type' argument should be one of the three: raw, log, logTh")
   }
 })
 
@@ -539,7 +540,7 @@ setMethod("exprs", "CycifStack",function(x,type=c("raw","log_normalized","logTh_
   }
 
   all.abs <- abs_list(x)$ab
-  exps <- do.call(rbind,cyApply(x,function(cy){
+  list.exps <- cyApply(x,function(cy){
     tmp <- exprs(cy,type=type)
     if(any(!all.abs %in% names(tmp))){
       unused <- all.abs[!all.abs %in% names(tmp)]
@@ -548,7 +549,8 @@ setMethod("exprs", "CycifStack",function(x,type=c("raw","log_normalized","logTh_
       tmp <- cbind(tmp,tmp1)[all.abs]
     }
     return(tmp)
-  }))
+  })
+  exps <- data.frame(data.table::rbindlist(list.exps))
   return(exps)
 })
 

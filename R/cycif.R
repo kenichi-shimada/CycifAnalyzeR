@@ -31,7 +31,7 @@ setMethod("dna_thres", "Cycif", function(x) x@dna_thres)
 
 #' @export
 setGeneric("used_cells", function(x) standardGeneric("used_cells"))
-setMethod("used_cells", "Cycif", function(x) x@used_cells)
+setMethod("used_cells", "Cycif", function(x) rowSums(x@used_cells==1)==ncol(x@used_cells))
 
 #' @export
 setGeneric("within_rois", function(x) standardGeneric("within_rois"))

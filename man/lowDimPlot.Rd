@@ -11,44 +11,44 @@ lowDimPlot(x, ...)
 \S4method{lowDimPlot}{Cycif}(
   x,
   ld_name,
-  plot_type = c("celltype", "cluster", "exp"),
+  plot_type = c("celltype", "cluster", "exp", "smpl"),
   ab,
-  ct_name = ct_name,
-  na.col = "grey80",
   uniq.cols,
   with.labels = TRUE,
-  leg = TRUE,
-  pch = ".",
+  ct_name = "default",
+  used.smpls,
+  xlab = "",
+  ylab = "",
+  used.cts,
+  cex.main = 2,
   main,
   p_thres = 0.5,
   mar,
   cex.labs = 1,
-  cex.leg = 1,
-  cex.main = 2,
+  cex.leg = 0.5,
+  cex = 0.3,
   ...
 )
 
 \S4method{lowDimPlot}{CycifStack}(
   x,
   ld_name,
-  plot_type = c("celltype", "cluster", "exp"),
+  plot_type = c("celltype", "cluster", "exp", "smpl"),
   ab,
-  na.col = "grey80",
   uniq.cols,
   with.labels = TRUE,
-  leg = TRUE,
-  ct_name = ct_name,
-  use_rois = TRUE,
-  cts.names,
-  pal.name,
+  ct_name = "default",
+  used.smpls,
+  xlab = "",
+  ylab = "",
+  used.cts,
   cex.main = 2,
-  pch = ".",
   main,
   p_thres = 0.5,
   mar,
   cex.labs = 1,
   cex.leg = 0.5,
-  cex = cex,
+  cex = 0.3,
   ...
 )
 }
@@ -62,8 +62,6 @@ type is 'exp'.}
 
 \item{uniq.cols}{color sets used for the plot()}
 
-\item{pch}{pch passed to plot()}
-
 \item{main}{main passed to plot()}
 
 \item{type}{character, indicating how cells are colored. 'cell_type' is cell types
@@ -73,6 +71,8 @@ parameters needs to be provided.}
 
 \item{celltype}{a factor with the length of cell number, indicating cell types computed
 elsewhere. This needs to be provided when type is 'cell_type'.}
+
+\item{pch}{pch passed to plot()}
 }
 \description{
 Plot 2D-coordinates computed by UMAP or T-SNE

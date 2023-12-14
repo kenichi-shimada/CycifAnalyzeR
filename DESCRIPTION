@@ -22,6 +22,7 @@ Imports:
     stats,
     tibble,
     dplyr,
+    data.table,
     ggplot2,
     utils,
     igraph,

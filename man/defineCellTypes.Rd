@@ -11,7 +11,7 @@ defineCellTypes(x, ...)
 
 defineCellTypes(x,ctype,cstate,gates,p_thres=0.5,...)
 
-defineCellTypes(x,ctype,cstate,gates,p_thres=0.5,...)
+defineCellTypes(x,ctype,cstate,p_thres=0.5,...)
 
 \S4method{defineCellTypes}{CycifStack}(
   x,
@@ -19,6 +19,7 @@ defineCellTypes(x,ctype,cstate,gates,p_thres=0.5,...)
   cstate,
   ct_name = "default",
   p_thres = 0.5,
+  mc.cores = 4,
   overwrite = FALSE,
   ...
 )
@@ -32,9 +33,9 @@ defineCellTypes(x,ctype,cstate,gates,p_thres=0.5,...)
 
 \item{cstate}{a data.frame containing cell state definition}
 
-\item{gates}{a data.frame containing gates (n.samples x n.proteins)}
-
 \item{p_thres}{numerical between 0 and 1. A probability that corresponds to a threshold intensity}
+
+\item{gates}{a data.frame containing gates (n.samples x n.proteins)}
 
 \item{ct_anme}{name of the cell types}
 }
