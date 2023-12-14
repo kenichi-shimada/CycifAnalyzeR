@@ -11,7 +11,7 @@ lowDimPlot(x, ...)
 \S4method{lowDimPlot}{Cycif}(
   x,
   ld_name,
-  plot_type = c("celltype", "cluster", "exp", "smpl"),
+  plot_type = c("cell_type", "cluster", "exp", "smpl"),
   ab,
   uniq.cols,
   with.labels = TRUE,
@@ -33,7 +33,7 @@ lowDimPlot(x, ...)
 \S4method{lowDimPlot}{CycifStack}(
   x,
   ld_name,
-  plot_type = c("celltype", "cluster", "exp", "smpl"),
+  plot_type = c("cell_type", "cluster", "exp", "smpl"),
   ab,
   uniq.cols,
   with.labels = TRUE,
@@ -69,7 +69,7 @@ computed prior to the plotting, 'smpl' show the samples the cells derived from,
 and 'exp' is expression of one antibody. When 'cell_type' and 'exp', additional
 parameters needs to be provided.}
 
-\item{celltype}{a factor with the length of cell number, indicating cell types computed
+\item{cell_type}{a factor with the length of cell number, indicating cell types computed
 elsewhere. This needs to be provided when type is 'cell_type'.}
 
 \item{pch}{pch passed to plot()}

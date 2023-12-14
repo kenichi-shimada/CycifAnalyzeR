@@ -2,21 +2,11 @@
 % Please edit documentation in R/spatial_analysis.R
 \name{defineTumorBed}
 \alias{defineTumorBed}
-\alias{defineTumorBed,Cycif-method}
 \title{Identify Tumor bed based on dbscan clusters}
 \usage{
 defineTumorBed(x, ...)
 
-\S4method{defineTumorBed}{Cycif}(
-  x,
-  strict = FALSE,
-  dth,
-  parallel = TRUE,
-  min.pts = 3,
-  n.cores = 1,
-  ct_name = "default",
-  verbose = TRUE
-)
+defineTumorBed(x, ...)
 }
 \arguments{
 \item{x}{A Cycif obj}
@@ -25,9 +15,9 @@ defineTumorBed(x, ...)
 
 \item{dth}{radius for dbscan (eps)}
 
-\item{parallel}{logical. The default is TRUE.}
-
 \item{min.pts}{minimum points for dbscan}
+
+\item{parallel}{logical. The default is TRUE.}
 
 \item{n.cores}{number of cores.}
 }
