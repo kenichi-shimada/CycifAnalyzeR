@@ -34,7 +34,7 @@ Imports:
 Collate: 
     'objects.R'
     'cycif.R'
-    'cycifstack.R'
+    'cycifStack.R'
     'celltype.R'
     'phenotypes.R'
     'visualization.R'

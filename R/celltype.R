@@ -5,11 +5,9 @@
 #' @export
 setGeneric("ct_names", function(x)standardGeneric("ct_names"))
 
-#' @rdname ct_names
 #' @export
 setMethod("ct_names", "Cycif", function(x)names(x@cell_types))
 
-#' @rdname ct_names
 #' @export
 setMethod("ct_names", "CycifStack", function(x)names(x@cell_types))
 
@@ -18,11 +16,9 @@ setMethod("ct_names", "CycifStack", function(x)names(x@cell_types))
 
 # fun: getGates Cycif, CycifStack ----
 
-#' @rdname gates
 #' @export
 setGeneric("getGates", function(x)standardGeneric("getGates"))
 
-#' @rdname gates
 #' @export
 setMethod("getGates", "Cycif", function(x){
   gate.names <- paste0("gates_",names(x))
@@ -34,7 +30,6 @@ setMethod("getGates", "Cycif", function(x){
   return(out)
 })
 
-#' @rdname gates
 #' @export
 setMethod("getGates", "CycifStack", function(x){
   gate.names <- paste0("gates_",names(x))
@@ -48,11 +43,9 @@ setMethod("getGates", "CycifStack", function(x){
 
 # fun: setGates Cycif, CycifStack ----
 
-#' @rdname gates
 #' @export
 setGeneric("setGates", function(x,...)standardGeneric("setGates"))
 
-#' @rdname gates
 #' @export
 setMethod("setGates", "Cycif", function(x,gates.df,run_normalize=TRUE,p_thres=0.5,trim=1e-3){
   if(!is(gates.df,"data.frame")){
@@ -85,7 +78,6 @@ setMethod("setGates", "Cycif", function(x,gates.df,run_normalize=TRUE,p_thres=0.
   return(x)
 })
 
-#' @rdname gates
 #' @export
 setMethod("setGates", "CycifStack", function(x,gates.df,run_normalize=TRUE,p_thres=0.5,trim=1e-3){
   if(!is(gates.df,"data.frame")){
@@ -270,7 +262,6 @@ setMethod("show", "CellTypes", function(object){
 #' @export
 setGeneric("CellTypeSkeleton", function(x,...)standardGeneric("CellTypeSkeleton"))
 
-#' @rdname CellTypeSkeleton
 #' @export
 setMethod("CellTypeSkeleton", "character",function(x,ctype,cstate,ctype.full=FALSE){
   if(missing(ctype) || missing(cstate)){
@@ -332,7 +323,6 @@ setMethod("CellTypeSkeleton", "character",function(x,ctype,cstate,ctype.full=FAL
   )
 })
 
-#' @rdname CellTypeSkeleton
 #' @export
 setMethod("CellTypeSkeleton", "Cycif",
           function(x,ctype,cstate,ctype.full=FALSE){
@@ -350,7 +340,6 @@ setMethod("CellTypeSkeleton", "Cycif",
   )
 })
 
-#' @rdname CellTypeSkeleton
 #' @export
 setMethod("CellTypeSkeleton", "CycifStack",function(x,ctype,cstate,ctype.full=FALSE){
   abs <- abs_list(x)$ab

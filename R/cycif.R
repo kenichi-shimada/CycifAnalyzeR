@@ -74,12 +74,12 @@ setGeneric("nCycles", function(x) standardGeneric("nCycles"))
 #' @export
 setMethod("nCycles", "Cycif", function(x) x@n_cycles)
 
-#' Set nCycles - note this should run before cell type calling
-#'
 #' @importFrom magrittr %>%
 #' @importFrom dplyr filter
 #' @export
 setGeneric("nCycles<-", function(x,...,value) standardGeneric("nCycles<-"))
+
+#' @export
 setMethod("nCycles<-", "Cycif", function(x,value){
 
   if(!is.numeric(value)){

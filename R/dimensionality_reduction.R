@@ -62,7 +62,6 @@ LDCoords <- function(ld_type,norm_type,smpls,used.abs,used.cts,
 }
 
 # fun: show LDCoords ----
-#' @rdname LDCoords
 #' @export
 setMethod("show", "LDCoords", function(object) {
   n.smpls <- length(object@smpls)
