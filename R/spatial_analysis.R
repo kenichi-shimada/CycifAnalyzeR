@@ -31,8 +31,6 @@ setGeneric("defineTumorBed", function(x,...) standardGeneric("defineTumorBed"))
 #' @importFrom concaveman concaveman
 #' @importFrom sp point.in.polygon
 #' @export
-#' Violin plots to show protein expressions
-#' @export
 setGeneric("defineTumorBed", function(x,...) standardGeneric("defineTumorBed"))
 
 #' @export
@@ -168,6 +166,127 @@ ratioTumorStroma <- function(x,stroma.cts,...){
   }else{
     stop("this function is defined only for a Cycif object")
   }
+}
+#_ -------------------------------------------------------
+# fun: dist2tumBorder Cycif ----
+#' #'
+#' @param x A Cycif obj
+#' @param dth radius for dbscan (eps)
+#' @param min.pts minimum points for dbscan
+#' @param n.cores number of cores.
+#'
+#' @importFrom sp SpatialPoints
+#' @importFrom dbscan dbscan
+#' @importFrom parallel mclapply
+#' @importFrom concaveman concaveman
+#' @importFrom sp point.in.polygon Polygon Polygons SpatialPolygons SpatialPoints
+#' @importFrom rgeos gDistance
+#' @export
+dist2tumBorder <- function(x,n.cores=7,dth){
+  if(!is(x,"Cycif")){
+    stop("dist2tumBorder() is implemented only for Cycif objects")
+  }
+
+  cat("Processing ",n," ... \n")
+
+  this.cts <- cell_types(x)$cell_types # 89174
+
+  ## coordinates: x => xy1, xy.sp1
+  xy <- xys(x)
+  ymax <- max(xy$Y_centroid)
+  xy$Y_centroid <- ymax - xy$Y_centroid
+  xy.sp <- sp::SpatialPoints(xy)
+
+  wr <- x@within_rois
+  xy1 <- xy[wr,]
+  xy.sp1 <- xy.sp[wr,]
+
+  this.cts1 <- this.cts[wr]
+  is.tumor <- this.cts1 == "Tumor"
+
+  xy2 <- xy1[is.tumor,]
+  dbs1 <- dbscan::dbscan(xy2, eps=dth, minPts = 3, weights = NULL, borderPoints = TRUE) # min 2 cells together
+  cls3 <- dbs1$cluster
+  nls3 <- unique(cls3) # unique cluster labels
+  nls3 <- sort(nls3[nls3!=0])
+  names(nls3) <- nls3
+
+  idx <- cls3 >0
+  cls3[idx] <- nls3[cls3[idx]] # rename clusters
+
+  cat(" Computing borders ... \n")
+
+  borders <- parallel::mclapply(seq(nls3),function(i){
+    xyt <- xy2[cls3==nls3[i],]
+    conc <- as.data.frame(concaveman::concaveman(as.matrix(xyt), concavity = .8, length_threshold = dth))
+    names(conc) <- c("X","Y")
+    return(conc)
+  },mc.cores=n.cores)
+  names(borders) <- nls3
+
+  # Identify overlapping clusters and merge their points
+  overlaps <- sapply(borders,function(cluster_i){
+    sapply(borders,function(cluster_j){
+      any(is_point_inside_polygon(cluster_j, cluster_i))
+    })
+  })
+  diag(overlaps) <- 0
+
+  # update clusters
+  ol <- as.data.frame(which(overlaps==1,arr.ind=T))
+  names(ol) <- c("child","parent")
+  ol1 <- ol
+
+  is.ol <- !seq(max(nls3)) %in% ol1[,1]
+  borders <- borders[is.ol]
+  nls3 <- names(borders)
+
+  # xy.sp1, (is.in.1), nls3, borders1
+  cat(" Computing is.in.1 ... \n")
+
+  is.in <- parallel::mclapply(nls3,function(i){
+    is.in <- sp::point.in.polygon(xy1$X,xy1$Y,
+                              borders[[i]]$X,
+                              borders[[i]]$Y)==1
+    return(is.in)
+  },mc.cores=n.cores)
+  is.in.1 <- rowSums(do.call(cbind,is.in))>0
+
+  ## distance from each cell to tumor_border
+  cat(" Computing sp.polys ... \n")
+
+  lst.polys <- lapply(as.character(nls3),
+                      function(x)sp::Polygons(list(sp::Polygon(borders[[x]])),ID=x))
+  sp.polys <- sp::SpatialPolygons(lst.polys)
+
+  # sp.polys => sp.points
+  cat(" Computing sp.points ... \n")
+
+  vertices <- lapply(sp.polys@polygons, function(p) p@Polygons[[1]]@coords)
+  combined_vertices <- do.call(rbind, vertices)
+  sp.points <- sp::SpatialPoints(combined_vertices)
+
+  # distance from polygon to each point
+  cat(" Computing gDistance ... \n")
+
+  gds <- parallel::mclapply(seq(xy.sp1),function(i)
+    if(is.in.1[i]){
+      -rgeos::gDistance(xy.sp1[i],sp.points) # inside polygon gives 0
+    }else{
+      rgeos::gDistance(xy.sp1[i],sp.polys)
+    },mc.cores=n.cores)
+
+  gds <- unlist(gds)
+
+  gds.all[[n]] <- gds
+  tum.borders[[n]] <- sp.polys
+
+  return(list(dist=gds,sp.polys=sp.polys))
+}
+
+# Function to check if a point is inside a polygon using 'point.in.polygon()'
+is_point_inside_polygon <- function(point, polygon) {
+  sp::point.in.polygon(point$X, point$Y, polygon$X, polygon$Y)
 }
 
 #_ -------------------------------------------------------
@@ -602,8 +721,6 @@ rcnClust <- function(frnn,
     mat.count.sele <- cbind(mat.count.all,exps.imp)[is.selected,]
     mat.freq.sele <- cbind(mat.freq.all,exps.imp)[is.selected,]
   }
-
-  "ct_exp"
 
   ## clustering & classification
   set.seed(seed)
