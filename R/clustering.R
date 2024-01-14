@@ -1,43 +1,27 @@
 #_ -------------------------------------------------------
 
 # fun: LdClustering matrix, Cycif, CycifStack ----
+
 #' Find clusters using Seurat functions
 #'
-#' @param x an object containing data to cluster
-#' @param ... additional arguments passed to LdClustering
+#' @param x An matrix, Cycif, or CycifStack object containing data to cluster.
+#' @param ld_name A character scalar indicating the name of the layout to use.
+#' @param k.param An integer specifying the number of nearest neighbors.
+#' @param initial.membership A vector specifying the initial cluster membership of each cell.
+#' @param node.sizes A vector specifying the size of each node in the clustering tree.
+#' @param resolution A numeric scalar specifying the granularity of the clustering.
+#' @param algorithm An integer specifying the clustering algorithm to use.
+#' @param with.labels Logical scalar indicating whether to include labels.
+#' @param ... Additional arguments passed to the clustering function.
 #'
-#' @return an object of the same class with x
-#'
-#' @export
-#' @importFrom Seurat FindNeighbors FindClusters
+#' @return
+#' A modified object with cluster assignments added to the specified layout (for a `matrix` object).
+#' An object of the same class as `x` with cluster assignments added (for a `Cycif` or `CycifStack` object).
 #'
 #' @export
 setGeneric("LdClustering", function(x,...) standardGeneric("LdClustering"))
 
-#' Find clusters in a matrix
-#'
-#' This function finds clusters in a given matrix using Seurat::FindNeighbors and Seurat::FindClusters functions.
-#'
 #' @rdname LdClustering
-#'
-#' @param x A matrix object.
-#' @param k.param Integer scalar. The number of nearest neighbors.
-#' @param initial.membership Integer vector. The initial cluster assignment for each cell.
-#' @param node.sizes Integer vector. The number of cells in each cluster.
-#' @param resolution Numeric scalar. The resolution parameter for clustering.
-#' @param algorithm Integer scalar. The algorithm to use for clustering.
-#' @param with.labels Logical scalar. Whether to include labels.
-#' @param ... Additional arguments to pass to Seurat::FindNeighbors and Seurat::FindClusters functions.
-#'
-#' @return An integer vector with cluster assignments for each cell.
-#'
-#' @examples
-#' \dontrun{
-#' mat <- matrix(rnorm(100), nrow = 10)
-#' LdClustering(mat, k.param = 5)
-#' }
-#'
-#' @importFrom Seurat FindNeighbors FindClusters
 #' @export
 setMethod("LdClustering", "matrix",
           function(x, k.param = 20, initial.membership = NULL, node.sizes = NULL,
@@ -52,32 +36,11 @@ setMethod("LdClustering", "matrix",
           }
 )
 
-#' Find clusters in a Cycif object.
-#'
 #' @rdname LdClustering
-#'
-#' @param x A \code{\link{Cycif}} object.
-#' @param ld_name A character scalar indicating the name of the layout to use.
-#' @param k.param An integer scalar indicating the number of nearest neighbors to use for clustering.
-#' @param initial.membership A vector specifying the initial cluster membership of each cell.
-#' @param node.sizes A vector specifying the size of each node in the clustering tree.
-#' @param resolution A numeric scalar specifying the granularity of the clustering.
-#' @param algorithm An integer specifying the clustering algorithm to use.
-#' @param ... Additional arguments passed to \code{\link{Seurat::FindClusters}}.
-#'
-#' @return A modified \code{\link{Cycif}} object with cluster assignments added to the specified layout.
-#'
-#' @examples
-#' \dontrun{
-#' data("exampleCycif")
-#' clusters <- LdClustering(exampleCycif, "Layout1", k.param = 10)
-#' }
-#'
 #' @export
-#' @method LdClustering Cycif
 setMethod("LdClustering", "Cycif",
           function(x,ld_name,k.param = 20,
-                   initial.membership=NULL,node.sizes=NULL,resolution=0.8,algorithm=1,...){
+                   initial.membership,node.sizes,resolution=0.8,algorithm=1,...){
             call1 <- sys.calls()[[1]]
             if(missing(ld_name)){
               stop("'ld_name' should be specified.")
@@ -90,8 +53,9 @@ setMethod("LdClustering", "Cycif",
             used.cts <- ld@used.cts
             this.abs <- ld@used.abs
             is.used <- ld@is_used
+            norm_type <- ld@norm_type
 
-            e <- exprs(x,type="logTh_normalized")
+            e <- exprs(x,type=norm_type)
             e1 <- data.matrix(e[is.used,this.abs])
             cls <- LdClustering(e1,
                                 k.param = k.param,
@@ -105,23 +69,6 @@ setMethod("LdClustering", "Cycif",
           }
 )
 
-#' Find Clusters
-#'
-#' @param x Object of class "CycifStack"
-#' @param ld_name Name of the label to use for clustering
-#' @param k.param Integer, number of nearest neighbors
-#' @param initial.membership Vector of initial cluster assignments
-#' @param node.sizes List of node sizes for cluster centers
-#' @param resolution Double, resolution of the clustering algorithm
-#' @param algorithm Integer, clustering algorithm to use
-#' @param ... Additional arguments to be passed
-#'
-#' @return The input CycifStack object with the cluster assignments added
-#'
-#' @examples
-#' \dontrun{
-#' LdClustering(x, ld_name = "label_name")
-#' }
 #' @rdname LdClustering
 #' @export
 setMethod("LdClustering", "CycifStack",

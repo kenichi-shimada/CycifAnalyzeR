@@ -4,7 +4,7 @@
 \alias{lowDimPlot}
 \alias{lowDimPlot,Cycif-method}
 \alias{lowDimPlot,CycifStack-method}
-\title{Plot 2D-coordinates computed by UMAP or T-SNE}
+\title{Create Low-Dimensional Plot}
 \usage{
 lowDimPlot(x, ...)
 
@@ -53,27 +53,49 @@ lowDimPlot(x, ...)
 )
 }
 \arguments{
-\item{x}{A CycifStack object}
+\item{x}{A \code{Cycif} or \code{CycifStack} object containing protein expression data.}
 
-\item{...}{other arguments  passed to plot()}
+\item{ld_name}{The name of the low-dimensional representation (e.g., UMAP or clustering).}
 
-\item{ab}{character, indicating one channel/antibody. This needs to be provided when
-type is 'exp'.}
+\item{plot_type}{The type of low-dimensional plot to create, one of "cell_type", "cluster", "exp", or "smpl".}
 
-\item{uniq.cols}{color sets used for the plot()}
+\item{ab}{The name of the protein to be used for coloring points (required when \code{plot_type} is "exp").}
 
-\item{main}{main passed to plot()}
+\item{uniq.cols}{Vector of unique colors to use for plotting points (optional).}
 
-\item{type}{character, indicating how cells are colored. 'cell_type' is cell types
-computed prior to the plotting, 'smpl' show the samples the cells derived from,
-and 'exp' is expression of one antibody. When 'cell_type' and 'exp', additional
-parameters needs to be provided.}
+\item{with.labels}{Logical, indicating whether to label points (default is TRUE).}
 
-\item{cell_type}{a factor with the length of cell number, indicating cell types computed
-elsewhere. This needs to be provided when type is 'cell_type'.}
+\item{ct_name}{The name of the cell type column (default is "default").}
 
-\item{pch}{pch passed to plot()}
+\item{used.smpls}{Vector of samples to include in the plot.}
+
+\item{xlab}{Label for the x-axis.}
+
+\item{ylab}{Label for the y-axis.}
+
+\item{used.cts}{Vector of cell types to include in the plot.}
+
+\item{cex.main}{Size of the main title text (default is 2).}
+
+\item{main}{Title for the plot (default is auto-generated based on parameters).}
+
+\item{p_thres}{Threshold for plotting (default is 0.5).}
+
+\item{mar}{Margins of the plot.}
+
+\item{cex.labs}{Size of label text (default is 1).}
+
+\item{cex.leg}{Size of the legend text (default is 0.5).}
+
+\item{cex}{Size of data point labels (default is 0.3).}
 }
 \description{
-Plot 2D-coordinates computed by UMAP or T-SNE
+This function generates low-dimensional plots for protein expression data from a \code{Cycif} or \code{CycifStack} object.
+}
+\details{
+\itemize{
+\item The \code{lowDimPlot} function creates low-dimensional plots for protein expression data based on the specified \code{Cycif} or \code{CycifStack} object.
+\item Users can choose from different types of low-dimensional plots, including those based on cell types, clusters, protein expression, or samples.
+\item Various customization options are available for labeling, coloring, and scaling the plot.
+}
 }

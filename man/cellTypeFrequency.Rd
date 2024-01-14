@@ -2,10 +2,28 @@
 % Please edit documentation in R/celltype.R
 \name{cellTypeFrequency}
 \alias{cellTypeFrequency}
-\title{show cell type frequency table}
+\title{Calculate Cell Type Frequency}
 \usage{
 cellTypeFrequency(x, ...)
 }
+\arguments{
+\item{x}{A CycifStack object.}
+
+\item{ct_name}{The name of the cell type definition to use. Default is "default."}
+
+\item{simple}{Logical, if TRUE, return a simple table of cell type frequencies. If FALSE, return a hierarchical structure of cell type frequencies. Default is TRUE.}
+}
+\value{
+If \code{simple} is TRUE (default), a matrix with row names representing samples and column names representing cell types (that are leaf nodes in the cell type definition tree), with the number of cells per cell type. If \code{simple} is FALSE, a list of 'non-leaf' cell type frequency matrices is also returned in the matrix.
+}
 \description{
-Perform a cell type calling function and set cell types in a Cycif or CycifStack object
+This function calculates the frequency of different cell types in a CycifStack object. It can return the frequency of individual cell types or a hierarchical structure of cell type frequencies.
+}
+\details{
+The \code{cellTypeFrequency} function calculates the frequency of different cell types within a CycifStack object. It allows you to specify a cell type definition using the \code{ct_name} parameter. By default, it uses the "default" cell type definition. You can choose to return a simple table of cell type frequencies or a hierarchical structure of cell type frequencies.
+
+If \code{simple} is TRUE, the function returns a matrix with rows representing samples and columns representing cell types, along with their corresponding frequencies. If \code{simple} is FALSE, it returns a hierarchical structure where each level of the hierarchy represents a different cell type grouping.
+}
+\seealso{
+\code{\link{CellTypeGraph}}
 }

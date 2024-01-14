@@ -2,20 +2,28 @@
 % Please edit documentation in R/preprocessing.R
 \name{exprs}
 \alias{exprs}
+\alias{exprs,Cycif-method}
+\alias{exprs,CycifStack-method}
 \title{Show a raw or normalized protein expression matrix}
 \usage{
 exprs(x, ...)
+
+\S4method{exprs}{Cycif}(x, type = c("raw", "log", "logTh"))
+
+\S4method{exprs}{CycifStack}(x, type = c("raw", "log", "logTh"))
 }
 \arguments{
 \item{x}{A Cycif or CycifStack object.}
 
-\item{type}{type. If "raw", a raw expression matrix is shown. If "normalized",
-a normalized expression matrix will be shown. The method of normalization is
-specified by "log" or "LogTh" in the normalize function provided previously.}
+\item{type}{type. If "raw", a raw expression matrix is shown. If "log" or "logTh",
+a log or logTh normalized expression matrix will be shown.}
 
 \item{silent}{logical. If FALSE, the method of normalization was shown in
 the error prompt.}
 }
 \description{
 Show a raw or normalized protein expression matrix
+}
+\seealso{
+\code{\link{normalize}} \code{\link{transform}}
 }

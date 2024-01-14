@@ -1,102 +1,37 @@
 #_ -------------------------------------------------------
-# utils CycifStack ----
-#' Accessing slots in a CellTypeCycifStack object
-#'
-#' @param x A CycifStack object
-#'
-#' @export
-setGeneric("nSamples", function(x)standardGeneric("nSamples"))
-setMethod("nSamples", "CycifStack", function(x) x@n_samples)
-
-#' @export
-setMethod("length","CycifStack",function(x)x@n_samples)
-
-#' @export
-setMethod("names", "CycifStack", function(x) x@names)
-setMethod("names<-", "CycifStack", function(x,value){
-  ori.names <- x@names
-  for(i in seq(ori.names)){
-    x@samples[[i]]@name <- as.character(value[i])
-  }
-  x@names <- value
-  # validObject(x)
-  return(x)
-})
-
-#' @export
-setMethod("abs_list", "CycifStack", function(x) x@abs_list)
-
-#' @export
-setGeneric("maxCycles", function(x)standardGeneric("maxCycles"))
-setMethod("maxCycles", "CycifStack", function(x) x@max_cycles)
-
-#' @export
-setMethod("nCells", "CycifStack", function(x){
-  cyApply(x,nCells,simplify=T)
-})
-
-#' @rdname nCycles
-#' @export
-setMethod("nCycles", "CycifStack", function(x){
-  if(!is.null(x@n_cycles)){
-    return(x@n_cycles)
-  }else{
-    return(cyApply(x,nCycles,simplify=T))
-  }
-})
-
-#' @export
-setMethod("nCycles<-", "CycifStack", function(x,value){
-  if(!is.numeric(value) | length(value) != 1){
-    warning("CycifStack@n_cycles will not accept a vector but a scalar in the future update")
-  }
-
-  ## subsetting samples - trimming ones not reaching the cycle specified
-  ncys <- cyApply(x,nCycles,simplify=T)
-  is.used.smpls <- ncys >= value
-  x <- x[is.used.smpls]
-
-  x <- cyApply(x,function(this){
-    smpl <- names(this)
-    nCycles(this) <- value
-    return(this)
-  })
-
-  x@n_cycles <- value
-  x@max_cycles <- value # will be discontinued
-
-  x@abs_list <- abs_list(x[[1]]) ## all the samples should have same # of cycles
-  this.abs <- as.character(abs_list(x)$ab)
-
-  x@names <- smpls <- names(x)
-  x@n_samples <- length(x)
-  x@samples <- x@samples[smpls]
-
-  if(nrow(x@phenoData)>0){
-    x@phenoData <- x@phenoData %>%
-      filter(id %in% smpls) %>%
-      arrange(match(smpls, id))
-  }
-
-  return(x)
-})
-
-#' @export
-setMethod("within_rois", "CycifStack", function(x){
-  unlist(cyApply(x,within_rois))
-})
-#_ -------------------------------------------------------
 
 # fun: constructor CycifStack ----
-#' Instantiate and show a CycifStack object
-#'
 #' @param ft_filenames quantification file (.csv)
 #' @param path path to the dir containign filename
 #' @param mask_type a common mask_type of each channel. If applicable, the mask_type is
 #'   removed from the channel names.
 #' @param object a CycifStack object
+
+#' @title Load Cycif or CycifStack samples into a CycifStack object
 #'
-#' @rdname CycifStack
+#' @description
+#' The `CycifStack` function loads Cycif or CycifStack samples from provided feature table filenames
+#' and creates a CycifStack object containing information from these samples.
+#'
+#' @param ft_filenames Character vector of feature table filenames.
+#' @param path The directory path where feature tables are located. Defaults to the current directory.
+#' @param mask_type Character vector specifying the mask types to use for sample loading.
+#'   Default is c("cellRing", "cell").
+#' @param mcmicro Logical. Whether the input files are from the MCMicro platform. Defaults to FALSE.
+#' @param use_scimap Logical. Whether to use scimap for additional processing. Defaults to FALSE.
+#'
+#' @return
+#' A CycifStack object containing information from the loaded Cycif or CycifStack samples.
+#'
+#' @importFrom utils read.csv
+#' @importFrom dplyr left_join
+#' @importFrom magrittr %>%
+#'
+#' @examples
+#' # Example usage:
+#' ft_filenames <- c("unmicst-sample1_cellRing.csv", "unmicst-sample2_cell.csv")
+#' stack <- CycifStack(ft_filenames)
+#'
 #' @export
 CycifStack <- function(ft_filenames,
                        path=".",
@@ -172,40 +107,7 @@ setValidity("CycifStack", function(object) {
   # }
 })
 
-# fun: check_abs ----
-setGeneric("check_abs", function(x)standardGeneric("check_abs"))
-setMethod("check_abs", "CycifStack", function(x){
-  abs <- cyApply(x,function(x){
-    ab <- abs_list(x)$ab
-  })
-  n.abs <- sapply(abs,length)
-  if(length(unique(n.abs))>1 | n.abs[1]==0){
-    warning("not all the samples have the same # of abs;\nrun 'barplot(cyApply(x,function(cy)nrow(abs_list(cy)),simplify=T),las=2)'\n")
-    warning("Run nCycles() to set a fixed # of cycles and/or drop samples that don't meet the criteria.")
-  }else if(length(unique(n.abs))>1 | n.abs[1]==0){
-    warning("not all the samples have the same Ab names;\nrun 'apply(do.call(cbind,cyApply(x,function(cy)abs_list(cy)$ab)),1,unique)'\n")
-    warning("Run set_abs() to set the identical names in the Abs.")
-  }
-})
 
-# fun: set_abs ----
-setMethod("set_abs<-", "CycifStack", function(x,value){
-    new.abs <- value
-    abs <- abs_list(x)$ab
-    if(length(abs)!=length(new.abs)){
-      stop("The number of 'new.abs' should be the same as the number of abs in abs_list(x)")
-    }
-    if(!all(names(new.abs)==abs)){
-      ("The names of the 'new.abs' should be the identical to abs_list(x)$ab")
-    }
-    x@abs_list$ab <- new.abs
-    x <- cyApply(x,function(cy){
-      set_abs(cy) <- new.abs
-      return(cy)
-    },)
-    return(x)
-  }
-)
 
 # fun: show CycifStack ----
 #' @rdname CycifStack
@@ -237,69 +139,6 @@ setMethod("show", "CycifStack", function(object) {
 })
 
 
-#_ -------------------------------------------------------
-
-# fun: list2CycifStack list ----
-
-#' Converting a list to a CycifStack object
-#'
-#' @param x A list or a Cycif object (if Cycif, the length should be one)
-#'
-#' @return A CycifStack object
-#' @export
-#'
-#' @export
-setGeneric("list2CycifStack", function(x) standardGeneric("list2CycifStack"))
-
-#'@export
-setMethod("list2CycifStack", "list",function(x){
-  stopifnot(all(sapply(x,is,"Cycif")) | all(sapply(x,is,"CycifStack")))
-  n.samples <- sum(sapply(x,length))
-  xs <- do.call(c,lapply(x,function(cs){
-    if(is(cs,"CycifStack")){
-      out <- cs@samples
-    }else if(is(cs,"Cycif")){
-      out <- cs
-    }
-  }))
-
-  mask_type <- xs[[1]]@mask_type
-  nms <- 	names(xs) <- sapply(xs,names)
-  n_cells <- 	sapply(xs,nCells)
-  n_cycles <- sapply(xs,nCycles)
-  max_cycles <- max(n_cycles)
-
-  idx <- which(n_cycles == max_cycles)[1]
-  al <- abs_list(xs[[idx]])[1:2]
-  for(i in seq(xs)){
-    al <- al %>% dplyr::left_join(abs_list(xs[[i]]),by=c("ab","cycle"))
-  }
-
-
-  new("CycifStack",
-      n_samples = n.samples,
-      names = nms,
-      abs_list = al,
-      n_cycles = n_cycles,
-      max_cycles = max_cycles,
-      n_cells = n_cells,
-      samples = xs,
-      mask_type = mask_type
-      # threshold = thres
-  )
-})
-
-#_ -------------------------------------------------------
-
-# fun: Cycif2CycifStack Cycif ----
-
-#' @export
-setGeneric("Cycif2CycifStack", function(x) standardGeneric("Cycif2CycifStack"))
-
-#' @export
-setMethod("Cycif2CycifStack", "Cycif",function(x){
-  Cycif2CycifStack(list(x))
-})
 
 #_ -------------------------------------------------------
 
@@ -311,9 +150,9 @@ setMethod("Cycif2CycifStack", "Cycif",function(x){
 #' @param i A numeric or character vector. If numeric, the values are integers
 #'   representing indices for the Cycif objects. If character, names of the Cycif
 #'   objects.
-#' @param value A Cycif object to be inserted.
+#' @param value A Cycif object to be inserted or replaced.
 #'
-#' @rdname CycifStack-subset
+#' @rdname CycifStack_subset
 #' @export
 setMethod("[",
           "CycifStack",
@@ -358,7 +197,7 @@ setMethod("[",
           }
 )
 
-#' @rdname CycifStack-subset
+#' @rdname CycifStack_subset
 #' @export
 setMethod("[[",
           "CycifStack",
@@ -369,7 +208,7 @@ setMethod("[[",
           }
 )
 
-#' @rdname CycifStack-subset
+#' @rdname CycifStack_subset
 #' @export
 setMethod("[<-",
           "CycifStack",
@@ -398,7 +237,7 @@ setMethod("[<-",
           }
 )
 
-#' @rdname CycifStack-subset
+#' @rdname CycifStack_subset
 #' @export
 setMethod("[[<-",
           "CycifStack",
@@ -433,7 +272,7 @@ setMethod("[[<-",
 # fun: cyApply CycifStack ----
 #' Apply-like loop function for a CycifStack object
 #' @param x A CycifStack object
-#' @param fun function to apply
+#' @param fun function to apply to each Cycif object
 #' @param simplify logical (FALSE by default). If TRUE, the function returns a vector or a matrix rather
 #'   than a list, if applicable. It uses 'sapply' instead of 'lapply' internally.
 #' @param as.CycifStack logical (TRUE by default). If TRUE, the function attempts to convert the

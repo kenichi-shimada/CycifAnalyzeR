@@ -2,18 +2,28 @@
 % Please edit documentation in R/visualization.R
 \name{AbsSummary}
 \alias{AbsSummary}
-\title{Split a string}
+\title{A graphical summary of cycles and antibodies of a CycifStack class.}
 \usage{
 AbsSummary(x, show.cycles.in.row = FALSE, ...)
 }
 \arguments{
-\item{x}{An object of Cycif class.}
+\item{x}{A CycifStack object.}
 
-\item{show.cycles.in.row}{logical. FALSE by default. If TRUE, the output plot shows the number
-of cycles each sample was stained for.}
+\item{show.cycles.in.row}{Logical, indicating whether to display cycle information in row labels.
+FALSE by default. If TRUE, the output plot shows the number of cycles each sample was stained for.}
 
-\item{...}{Arguments passed to image() function.}
+\item{...}{Additional parameters to be passed to the \code{graphics::image} function.}
+}
+\value{
+The function generates a graphical absolute summary plot and returns \code{NULL}.
 }
 \description{
-Split a string
+Generates an absolute summary plot for a CycifStack object.
+}
+\details{
+This function generates a plot that summarizes the antibodies used in a CycifStack object.
+It visualizes the antibodies across different samples and cycles.
+}
+\seealso{
+\code{\link{abs_list}}
 }

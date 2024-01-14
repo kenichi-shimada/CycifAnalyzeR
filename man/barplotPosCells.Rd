@@ -3,12 +3,29 @@
 \name{barplotPosCells}
 \alias{barplotPosCells}
 \alias{barplotPosCells,Cycif-method}
-\title{Get stats for positive cells after gating each abs}
+\title{Create barplots to visualize positive cell ratios for each antibody in a Cycif object.}
 \usage{
 barplotPosCells(x, ...)
 
 \S4method{barplotPosCells}{Cycif}(x, type = c("one", "two"), mar, ...)
 }
+\arguments{
+\item{x}{A Cycif object.}
+
+\item{type}{Type of barplot to create: 'one' (default) or 'two'.}
+
+\item{mar}{A numeric vector of length 4 specifying the margin size for the plot.}
+}
+\value{
+A barplot showing the ratios of positive cells for each antibody.
+}
 \description{
-Get stats for positive cells after gating each abs
+This function generates barplots to visualize the ratios of positive cells for each antibody
+in a Cycif object. You can choose between two types of barplots ('one' or 'two') and specify
+additional graphical parameters.
+}
+\details{
+The 'one' type of barplot displays the ratios of positive cells for each antibody separately.
+It distinguishes between 'strict', 'non-strict', and 'cell-state' positive cells if applicable.
+The 'two' type of barplot displays the pairwise overlap ratios of positive cells for each antibody.
 }

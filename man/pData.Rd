@@ -2,13 +2,34 @@
 % Please edit documentation in R/phenotypes.R
 \name{pData}
 \alias{pData}
-\title{Show sample metadata}
+\alias{pData,CycifStack-method}
+\alias{pData<-}
+\alias{pData<-,CycifStack-method}
+\title{Show or Set Sample metadata}
 \usage{
 pData(x)
+
+\S4method{pData}{CycifStack}(x)
+
+pData(x, ...) <- value
+
+\S4method{pData}{CycifStack}(x) <- value
 }
 \arguments{
-\item{x}{A Cycif object}
+\item{x}{A Cycif or CycifStack object.}
+
+\item{value}{For \verb{pData<-}, a data frame containing sample metadata.}
+
+\item{by}{(For \verb{pData<-}) The column name in the value data frame that contains sample names.
+This column name should be set as the 'id' for sample identification.}
 }
 \description{
-Show sample metadata
+These functions allow you to show or set sample metadata for a Cycif or CycifStack object.
+}
+\details{
+\itemize{
+\item \code{pData} retrieves and displays the sample metadata associated with the input Cycif or CycifStack object.
+\item \verb{pData<-} allows you to insert or replace sample metadata in the Cycif or CycifStack object with a provided data frame.
+Make sure the 'id' column in the data frame matches the sample names accessed by \code{names(x)}.
+}
 }

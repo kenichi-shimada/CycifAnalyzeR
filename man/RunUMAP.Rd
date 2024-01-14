@@ -4,7 +4,7 @@
 \alias{RunUMAP}
 \alias{RunUMAP,Cycif-method}
 \alias{RunUMAP,CycifStack-method}
-\title{Run visualization with dimensionality reduction (t-SNE and U-MAP) on CyCIF data.}
+\title{Run visualization with dimensionality reduction (t-SNE or U-MAP) on CyCIF data.}
 \usage{
 RunUMAP(x, ...)
 
@@ -41,23 +41,37 @@ RunUMAP(x, ...)
 \arguments{
 \item{x}{A Cycif or CycifStack object.}
 
-\item{...}{arguments passed to uwot::umap().}
+\item{...}{Additional arguments passed to uwot::umap().}
 
-\item{ncells.per.smpl}{A numeric scholar. The number of cells per sample to be set when a CycifStack is run.}
+\item{norm_type}{Character string specifying the type of expression values to use for dimensionality reduction. It should be one of "raw," "log," or "logTh" indicating whether to use raw or normalized data.}
 
-\item{used.abs}{A character vector containing a set of antibodies used for UMAP computation.}
+\item{ld_name}{Character string specifying the name to assign to the dimensionality reduction results. This name will be used to retrieve the data later.}
 
-\item{n_neighbors}{numeric. The number of neighbors, passed on to dimensionality reduction function.}
+\item{ct_name}{Character string specifying the cell type name to be used for analysis. Default is "default."}
 
-\item{init.seed}{initial seed to set for computing UMAP.}
+\item{ncells.per.smpl}{Numeric value specifying the number of cells per sample. If NULL, the maximum number of cells per sample will be used.}
 
-\item{smpls}{Character vector containign a set of samples to be included inthe UMAP.}
+\item{used.abs}{Character vector containing a set of antibodies used for UMAP computation.}
 
-\item{type}{character. It should be "raw" or "normalized", indicating which expression
-values to use for the U-MAP.}
+\item{used.cts}{Character vector containing a set of cell types used for UMAP computation.}
 
-\item{n.cells}{numeric. The number of cells sampled from each CyCIF object.}
+\item{strict}{Logical indicating whether strict filtering of cell types should be applied. Default is TRUE.}
+
+\item{n_neighbors}{Numeric specifying the number of neighbors to consider during dimensionality reduction.}
+
+\item{init.seed}{Numeric specifying the initial seed for reproducible UMAP results.}
+
+\item{save.coords}{Logical indicating whether to save the computed UMAP coordinates in the object. Default is FALSE.}
+}
+\value{
+A Cycif or CycifStack object with added UMAP or t-SNE coordinates and related metadata.
 }
 \description{
-Run visualization with dimensionality reduction (t-SNE and U-MAP) on CyCIF data.
+This function performs dimensionality reduction (t-SNE or U-MAP) on CyCIF data, either for a single sample or across multiple samples (CycifStack). It generates UMAP or t-SNE coordinates for visualization purposes.
+}
+\details{
+The \code{RunUMAP} function performs dimensionality reduction on CyCIF data using UMAP or t-SNE algorithms, depending on the specified parameters. It generates UMAP or t-SNE coordinates for visualization purposes and adds them to the provided Cycif or CycifStack object. The resulting object contains the computed coordinates, along with metadata such as the type of dimensionality reduction, normalization type, used antibodies, and used cell types.
+}
+\seealso{
+\code{\link{LDCoords}}, \code{\link{Cycif}}, \code{\link{CycifStack}}
 }

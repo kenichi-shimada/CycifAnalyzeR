@@ -2,25 +2,27 @@
 % Please edit documentation in R/preprocessing.R
 \name{roiFilter}
 \alias{roiFilter}
-\title{Filtering out unavaialble cells based on nuclei staining}
+\alias{roiFilter,Cycif-method}
+\title{Set ROIs in a Cycif object interactively by clicking on the plot (discontinued)}
 \usage{
 roiFilter(x, ...)
+
+\S4method{roiFilter}{Cycif}(x, rois)
 }
 \arguments{
-\item{x}{A Cycif object}
+\item{x}{A Cycif object.}
 
-\item{manual}{logical. If TRUE, lower and upper limits of DNA intensity should be chosen
-interactively by clicking the limit values in the heatmap. FALSE by default.}
-
-\item{ratio}{logical. If TRUE, the ratio of DNA intensity between each cycle and cycle 0 will be used.
-If FALSE, raw values of DNA intensity will be used.}
-
-\item{n}{numeric. The number of breaks in the histogram.}
-
-\item{n1}{numeric. indices from 1 through n1 will be plugged into loess().}
-
-\item{show.only}{logical. If TRUE, only show the summary of the plots but don't attempt to filter cells.}
+\item{roi_type}{A character string specifying the type of ROIs to set. It can be either "positive" or "negative."}
+}
+\value{
+A Cycif object with the defined ROIs.
 }
 \description{
-Filtering out unavaialble cells based on nuclei staining
+This function allows interactive setting of regions of interest (ROIs) in a Cycif object. ROIs can be defined as either positive or negative based on their intended use.
+}
+\details{
+This function provides an interactive way to define ROIs within a Cycif object. ROIs can be classified as either "positive" or "negative" based on their intended use. Users can set these ROIs by selecting points on the plot. For positive ROIs, cells within the polygonal boundaries are considered within the ROI. For negative ROIs, cells outside the polygonal boundaries are considered within the ROI. Users can set multiple ROIs of each type by following the prompts.
+}
+\seealso{
+\code{\link{importROIs}}, \code{\link{setWithinROIs}}
 }

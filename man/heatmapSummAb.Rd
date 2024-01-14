@@ -2,10 +2,50 @@
 % Please edit documentation in R/visualization.R
 \name{heatmapSummAb}
 \alias{heatmapSummAb}
-\title{Violin plots to show protein expressions}
+\alias{heatmapSummAb,CycifStack-method}
+\title{Create Heatmap Summary of Protein Expression}
 \usage{
 heatmapSummAb(x, ...)
+
+\S4method{heatmapSummAb}{CycifStack}(
+  x,
+  norm_type = c("log", "logTh"),
+  ab,
+  sum_type = c("freq", "mean", "median", "x percentile"),
+  ct_name = "default",
+  uniq_cts,
+  uniq.smpls,
+  strict = FALSE,
+  scale = "none",
+  ...
+)
+}
+\arguments{
+\item{x}{A \code{CycifStack} object containing protein expression data.}
+
+\item{norm_type}{Normalization type for the data, one of "log" or "logTh" (default is "log").}
+
+\item{ab}{The name of the protein to be used for summarization.}
+
+\item{sum_type}{The type of summarization to be performed, one of "freq", "mean", "median", or "x percentile" (e.g., "95 percentile").}
+
+\item{ct_name}{The name of the cell type column (default is "default").}
+
+\item{uniq_cts}{Vector of unique cell types to include in the heatmap.}
+
+\item{uniq.smpls}{Vector of unique samples to include in the heatmap.}
+
+\item{strict}{Logical, indicating strict filtering of cell types (default is FALSE).}
+
+\item{scale}{Scaling method for the heatmap, one of "none", "row", or "column" (default is "none").}
 }
 \description{
-Violin plots to show protein expressions
+This function generates a heatmap summarizing protein expression data from a \code{CycifStack} object.
+}
+\details{
+\itemize{
+\item The \code{heatmapSummAb} function creates a heatmap summarizing protein expression data for the specified protein.
+\item Users can choose from different normalization types and summarization methods.
+\item Cell types and samples can be filtered and customized for the heatmap.
+}
 }

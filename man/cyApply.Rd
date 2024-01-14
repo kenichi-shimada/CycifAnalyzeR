@@ -11,7 +11,7 @@ cyApply(x,fun,simplify=FALSE,as.CycifStack=TRUE,...)
 
 \item{...}{Additional arguments passed to sapply/lapply functions.}
 
-\item{fun}{function to apply}
+\item{fun}{function to apply to each Cycif object}
 
 \item{simplify}{logical (FALSE by default). If TRUE, the function returns a vector or a matrix rather
 than a list, if applicable. It uses 'sapply' instead of 'lapply' internally.}

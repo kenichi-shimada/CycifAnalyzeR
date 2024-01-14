@@ -1,24 +1,64 @@
 #_ -------------------------------------------------------
 
-# utils ct_name* ----
-
+# fun: ct_names Cycif, CycifStack ----
+#
+#' @title Get the names of cell types in a Cycif or CycifStack object
+#'
+#' @description This function returns the names of cell types stored in a Cycif or CycifStack object.
+#'
+#' @param x A Cycif or CycifStack object.
+#'
+#' @return A character vector containing the names of cell types.
+#'
 #' @export
-setGeneric("ct_names", function(x)standardGeneric("ct_names"))
+setGeneric("ct_names", function(x) standardGeneric("ct_names"))
 
+#' @rdname ct_names
 #' @export
-setMethod("ct_names", "Cycif", function(x)names(x@cell_types))
+setMethod("ct_names", "Cycif", function(x) names(x@cell_types))
 
+#' @rdname ct_names
 #' @export
-setMethod("ct_names", "CycifStack", function(x)names(x@cell_types))
+setMethod("ct_names", "CycifStack", function(x) names(x@cell_types))
 
 
 #_ -------------------------------------------------------
 
-# fun: getGates Cycif, CycifStack ----
+# getGates Cycif, CycifStack
 
+#' @title Get or set gates information in a Cycif or CycifStack object
+#'
+#' @description This function allows you to get or set gates information in a Cycif or CycifStack object.
+#'
+#' @param x A Cycif or CycifStack object.
+#' @param ... Additional arguments specific to the get or set operation.
+#'
+#' @return If used as `getGates(x)`, it returns the gates information.
+#' If used as `setGates(x, ...)`, it sets the gates information and returns the modified object.
+#'
+#' @examples
+#' # Get gates information from a Cycif object
+#' ct_obj <- new("Cycif", ...)
+#' getGates(ct_obj)
+#'
+#' # Set gates information in a Cycif object
+#' setGates(ct_obj, gates_data)
+#'
+#' # Get gates information from a CycifStack object
+#' ct_stack_obj <- new("CycifStack", ...)
+#' getGates(ct_stack_obj)
+#'
+#' # Set gates information in a CycifStack object
+#' setGates(ct_stack_obj, gates_data)
+#'
+#' @rdname getGates
+#' @importFrom dplyr left_join select
+#' @importFrom tibble rownames_to_column
+#'
 #' @export
 setGeneric("getGates", function(x)standardGeneric("getGates"))
 
+#' @rdname getGates
 #' @export
 setMethod("getGates", "Cycif", function(x){
   gate.names <- paste0("gates_",names(x))
@@ -30,6 +70,7 @@ setMethod("getGates", "Cycif", function(x){
   return(out)
 })
 
+#' @rdname getGates
 #' @export
 setMethod("getGates", "CycifStack", function(x){
   gate.names <- paste0("gates_",names(x))
@@ -43,9 +84,11 @@ setMethod("getGates", "CycifStack", function(x){
 
 # fun: setGates Cycif, CycifStack ----
 
+#' @rdname getGates
 #' @export
 setGeneric("setGates", function(x,...)standardGeneric("setGates"))
 
+#' @rdname getGates
 #' @export
 setMethod("setGates", "Cycif", function(x,gates.df,run_normalize=TRUE,p_thres=0.5,trim=1e-3){
   if(!is(gates.df,"data.frame")){
@@ -78,6 +121,7 @@ setMethod("setGates", "Cycif", function(x,gates.df,run_normalize=TRUE,p_thres=0.
   return(x)
 })
 
+#' @rdname getGates
 #' @export
 setMethod("setGates", "CycifStack", function(x,gates.df,run_normalize=TRUE,p_thres=0.5,trim=1e-3){
   if(!is(gates.df,"data.frame")){
@@ -100,7 +144,6 @@ setMethod("setGates", "CycifStack", function(x,gates.df,run_normalize=TRUE,p_thr
     stop("There are non-existing samples in the gates: ",non.existing)
   }
 
-
   x <- cyApply(x,function(cy){
     nm <- names(cy)
     cy <- setGates(cy,gates.df,run_normalize=run_normalize,p_thres=p_thres,trim=trim)
@@ -115,7 +158,6 @@ setMethod("setGates", "CycifStack", function(x,gates.df,run_normalize=TRUE,p_thr
 # fun: expandLineageDef ctype,cstate ----
 
 #' internally used only within CellTypeSkeleton, so don't export
-#'
 expandLineageDef <- function(ctype,cstate,ctype.full=TRUE){
   if(!is.data.frame(ctype)){
     stop("ctype should be data.frame")
@@ -197,8 +239,6 @@ expandLineageDef <- function(ctype,cstate,ctype.full=TRUE){
       non.leaf1 <- non.leaf1[!non.leaf1 %in% chs] ## remove non-leaf that did't exist originally
     }
 
-    # CellTypeGraph(ct,plot=T,transpose=T)
-    # CellTypeGraph(ctype,plot=T,transpose = T)
     pas1 <- ct$Parent
     chs1 <- ct$Child
     pas1[chs1 %in% chs] <- chs1[chs1 %in% chs]
@@ -259,9 +299,32 @@ setMethod("show", "CellTypes", function(object){
 #_ -------------------------------------------------------
 
 # fun: CellTypeSkeleton Character,Cycif,CycifStack ----
+
+#' Generate CellTypes Object Based on Lineage and State Definitions
+#'
+#' @title Generate CellTypes Object
+#'
+#' @details
+#' This function generates a \code{CellTypes} object based on provided lineage and state definitions. It accepts different input types:
+#' - For a character vector `x` containing antibody names, `ctype` (cell lineage), and `cstate` (cell state) data frames, it creates a CellTypes object with lineage and state definitions.
+#' - For a Cycif object `x`, it uses the antibodies from the object's abs_list to create a CellTypes object.
+#' - For a CycifStack object `x`, it uses the antibodies from the object's abs_list to create a CellTypes object.
+#'
+#' @param x A character vector (for character input) or a Cycif/CycifStack object.
+#' @param ctype A data frame defining cell lineage.
+#' @param cstate A data frame defining cell state.
+#' @param ctype.full Logical indicating whether to include the full lineage definition (default is FALSE).
+#'
+#' @return A CellTypes object containing cell lineage and state definitions.
+#'
+#' @seealso
+#' \code{\link{CellTypes}}
+#'
+#' @rdname CellTypeSkeleton
 #' @export
 setGeneric("CellTypeSkeleton", function(x,...)standardGeneric("CellTypeSkeleton"))
 
+#' @rdname CellTypeSkeleton
 #' @export
 setMethod("CellTypeSkeleton", "character",function(x,ctype,cstate,ctype.full=FALSE){
   if(missing(ctype) || missing(cstate)){
@@ -323,6 +386,7 @@ setMethod("CellTypeSkeleton", "character",function(x,ctype,cstate,ctype.full=FAL
   )
 })
 
+#' @rdname CellTypeSkeleton
 #' @export
 setMethod("CellTypeSkeleton", "Cycif",
           function(x,ctype,cstate,ctype.full=FALSE){
@@ -340,6 +404,7 @@ setMethod("CellTypeSkeleton", "Cycif",
   )
 })
 
+#' @rdname CellTypeSkeleton
 #' @export
 setMethod("CellTypeSkeleton", "CycifStack",function(x,ctype,cstate,ctype.full=FALSE){
   abs <- abs_list(x)$ab
@@ -357,11 +422,10 @@ setMethod("CellTypeSkeleton", "CycifStack",function(x,ctype,cstate,ctype.full=FA
 })
 
 
-
 #_ -------------------------------------------------------
 
 # fun: modifyCellTypes ctype ----
-#'@export
+
 modifyCellTypes <- function(ctype,uniq.cts,check=TRUE){
   pas <- ctype$Parent
   chs <- ctype$Child
@@ -411,8 +475,48 @@ modifyCellTypes <- function(ctype,uniq.cts,check=TRUE){
 
 
 # fun: CellTypeGraph ctype ----
-#'@export
-CellTypeGraph <- function(ctype,plot=F,transpose=T,with.hierarchy=FALSE,...){
+
+#' Generating the levels of cell types and their hierarchy and plotting the cell type hirarchy
+#'
+#' @param ctype A data frame containing information about parent-child relationships between cell types.
+#' The object should have at least two columns named Parent and Child, and each row contains the relationship between
+#' direct parent and child cell types.
+#' @param plot Logical, indicating whether to plot the graph.
+#' @param transpose Logical, indicating whether to transpose the graph layout.
+#' @param with.hierarchy Logical, indicating whether to include the cell type hierarchy information in output.
+#' @param ... Additional parameters to be passed to the \code{plot} function.
+#'
+#' @return
+#' If \code{with.hierarchy} is \code{TRUE}, returns a list with components \code{ctlevs} (cell type levels)
+#' and \code{hierarchy} (cell type hierarchy data frame). If \code{with.hierarchy} is \code{FALSE},
+#' returns only \code{ctlevs}.
+#'
+#' @details
+#' This function generates a graph that represents the hierarchy of cell types based on parent-child relationships provided as a user input.
+#' If the user-input is a Cycif or CycifStack object, the function extracts cell_lineage_def data frame and use it as the input.
+#' If the input is a data frame, the function assumes that's the definition data frame. It returns the numerical level of each cell type within the hierarchy.
+#' If \code{with.hierarchy} is \code{TRUE}, the hierarchy as a data frame is included in the output.
+#' sers can also generate the cell type hierarchy as a graphical output when \code{plot} is \code{TRUE}.
+#'
+#' @seealso
+#' \code{\link{graph_from_data_frame}}, \code{\link{layout_as_tree}}, \code{\link{distances}}
+#'
+#' @importFrom igraph graph_from_data_frame layout_as_tree distances
+#'
+#' @export
+CellTypeGraph <- function(ctype,
+                          cname="default",
+                          plot=FALSE,
+                          transpose=TRUE,
+                          with.hierarchy=FALSE,...){
+  if(is(ctype,"Cycif") | is(ctype,"CycifStack")){
+    ctype <- x@cell_types[[cname]]@cell_lineage_def
+  }else if(is(cytpe,"data.frame")){
+    if(all(c("Parent","Child") %in% names(ctype))){
+      stop("If 'ctype' argument is a data.frame, it should contain two columns named 'Parent' and 'Child'.")
+    }
+  }
+
   uniq.cts <- c("all",ctype$Child)
   ctgraph <- ctype[c("Parent","Child")]
   ctgraph$Parent <- factor(ctgraph$Parent,levels=uniq.cts)
@@ -455,33 +559,27 @@ CellTypeGraph <- function(ctype,plot=F,transpose=T,with.hierarchy=FALSE,...){
   }
 }
 
-# fun: find_descendants graph, node ----
-#' @export
-find_descendants <- function(graph, node) {
-  neighbors <- igraph::neighbors(graph, node, mode = "out")
-  descendants <- numeric(0)
-
-  while (length(neighbors) > 0) {
-    descendants <- unique(c(descendants, neighbors))
-    new_neighbors <- numeric(0)
-
-    for (neighbor in neighbors) {
-      new_neighbors <- c(new_neighbors, igraph::neighbors(graph, neighbor, mode = "out"))
-    }
-
-    neighbors <- setdiff(new_neighbors, descendants)
-  }
-
-  return(descendants)
-}
-
 #_ -------------------------------------------------------
 # fun: cellTypeFrequency Cycif, CycifStack ----
-#' show cell type frequency table
+
+#' @title Calculate Cell Type Frequency
 #'
-#'Perform a cell type calling function and set cell types in a Cycif or CycifStack object
+#' @description This function calculates the frequency of different cell types in a CycifStack object. It can return the frequency of individual cell types or a hierarchical structure of cell type frequencies.
+#'
+#' @param x A CycifStack object.
+#' @param ct_name The name of the cell type definition to use. Default is "default."
+#' @param simple Logical, if TRUE, return a simple table of cell type frequencies. If FALSE, return a hierarchical structure of cell type frequencies. Default is TRUE.
+#'
+#' @return If `simple` is TRUE (default), a matrix with row names representing samples and column names representing cell types (that are leaf nodes in the cell type definition tree), with the number of cells per cell type. If `simple` is FALSE, a list of 'non-leaf' cell type frequency matrices is also returned in the matrix.
+#'
+#' @details
+#' The `cellTypeFrequency` function calculates the frequency of different cell types within a CycifStack object. It allows you to specify a cell type definition using the `ct_name` parameter. By default, it uses the "default" cell type definition. You can choose to return a simple table of cell type frequencies or a hierarchical structure of cell type frequencies.
+#'
+#' If `simple` is TRUE, the function returns a matrix with rows representing samples and columns representing cell types, along with their corresponding frequencies. If `simple` is FALSE, it returns a hierarchical structure where each level of the hierarchy represents a different cell type grouping.
 #'
 #' @export
+#' @seealso \code{\link{CellTypeGraph}}
+
 setGeneric("cellTypeFrequency", function(x,...) standardGeneric("cellTypeFrequency"))
 
 #' @export
@@ -550,28 +648,55 @@ setMethod("cellTypeFrequency", "CycifStack",
     }
 })
 
+# fun: find_descendants graph, node ----
+# this should be called internally; not exported
+find_descendants <- function(graph, node) {
+  neighbors <- igraph::neighbors(graph, node, mode = "out")
+  descendants <- numeric(0)
+
+  while (length(neighbors) > 0) {
+    descendants <- unique(c(descendants, neighbors))
+    new_neighbors <- numeric(0)
+
+    for (neighbor in neighbors) {
+      new_neighbors <- c(new_neighbors, igraph::neighbors(graph, neighbor, mode = "out"))
+    }
+
+    neighbors <- setdiff(new_neighbors, descendants)
+  }
+
+  return(descendants)
+}
+
 #_ -------------------------------------------------------
 # fun: defineCellTypes data.frame, Cycif, CycifStack ----
-#' Define cell types
+
+#' Define Cell Types and set them in a Cycif or CycifStack object
 #'
-#'Perform a cell type calling function and set cell types in a Cycif or CycifStack object
+#' This function performs a cell type calling operation and sets cell types in a Cycif or CycifStack object.
+#'
+#' @param x A Cycif or CycifStack object.
+#' @param ctype A data.frame containing cell type definition.
+#' @param cstate A data.frame containing cell state definition.
+#' @param ct_name Name of the cell types.
+#' @param p_thres Numerical value between 0 and 1. A probability that corresponds to a threshold intensity. Default is 0.5.
+#' @param mc.cores Number of CPU cores to use for parallel processing. Default is 4.
+#' @param overwrite Logical, if TRUE, overwrite existing cell type definitions with the same name. Default is FALSE.
+#' @param ... Additional arguments (currently unused).
+#'
+#' @details
+#' The `defineCellTypes` function performs a cell type calling operation and sets cell types in a Cycif or CycifStack object. It takes as input a `ctype` data.frame, a `cstate` data.frame, and optional parameters for thresholding and parallel processing. Cell types can be defined at different hierarchy levels, and the results can be stored under a specified `ct_name`.
+#'
+#' If `ct_name` already exists and `overwrite` is set to FALSE, the function will not overwrite the existing cell type definitions and will issue a warning.
+#'
+#' @return A modified Cycif or CycifStack object with updated cell type information.
 #'
 #' @export
+#'
+#' @seealso \code{\link{CellTypeSkeleton}}, \code{\link{cyApply}}
 setGeneric("defineCellTypes", function(x,...) standardGeneric("defineCellTypes"))
 
-
 #' @rdname defineCellTypes
-#'
-#' @param x A Cycif object.
-#' @param ctype a data.frame containing cell type definition
-#' @param cstate a data.frame containing cell state definition
-#' @param ct_anme name of the cell types
-#' @param gates a data.frame containing gates (n.samples x n.proteins)
-#' @param p_thres numerical between 0 and 1. A probability that corresponds to a threshold intensity
-#'
-#' @usage
-#' defineCellTypes(x,ctype,cstate,gates,p_thres=0.5,...)
-#'
 #' @export
 setMethod("defineCellTypes", "data.frame",
           function(x,
@@ -705,16 +830,6 @@ setMethod("defineCellTypes", "data.frame",
 })
 
 #' @rdname defineCellTypes
-#'
-#' @param x A Cycif object.
-#' @param ctype a data.frame containing cell type definition
-#' @param cstate a data.frame containing cell state definition
-#' @param ct_anme name of the cell types
-#' @param p_thres numerical between 0 and 1. A probability that corresponds to a threshold intensity
-#'
-#' @usage
-#' defineCellTypes(x,ctype,cstate,p_thres=0.5,...)
-#'
 #' @export
 setMethod("defineCellTypes", "Cycif",
           function(x,
@@ -776,16 +891,8 @@ setMethod("defineCellTypes", "Cycif",
           }
 )
 
-#'#' Define cell types for a CycifStack object
-#'
-#' @param x a CycifStack object
-#' @param ... additional arguments (currently unused)
-#'
-#' @return a modified CycifStack object with updated cell type information
-#'
-#' @export
 #' @rdname defineCellTypes
-#' @method defineCellTypes CycifStack
+#' @export
 setMethod("defineCellTypes", "CycifStack",
   function(x,
            ctype,
@@ -840,10 +947,28 @@ setMethod("defineCellTypes", "CycifStack",
 
 #_ -------------------------------------------------------
 
-# fun: cell_types Cycif, CycifStack, CellTypeCycif, CellTypeCycifStack ----
+# fun: cell_types Cycif, CycifStack, CellType ----
+
+#' @title Get cell type information from a CellTypes, Cycif, or CycifStack object.
+#'
+#' @description This function retrieves cell type information from a CellTypes, Cycif, or CycifStack object.
+#' You can specify the cell type calling method to use (if applicable) and whether
+#' to include only strict cell type assignments.
+#'
+#' @param x A CellTypes, Cycif, or CycifStack object.
+#' @param ct_name Name of the cell type calling method (default is "default").
+#' @param strict Logical, whether to include only strict cell type assignments.
+#' Strict assignment returns NA when more than one cell type can be assigned to a cell, e.g., CD8T cell and Tumor cell  (default is FALSE).
+#'
+#' @return A data frame with cell type information, including sample names and cell types.
+#'
+#' @seealso
+#' \code{\link{Cycif}}, \code{\link{CycifStack}}, \code{\link{CellTypes}}
+#'
 #' @export
 setGeneric("cell_types", function(x,...) standardGeneric("cell_types"))
 
+#' @rdname cell_types
 #' @export
 setMethod("cell_types", "CellTypes",function(x,strict=FALSE){
   cts <- x@cell_types
@@ -856,6 +981,7 @@ setMethod("cell_types", "CellTypes",function(x,strict=FALSE){
   return(cts)
 }) # fast
 
+#' @rdname cell_types
 #' @export
 setMethod("cell_types","Cycif",
           function(x,
@@ -872,6 +998,7 @@ setMethod("cell_types","Cycif",
   return(df)
 })
 
+#' @rdname cell_types
 #' @export
 setMethod("cell_types", "CycifStack",
           function(x,
@@ -895,12 +1022,30 @@ setMethod("cell_types", "CycifStack",
 
 # fun: barplotPosCells Cycif, CycifStack ----
 
-#' Get stats for positive cells after gating each abs
+#' @title Create barplots to visualize positive cell ratios for each antibody in a Cycif object.
+#'
+#' @description This function generates barplots to visualize the ratios of positive cells for each antibody
+#' in a Cycif object. You can choose between two types of barplots ('one' or 'two') and specify
+#' additional graphical parameters.
+#'
+#' @param x A Cycif object.
+#' @param type Type of barplot to create: 'one' (default) or 'two'.
+#' @param mar A numeric vector of length 4 specifying the margin size for the plot.
+#'
+#' @details
+#' The 'one' type of barplot displays the ratios of positive cells for each antibody separately.
+#' It distinguishes between 'strict', 'non-strict', and 'cell-state' positive cells if applicable.
+#' The 'two' type of barplot displays the pairwise overlap ratios of positive cells for each antibody.
+#'
+#' @return A barplot showing the ratios of positive cells for each antibody.
+#'
+#' @importFrom RColorBrewer brewer.pal
+#'
+#' @rdname barplotPosCells
 #' @export
 setGeneric("barplotPosCells", function(x,...) standardGeneric("barplotPosCells"))
 
 #' @rdname barplotPosCells
-#' @importFrom RColorBrewer brewer.pal
 #' @export
 setMethod("barplotPosCells", "Cycif",function(x,type=c("one","two"),mar,...){
   smpl <- names(x)

@@ -4,7 +4,7 @@
 \alias{plotUsedCellRatio}
 \alias{plotUsedCellRatio,Cycif-method}
 \alias{plotUsedCellRatio,CycifStack-method}
-\title{Plot the ratio of used cells}
+\title{Plot Used Cell Ratio}
 \usage{
 plotUsedCellRatio(x, ...)
 
@@ -30,6 +30,35 @@ plotUsedCellRatio(x, ...)
   ...
 )
 }
+\arguments{
+\item{x}{A CycifStack object or a list of Cycif objects.}
+
+\item{...}{Additional graphical parameters to customize the plot.}
+
+\item{cumulative}{Should the cumulative ratio be plotted? (default is TRUE)}
+
+\item{ncycle}{The number of cycles to consider for plotting (default is determined by the data).}
+
+\item{mar}{Margins for the plot (default is c(5, 5, 4, 10)).}
+
+\item{main}{Main title for the plot (default is "# cells attached on slide").}
+
+\item{smpl.cols}{Colors for sample labels (default is generated using a color palette).}
+
+\item{ncol}{Number of columns for the legend (default is 1).}
+
+\item{leg.cex}{Size of the legend text (default is 0.8).}
+
+\item{use_rois}{Should regions of interest (ROIs) be considered in the analysis? (default is TRUE)}
+}
 \description{
-This function creates a plot of the ratio of used cells across channels.
+This function creates a plot of the ratio of used cells across channels in Cycif data.
+}
+\details{
+\itemize{
+\item The \code{plotUsedCellRatio} function creates a plot that visualizes the ratio of used cells in Cycif data.
+\item It calculates and plots the ratio of cells that are considered "used" based on the presence of regions of interest (ROIs).
+\item You can choose whether to display a cumulative ratio and specify the number of cycles to consider.
+\item The function also allows customization of various graphical parameters for the plot.
+}
 }

@@ -1,12 +1,28 @@
 #_ -------------------------------------------------------
 
 # fun: AbsSummary CycifStack ----
-#' Split a string
+
+#' A graphical summary of cycles and antibodies of a CycifStack class.
 #'
-#' @param x An object of Cycif class.
-#' @param show.cycles.in.row logical. FALSE by default. If TRUE, the output plot shows the number
-#'     of cycles each sample was stained for.
-#' @param ... Arguments passed to image() function.
+#' Generates an absolute summary plot for a CycifStack object.
+#'
+#' @param x A CycifStack object.
+#' @param show.cycles.in.row Logical, indicating whether to display cycle information in row labels.
+#' FALSE by default. If TRUE, the output plot shows the number of cycles each sample was stained for.
+#' @param ... Additional parameters to be passed to the \code{graphics::image} function.
+#'
+#' @return
+#' The function generates a graphical absolute summary plot and returns \code{NULL}.
+#'
+#' @details
+#' This function generates a plot that summarizes the antibodies used in a CycifStack object.
+#' It visualizes the antibodies across different samples and cycles.
+#'
+#' @seealso
+#' \code{\link{abs_list}}
+#'
+#' @importFrom graphics image box abline axis par
+#' @importFrom grDevices grey
 #'
 #' @export
 AbsSummary <- function(x,show.cycles.in.row=FALSE,...){
@@ -14,7 +30,7 @@ AbsSummary <- function(x,show.cycles.in.row=FALSE,...){
     stop("input should be a CycifStack obj.")
   }
   uniq.abs <- as.character(x@abs_list$ab)
-  n1 <- data.frame(data.table::rbindlist(lapply(x@samples,function(y){
+  n1 <- data.frame(do.call(rbind,lapply(x@samples,function(y){
     this.abs <- as.character(abs_list(y)$ab)
     tested <- uniq.abs %in% this.abs
     return(tested)
@@ -48,8 +64,53 @@ AbsSummary <- function(x,show.cycles.in.row=FALSE,...){
 #_ -------------------------------------------------------
 
 # fun: slidePlot Cycif ----
+#
+#' @title Create a Slide Plot
+#'
+#' @description This function generates a slide plot for visualizing different aspects of Cycif data, including DNA intensity,
+#' protein expression, cell types, or custom annotations.
+#'
+#' @param x A Cycif object.
+#' @param pch Plotting character for points (default is 20).
+#' @param cex Plotting character size (default is 2).
+#' @param bg.col Background color for points.
+#' @param plot_type Type of slide plot to create: "dna" for DNA intensity, "exp" for protein expression,
+#'   "cell_type" for cell types, or "custom" for custom annotations.
+#' @param custom_labs (For plot_type="custom") A factor vector of custom annotations to be used as labels.
+#' @param ct_name The name of the cell type variable in the data.
+#' @param strict (For plot_type="cell_type") If TRUE, cell type labels must exactly match those in the data.
+#' @param ttl Title for the slide plot.
+#' @param leg.ttl Legend title.
+#' @param ab The name of the channel for plotting (e.g., "DNA1", "CD45", etc.).
+#' @param uniq.cts (For plot_type="cell_type") A vector of unique cell type labels to be displayed.
+#' @param uniq.cols (For plot_type="cell_type") A vector of unique colors corresponding to unique cell types.
+#' @param draw.roi Should regions of interest (ROIs) be drawn on the slide plot? (default is FALSE)
+#' @param show.na Should cells with missing values be displayed? (default is TRUE)
+#' @param na.col Color for cells with missing values.
+#' @param use_rois Should ROIs be used in the analysis? (default is TRUE)
+#' @param use.thres Should thresholding be applied to the data? (default is TRUE)
+#' @param contour Should contour lines be added to the plot? (default is FALSE)
+#' @param cont_nlevs The number of contour levels (default is 3).
+#' @param ncells Maximum number of cells to display (default is 1e4).
+#' @param trim_th Trimming threshold for outlier removal (default is 1e-2).
+#' @param legend Should a legend be displayed on the slide plot? (default is FALSE)
+#' @param legend.pos Position of the legend on the slide plot (default is automatic).
+#' @param mar Margins for the plot (default is c(3, 3, 3, 3)).
+#' @param roi.rec A list specifying the region of interest (ROI) rectangle, including 'x' and 'y' ranges.
+#' @param ... Additional graphical parameters to customize the plot.
+#'
+#' @details
+#' - The `slidePlot` function generates a slide plot for visualizing Cycif data.
+#' - You can choose the type of slide plot using the `plot_type` parameter, which can be "dna" for DNA intensity,
+#'   "exp" for protein expression, "cell_type" for cell types, or "custom" for custom annotations.
+#' - The function allows you to display ROIs, customize color schemes, and control various plotting parameters.
+#'
 #' @export
+#' @rdname slidePlot
 setGeneric("slidePlot", function(x,...) standardGeneric("slidePlot"))
+
+#' @export
+#' @rdname slidePlot
 setMethod("slidePlot", "Cycif",
           function(x,pch=20,cex=2,bg.col,
                    plot_type=c("dna","exp","cell_type","custom"),
@@ -291,24 +352,34 @@ setMethod("slidePlot", "Cycif",
           }
 )
 
-trim_fun <- function(x,trim_th = 1e-3){
-  qts <- stats::quantile(x,c(trim_th,1-trim_th),na.rm=T)
-  x[x < qts[1]] <- qts[1]
-  x[x > qts[2]] <- qts[2]
-  return(x)
-}
-
 
 #_ -------------------------------------------------------
 
 # fun: plotUsedCellRatio Cycif,CycifStack ----
 
-#' Plot the ratio of used cells
+#' Plot Used Cell Ratio
 #'
-#' This function creates a plot of the ratio of used cells across channels.
+#' This function creates a plot of the ratio of used cells across channels in Cycif data.
 #'
+#' @param x A CycifStack object or a list of Cycif objects.
+#' @param cumulative Should the cumulative ratio be plotted? (default is TRUE)
+#' @param ncycle The number of cycles to consider for plotting (default is determined by the data).
+#' @param mar Margins for the plot (default is c(5, 5, 4, 10)).
+#' @param main Main title for the plot (default is "# cells attached on slide").
+#' @param smpl.cols Colors for sample labels (default is generated using a color palette).
+#' @param ncol Number of columns for the legend (default is 1).
+#' @param leg.cex Size of the legend text (default is 0.8).
+#' @param use_rois Should regions of interest (ROIs) be considered in the analysis? (default is TRUE)
+#' @param ... Additional graphical parameters to customize the plot.
+#'
+#' @details
+#' - The `plotUsedCellRatio` function creates a plot that visualizes the ratio of used cells in Cycif data.
+#' - It calculates and plots the ratio of cells that are considered "used" based on the presence of regions of interest (ROIs).
+#' - You can choose whether to display a cumulative ratio and specify the number of cycles to consider.
+#' - The function also allows customization of various graphical parameters for the plot.
+#'
+#' @rdname plotUsedCellRatio
 #' @export
-#'
 setGeneric("plotUsedCellRatio",function(x,...) standardGeneric("plotUsedCellRatio"))
 
 #' @rdname plotUsedCellRatio
@@ -319,7 +390,6 @@ setMethod("plotUsedCellRatio", "Cycif", function(x,cumulative=TRUE,ncycle,mar=c(
   ret <- plotUsedCellRatio(x,cumulative=cumulative,ncycle=ncycle,mar=mar,main=main,...)
   return(invisible(ret))
 })
-
 
 #' @rdname plotUsedCellRatio
 #' @export
@@ -382,9 +452,33 @@ setMethod("plotUsedCellRatio", "CycifStack",
 #_ -------------------------------------------------------
 
 # fun: plotAvailCellOnSlide Cycif ----
+#' Plot Available Cells on Slide
+#'
+#' This function creates a plot that visualizes the available cells on a slide in Cycif data.
+#'
+#' @param x A Cycif object.
+#' @param upside.down Should the plot be upside-down? (default is TRUE)
+#' @param ncycle The number of cycles to consider for plotting (default is determined by the data).
+#' @param mfrow Number of rows and columns in the grid of plots (default is c(3, 3)).
+#' @param mar Margins for each individual plot (default is c(0, 0, 4, 0)).
+#' @param legend Should a legend be included in the plot? (default is TRUE)
+#' @param main Main title for the plot (default is the names of the Cycif object).
+#' @param cex.title Size of the main title text (default is 1).
+#' @param uniq.cols Colors for different cell states (default colors).
+#' @param legend.cex Size of the legend text (default is 2).
+#' @param xlab Label for the x-axis (default is empty).
+#' @param ylab Label for the y-axis (default is empty).
+#' @param ... Additional graphical parameters to customize the individual plots.
+#'
+#' @details
+#' - The `plotAvailCellOnSlide` function creates a grid of plots, each representing the available cells on a slide for a specific cycle.
+#' - The plots show the spatial distribution of available cells in different colors, with an optional legend.
+#' - You can customize the appearance of the plots and the legend using various graphical parameters.
+#'
 #' @export
 setGeneric("plotAvailCellOnSlide",function(x,...) standardGeneric("plotAvailCellOnSlide"))
 
+#' @rdname plotAvailCellOnSlide
 #' @export
 setMethod("plotAvailCellOnSlide", "Cycif",
           function(x,upside.down=TRUE,ncycle,mfrow=c(3,3),mar=c(0,0,4,0),legend=TRUE,main=names(x),cex.title=1,
@@ -437,10 +531,35 @@ setMethod("plotAvailCellOnSlide", "Cycif",
 #_ -------------------------------------------------------
 
 # fun: vlnPlot CycifStack ----
-#' Violin plots to show protein expressions
+#' Violin Plots to Show Protein Expressions
+#'
+#' This function creates violin plots to visualize protein expressions in Cycif data.
+#'
+#' @param x A CycifStack object.
+#' @param strat.by The strategy for stratifying the violin plots. Choose from "cell_type" or "smpl" (default is "cell_type").
+#' @param ab The antibody or protein to plot.
+#' @param use.pdata Should sample metadata be used for additional information? (default is FALSE).
+#' @param fill.var The variable to use for filling the violin plots (default is "sample").
+#' @param draw_thres Should the threshold be drawn on the plot? (default is FALSE).
+#' @param type The type of data to use for plotting. Choose from "raw", "log", or "logTh" (default is "log").
+#' @param strict Should strict cell type matching be enforced? (default is FALSE).
+#' @param ct_name The name of the cell type column (default is "default").
+#' @param ttl The title for the plot (default is determined based on inputs).
+#' @param uniq.cts Unique cell types to include in the plot (default is all unique cell types).
+#' @param uniq.smpls Unique samples to include in the plot (default is all samples).
+#'
+#' @details
+#' - The `vlnPlot` function creates violin plots to visualize the protein expressions in Cycif data.
+#' - You can stratify the plots by either cell types or samples using the `strat.by` parameter.
+#' - Additional customization of the plot can be achieved using various graphical parameters.
+#'
+#' @importFrom dplyr left_join
+#' @importFrom ggplot2 aes geom_violin position_dodge ggtitle coord_fixed theme_void
+#'
 #' @export
 setGeneric("vlnPlot", function(x,...) standardGeneric("vlnPlot"))
 
+#' @rdname vlnPlot
 #' @export
 setMethod("vlnPlot", "CycifStack",
           function(x,strat.by=c("cell_type","smpl"), ab="PDL1",
@@ -574,9 +693,27 @@ setMethod("vlnPlot", "CycifStack",
 #_ -------------------------------------------------------
 
 # fun: hist_1d numeric ----
-#'@importFrom RColorBrewer brewer.pal
-#'@importFrom stats loess predict
-#'@export
+
+#' 1D Histogram Plot
+#'
+#' This function creates a 1D histogram plot for a numeric vector.
+#'
+#' @param x A numeric vector for which the histogram is to be plotted.
+#' @param n The number of bins or breaks for the histogram (default is 1000).
+#' @param ths A vector of threshold values to mark on the plot (default is NULL).
+#' @param mar A numerical vector of length 4 specifying the margin sizes (default is c(3, 4, 4, 2) + 0.1).
+#' @param brks1 A vector of pre-defined breaks for the histogram (default is NULL).
+#' @param ttl1 The title for the histogram plot (default is NULL).
+#'
+#' @details
+#' - The `hist_1d` function creates a 1D histogram plot to visualize the distribution of a numeric vector.
+#' - You can specify the number of bins with the `n` parameter or provide custom break points with the `brks1` parameter.
+#' - Threshold values can be added to the plot using the `ths` parameter.
+#' - Additional customization of the plot can be achieved using various graphical parameters.
+#'
+#' @importFrom RColorBrewer brewer.pal
+#' @importFrom stats loess predict
+#' @export
 hist_1d <- function(x,n=1000,ths,mar=c(3,4,4,2)+.1,brks1,ttl1){
   omar <- par()$mar
   par(mar=mar)
@@ -602,7 +739,33 @@ hist_1d <- function(x,n=1000,ths,mar=c(3,4,4,2)+.1,brks1,ttl1){
   invisible(list(a=a,smoothened=smoothened))
 }
 
+#_ -------------------------------------------------------
+
 # fun: h3/heatmap3 matrix, data.frame ----
+
+#' 3D Heatmap Plot (extension of heatmap3)
+#'
+#' This function creates a 3D heatmap plot to visualize a matrix of data, extending \code{heatmap3::heatmap3}.
+#'
+#' @param x A numeric matrix containing the data to be plotted.
+#' @param Rowv Specifies the row dendrogram or clustering (default is NULL).
+#' @param Colv Specifies the column dendrogram or clustering (default is NULL).
+#' @param distfun A function to calculate the distance matrix for rows (default is dist).
+#' @param distfunC A function to calculate the distance matrix for columns (default is NULL).
+#' @param distfunR A function to calculate the distance matrix for rows (default is NULL).
+#' @param balanceColor Logical, indicating whether to balance colors (default is FALSE).
+#' @param ColSideLabs Labels for the columns' side (default is NULL).
+#' @param RowSideLabs Labels for the rows' side (default is NULL).
+#' @param showColDendro Logical, indicating whether to show the column dendrogram (default is TRUE).
+#' @param showRowDendro Logical, indicating whether to show the row dendrogram (default is TRUE).
+#' @param col A color palette for the heatmap (default is a gradient from navy to firebrick3).
+#' @param legendfun A custom function to create the legend (default is NULL).
+#'
+#' @details
+#' - The `h3` function creates a 3D heatmap plot to visualize a matrix of data, extending and customizing \code{heatmap3::heatmap3} function.
+#' - It allows customization of various aspects of the plot, including colors, labels, and dendrograms.
+#' - Additional functionalities like distance matrix calculations and custom legends are available.
+#'
 #' @export
 h3 <- function (x, Rowv = NULL, Colv = if (symm) "Rowv" else NULL,
                 # distfun = function(x) as.dist(1 - cor(t(x), use = "pa")),
@@ -1038,11 +1201,34 @@ h3 <- function (x, Rowv = NULL, Colv = if (symm) "Rowv" else NULL,
                  hcr = hcr, hcc = hcc))
 }
 
+#_ -------------------------------------------------------
+
 # fun: heatmapSummAb (Cycif),CycifStack ----
-#' Violin plots to show protein expressions
+
+#' Create Heatmap Summary of Protein Expression
+#'
+#' This function generates a heatmap summarizing protein expression data from a `CycifStack` object.
+#'
+#' @param x A `CycifStack` object containing protein expression data.
+#' @param norm_type Normalization type for the data, one of "log" or "logTh" (default is "log").
+#' @param ab The name of the protein to be used for summarization.
+#' @param sum_type The type of summarization to be performed, one of "freq", "mean", "median", or "x percentile" (e.g., "95 percentile").
+#' @param ct_name The name of the cell type column (default is "default").
+#' @param uniq_cts Vector of unique cell types to include in the heatmap.
+#' @param uniq.smpls Vector of unique samples to include in the heatmap.
+#' @param strict Logical, indicating strict filtering of cell types (default is FALSE).
+#' @param scale Scaling method for the heatmap, one of "none", "row", or "column" (default is "none").
+#'
+#' @details
+#' - The `heatmapSummAb` function creates a heatmap summarizing protein expression data for the specified protein.
+#' - Users can choose from different normalization types and summarization methods.
+#' - Cell types and samples can be filtered and customized for the heatmap.
+#'
 #' @export
+#' @rdname heatmapSummAb
 setGeneric("heatmapSummAb", function(x,...) standardGeneric("heatmapSummAb"))
 
+#' @rdname heatmapSummAb
 #' @export
 setMethod("heatmapSummAb", "CycifStack",
           function(x,norm_type=c("log","logTh"), ab,
@@ -1146,23 +1332,35 @@ setMethod("heatmapSummAb", "CycifStack",
 
 # fun: lowDimPlot Cycif, CycifStack ----
 
-#' Plot 2D-coordinates computed by UMAP or T-SNE
+#' Create Low-Dimensional Plot
 #'
-#' @param x A CycifStack object
-
-#' @param type character, indicating how cells are colored. 'cell_type' is cell types
-#'   computed prior to the plotting, 'smpl' show the samples the cells derived from,
-#'   and 'exp' is expression of one antibody. When 'cell_type' and 'exp', additional
-#'   parameters needs to be provided.
-#' @param cell_type a factor with the length of cell number, indicating cell types computed
-#'   elsewhere. This needs to be provided when type is 'cell_type'.
-#' @param ab character, indicating one channel/antibody. This needs to be provided when
-#'   type is 'exp'.
-#' @param uniq.cols color sets used for the plot()
-#' @param pch pch passed to plot()
-#' @param main main passed to plot()
-#' @param ... other arguments  passed to plot()
+#' This function generates low-dimensional plots for protein expression data from a `Cycif` or `CycifStack` object.
 #'
+#' @param x A `Cycif` or `CycifStack` object containing protein expression data.
+#' @param ld_name The name of the low-dimensional representation (e.g., UMAP or clustering).
+#' @param plot_type The type of low-dimensional plot to create, one of "cell_type", "cluster", "exp", or "smpl".
+#' @param ab The name of the protein to be used for coloring points (required when `plot_type` is "exp").
+#' @param uniq.cols Vector of unique colors to use for plotting points (optional).
+#' @param with.labels Logical, indicating whether to label points (default is TRUE).
+#' @param ct_name The name of the cell type column (default is "default").
+#' @param used.smpls Vector of samples to include in the plot.
+#' @param xlab Label for the x-axis.
+#' @param ylab Label for the y-axis.
+#' @param used.cts Vector of cell types to include in the plot.
+#' @param cex.main Size of the main title text (default is 2).
+#' @param main Title for the plot (default is auto-generated based on parameters).
+#' @param p_thres Threshold for plotting (default is 0.5).
+#' @param mar Margins of the plot.
+#' @param cex.labs Size of label text (default is 1).
+#' @param cex.leg Size of the legend text (default is 0.5).
+#' @param cex Size of data point labels (default is 0.3).
+#'
+#' @details
+#' - The `lowDimPlot` function creates low-dimensional plots for protein expression data based on the specified `Cycif` or `CycifStack` object.
+#' - Users can choose from different types of low-dimensional plots, including those based on cell types, clusters, protein expression, or samples.
+#' - Various customization options are available for labeling, coloring, and scaling the plot.
+#'
+#' @rdname lowDimPlot
 #' @export
 setGeneric("lowDimPlot", function(x,...) standardGeneric("lowDimPlot"))
 
@@ -1277,7 +1475,7 @@ setMethod("lowDimPlot", "CycifStack",
       if(!plot_type %in% names(pd)){
         stop("'plot_type' should be either 'exp','cell_type','smpl','cluster' or one of colnames(pd)" )
       }
-      xys <- xys %>% rename(id="sample") %>% left_join(pd,by="id")
+      xys <- xys %>% rename(id="sample") %>% dplyr::left_join(pd,by="id")
     }
 
     ## main
@@ -1308,7 +1506,6 @@ setMethod("lowDimPlot", "CycifStack",
       }
     }
 
-    ## plot -----
     p <- ggplot(xys,aes(x=x,y=y)) +
       geom_point(aes(color=!!sym(plot_type)),size=cex) +
       ggtitle(main) +
@@ -1333,3 +1530,253 @@ setMethod("lowDimPlot", "CycifStack",
 )
 
 #_ -------------------------------------------------------
+
+# Following functions are unique to TALAVE project ----
+
+## fun: barplotCTS ----
+
+#' Create a Barplot for Cell Type Composition (TALAVE)
+#'
+#' This function generates a composite barplot to visualize the composition of cell types across samples.
+#'
+#' @param n.sh A matrix or data frame containing cell type composition data, with cell types as rows and samples as columns.
+#' @param anno.smpls A data frame containing sample annotations, with sample names matching the column names of `n.sh`.
+#' @param uniq.cols A vector of unique colors to use for plotting cell types.
+#' @param ylim A numeric vector specifying the limits of the y-axis (default is c(0, 1)).
+#' @param ylab Label for the y-axis (default is "CellType Composition").
+#'
+#' @details
+#' The `barplotCTS` function creates a composite barplot with the following features:
+#'
+#' - Visualizes the composition of various cell types across multiple samples.
+#' - Each bar in the plot represents a sample, and the height of the bar is proportional to the composition of cell types within that sample.
+#' - The cell types are color-coded using unique colors specified in the `uniq.cols` parameter for easy identification.
+#' - Sample annotations, such as patient ID, disease subtype, time point, and others, are displayed below the main barplot to provide additional context.
+#' - The y-axis represents the composition proportion of cell types, and you can customize the y-axis label using the `ylab` parameter.
+#' - The `ylim` parameter allows you to set specific limits for the y-axis, controlling the range of the composition proportions displayed.
+#'
+#' This function is useful for visualizing and comparing cell type compositions across different samples, making it particularly valuable in biological and medical research for understanding the distribution of cell types in complex datasets.
+#'
+#' @export
+barplotCTS <- function(n.sh,anno.smpls,uniq.cols,ylim=c(0,1),ylab="CellType Composition"){
+  nf <- layout(as.matrix(c(6:1,7)),widths=1,heights=c(1,1,1,1,1,1,16))
+  if(!all(colnames(n.sh)==anno.smpls$id)){
+    stop("colnames(n.sh) and anno.smpls$id should be the sample names with identical order.")
+  }
+
+  ##
+  xs <- seq(ncol(n.sh))
+  range.xs <- range(xs) + c(-1,1)*1.75
+
+  ## 1: plot BOR
+  par(mar=c(0,7,.5,10))
+  par(tcl=0)
+  image(xs,1,as.matrix(as.numeric(anno.smpls$BOR)),col=brewer.pal(3,"Set1")[c(1,3,2)],axes=F,
+        xlab="",ylab="",xlim=range.xs)
+  axis(2,at=1,labels=c("BOR"),las=1)
+
+  ## 2: plot PFS
+  par(mar=c(0,7,.5,10))
+  pfs <- anno.smpls$PFS_days
+  pfs.idx <- pfs - min(pfs,na.rm=T) + 1
+  pfs.uniq.cols <- colorRampPalette(brewer.pal(9,"Blues"))(max(pfs.idx,na.rm=T))
+  pfs.col <- c("grey80",pfs.uniq.cols[unique(sort(pfs.idx))])
+  pfs.idx[is.na(pfs.idx)] <- -1
+  pfs.idx <- as.numeric(factor(pfs.idx))
+
+  par(tcl=0)
+  image(xs,1,as.matrix(pfs.idx),col=pfs.col,axes=F,
+        xlab="",ylab="",xlim=range.xs)
+  axis(2,at=1,labels=c("PFS"),las=1)
+
+  ## 3: plot Time point
+  par(mar=c(0,7,.5,10))
+  image(xs,1,as.matrix(as.numeric(anno.smpls$TimePoint)),col=brewer.pal(3,"Set2"),axes=F,
+        xlab="",ylab="",xlim=range.xs)
+  axis(2,at=1,labels=c("Time point"),las=1)
+
+  ## 4: plot Subtype
+  par(mar=c(0,7,.5,10))
+  image(xs,1,as.matrix(as.numeric(anno.smpls$Subtype)),col=brewer.pal(3,"Dark2")[1:2],axes=F,
+        xlab="",ylab="",xlim=range.xs)
+  axis(2,at=1,labels=c("Subtype"),las=1)
+
+  ## 5: plot gBRCA
+  par(mar=c(0,7,.5,10))
+  image(xs,1,as.matrix(as.numeric(factor(anno.smpls$gBRCA.status))),col=c("grey20","grey80"),axes=F,
+        xlab="",ylab="",xlim=range.xs)
+  axis(2,at=1,labels=c("gBRCA.status"),las=1)
+
+  ## 6: plot Patient
+  par(mar=c(0,7,.5,10))
+  par(tcl=0)
+  image(xs,1,as.matrix(as.numeric(anno.smpls$Patient)),col=c(brewer.pal(12,"Set3"),brewer.pal(8,"Pastel1")),
+        axes=F,
+        xlab="",ylab="",xlim=range.xs)
+  axis(2,at=1,labels=c("Patient"),las=1)
+
+  ## 7: main barplot
+  par(mar=c(7,7,1,10))
+  par(tcl=-0.5)
+
+  ymax <- ylim[2]
+  if(ymax!=1){
+    if(!"others" %in% rownames(n.sh)){
+      stop("Unless 'others' is in cell types, ymax should be 1")
+    }else{
+      n.sh["others",] <- n.sh["others",] - (1-ymax)
+    }
+  }
+
+  xx <- barplot(n.sh,beside=F,border=F,col=uniq.cols,las=2,
+                main="",names.arg=rep("",ncol(n.sh)),
+                ylab=ylab)
+  med.x <- tapply(seq(nrow(anno.smpls)),
+                  factor(anno.smpls$Patient.ID,levels=unique(anno.smpls$Patient.ID)),median)
+  xidx <- sapply(med.x,function(x){
+    if(x %% 1 == 0.5){
+      median(xx[floor(x)+ (0:1)])
+    }else{
+      xx[x]
+    }
+  })
+
+  par(xpd=T)
+  legend(par()$usr[2],par()$usr[4],levels(anno.smpls$BOR),fill=brewer.pal(3,"Set1")[c(1,3,2)],title="BOR")
+  legend(par()$usr[2],.8*ymax,levels(anno.smpls$TimePoint),fill=brewer.pal(3,"Set2"),title="TimePoint")
+  legend(par()$usr[2],.55*ymax,c("MUT","WT"),fill=c("grey20","grey80"),title="gBRCA")
+  legend(par()$usr[2],.375*ymax,levels(anno.smpls$Subtype),fill=brewer.pal(3,"Dark2"),title="Subtype")
+  legend(par()$usr[2],0.2*ymax,sub("CD68_CD163_","DP_",rownames(n.sh)),fill=uniq.cols,title="Cell types")
+  par(xpd=F)
+  par(fg=NA)
+  axis(1,at=xidx,labels=names(med.x),las=2,cex.axis=.8)
+  par(fg="black")
+
+  d <- diff(xx[1:2])
+  par(xpd=T)
+  pts <- factor(anno.smpls$Patient.ID,levels=unique(anno.smpls$Patient.ID))
+  vs <- c(xx[1]-d/2,xx[cumsum(table(pts))] + d/2)
+  sapply(vs,function(x1){
+    lines(rep(x1,2),c(-0.05,1.4),lty=2)
+  })
+  par(xpd=F)
+
+}
+
+## fun: createRSC ----
+
+# compute RowSideColors of heatmap3(), or its modified version, h3().
+
+#' Create RowSideColors for Heatmap Visualization (TALAVE)
+#'
+#' This function generates RowSideColors (RSC) for use in heatmap visualization, typically with the `heatmap3` or `h3` functions. RSC assigns colors to rows (e.g., samples or features) based on sample annotations, such as Patient ID, gBRCA mutation status, time points, BOR (type of breast cancer), and clusters (for dimension reduction analysis).
+#'
+#' @param cs A `CycifStack` object or other data structure containing sample annotations used for color assignment.
+#' @param with.clusters Logical value indicating whether to include clustering information in the RowSideColors (default is TRUE). If TRUE, the function expects a `ld_name` to specify the clustering to be used.
+#' @param ld_name A character string specifying the name of the UMAP or clustering to be used when `with.clusters` is TRUE. Required if `with.clusters` is TRUE.
+#' @param order A character string specifying the desired order of the RowSideColors. The order can be a combination of the following letters: "B" for BOR, "c" for clusters, "T" for TimePoint, "g" for gBRCA.status, and "P" for Patient.ID. This parameter allows you to customize the order of the RowSideColors according to your preference (default is NULL).
+#'
+#' @return A list containing the following elements:
+#' \itemize{
+#'   \item \code{pd}: A data frame with row names and the specified annotations.
+#'   \item \code{rsc}: A matrix representing the RowSideColors for the heatmap.
+#'   \item \code{row.order}: The order of rows in the RSC matrix if custom ordering is applied (only returned if the \code{order} parameter is provided).
+#' }
+#'
+#' @details
+#' The `createRSC` function generates RowSideColors for heatmap visualization based on sample annotations. The function assigns colors to rows (samples or features) in the heatmap, making it easier to identify patterns and relationships between samples.
+#'
+#' The available annotations for color assignment are:
+#' - Patient ID
+#' - gBRCA mutation status (MUT or WT)
+#' - Time point
+#' - BOR (type of breast cancer)
+#' - Clusters (dimension reduction clusters, requires specifying `ld_name` when `with.clusters` is TRUE)
+#'
+#' You can customize the order of the RowSideColors using the \code{order} parameter, which allows you to specify the order of annotations to be displayed in the heatmap from left to right. For example, setting \code{order = "BPcgT"} will order the annotations as BOR, Patient ID, clusters, gBRCA status, and TimePoint.
+#'
+#' This function is especially useful for visualizing multi-dimensional data, such as cytometry data, in a heatmap, allowing you to explore relationships between samples and their associated annotations.
+#'
+#' @export
+createRSC <- function(cs,with.clusters=T,ld_name,order){
+  pd <- pData(cs) %>%
+    rename(smpl=id) %>%
+    filter(smpl %in% names(cs))
+
+  col1 <- RColorBrewer::brewer.pal(length(unique(pd$Patient.ID)),"Set3")
+  names(col1) <- unique(pd$Patient.ID)
+  col2 <- c("grey20","grey80")
+  names(col2) <- c("MUT","WT")
+  col3 <- RColorBrewer::brewer.pal(length(unique(pd$TimePoint)),"Set2")
+  names(col3) <- levels(pd$TimePoint)
+  col4 <- RColorBrewer::brewer.pal(length(unique(pd$BOR)),"Set1")[c(1,3,2)]
+  names(col4) <- levels(pd$BOR)
+  col5 <- RColorBrewer::brewer.pal(length(unique(pd$BOR)),"Dark2")[1:2]
+  names(col5) <- levels(pd$Subtype)
+
+  ## compile rsc (RowSideColors) matrix
+  if(with.clusters){
+    if(missing(ld_name)){
+      stop("when 'with.clusters' is TRUE, 'ld_name' shoud be provided")
+    }
+    ld <- ld_coords(cs,ld_name)
+    clusts <- ld@clusters
+    ncls <- nlevels(clusts)
+    nsmpls <- ld@n_cells_total
+    smpls <- rep(names(nsmpls),nsmpls)
+    pd <- data.frame(
+      clusters = clusts,
+      smpl=smpls
+    ) %>% left_join(pd,by="smpl")
+
+    set.seed(123)
+    if(ncls < 9){
+      col5 <- RColorBrewer::brewer.pal(8,"Spectral")[seq(ncls)]
+    }else{
+      col5 <- colorRampPalette(RColorBrewer::brewer.pal(11,"Spectral"))(ncls)
+    }
+
+    names(col5) <- unique(pd$clusters)
+    rsc <- cbind(
+      Patient.ID = col1[pd$Patient.ID],
+      gBRCA.status = col2[pd$gBRCA.status],
+      TimePoint = col3[pd$TimePoint],
+      BOR = col4[pd$BOR],
+      clusters = col5[pd$clusters])
+  }else{
+    rsc <- cbind(
+      Patient.ID = col1[pd$Patient.ID],
+      gBRCA.status = col2[pd$gBRCA.status],
+      TimePoint = col3[pd$TimePoint],
+      BOR = col4[pd$BOR])
+  }
+
+  pd <- pd %>% tibble::rownames_to_column("idx")
+
+  ## reorder - specific to TALAVE project
+  if(!missing(order)){
+    o1 <- strsplit(order,"")[[1]]
+    o2 <- sapply(o1,function(x){
+      if(x=="B"){
+        x <- "BOR"
+      }else if(x=="c"){
+        x <- "clusters"
+      }else if(x=="T"){
+        x <- "TimePoint"
+      }else if(x=="g"){
+        x <- "gBRCA.status"
+      }else if(x=="P"){
+        x <- "Patient.ID"
+      }
+      return(x)
+    })
+
+    row.o <- rev(as.numeric((pd %>% arrange(!!!rlang::syms(o2)))$idx))
+    col.o <- rev(match(o1,sub("^(.).+","\\1",colnames(rsc))))
+    rsc1 <- rsc[row.o,col.o,drop=F]
+    pd1 <- pd[row.o,,drop=F]
+    return(list(pd=pd1,rsc=rsc1,row.order=row.o))
+  }else{
+    return(list(pd=pd,rsc=rsc))
+  }
+}

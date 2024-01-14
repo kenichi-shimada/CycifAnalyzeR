@@ -1,131 +1,5 @@
 #_ -------------------------------------------------------
 
-# utils Cycif ----
-
-#' @export
-setMethod("names", "Cycif", function(x) x@name)
-
-#' @export
-setGeneric("abs_list", function(x) standardGeneric("abs_list"))
-setMethod("abs_list", "Cycif", function(x) x@abs_list)
-
-#' @export
-setGeneric("dna", function(x) standardGeneric("dna"))
-setMethod("dna", "Cycif", function(x) x@dna)
-
-#' @export
-setGeneric("nCells", function(x) standardGeneric("nCells"))
-setMethod("nCells", "Cycif", function(x) x@n_cells)
-
-#' @export
-setGeneric("xys", function(x) standardGeneric("xys"))
-setMethod("xys", "Cycif", function(x) x@xy_coords)
-
-#' @export
-setGeneric("segProp", function(x) standardGeneric("segProp"))
-setMethod("segProp", "Cycif", function(x) x@segment_property)
-
-#' @export
-setGeneric("dna_thres", function(x) standardGeneric("dna_thres"))
-setMethod("dna_thres", "Cycif", function(x) x@dna_thres)
-
-#' @export
-setGeneric("used_cells", function(x) standardGeneric("used_cells"))
-setMethod("used_cells", "Cycif", function(x) rowSums(x@used_cells==1)==ncol(x@used_cells))
-
-#' @export
-setGeneric("within_rois", function(x) standardGeneric("within_rois"))
-setMethod("within_rois", "Cycif", function(x) x@within_rois)
-
-#' #' #' Replace the values of within_rois for a Cycif object
-#' #' #' @param object A cycif object.
-#' #' #' @param value logical. If TRUE, the area within ROIs is concerned for the downstream
-#' #' #' @export
-#' #' within_rois <- function(object, value) {
-#' #'   if(!is(object,"Cycif")){
-#' #'     stop("this function applies only to a Cycif object")
-#' #'   }
-#' #'   object@within_rois <- value
-#' #'   return(object)
-#' #' }
-#'
-#' #' Replace the values of within_rois for a Cycif object
-#' #'
-#' #' @param obj A \code{\link{Cycif}} object.
-#' #' @param value A named list of data.frames, with names corresponding to
-#' #'   the names of \code{object}'s channels.
-#' #'
-#' #' @return An updated \code{\link{Cycif}} object.
-#' #'
-#' #' @usage
-#' #' within_rois(x) <- value
-#' #' @export
-#' setReplaceMethod("within_rois",
-#'   signature(obj = "Cycif", value = "logical"),
-#'     function(obj, value) {
-#'       obj@name <- value
-#'       return(obj)
-#'   })
-
-#' @export
-setGeneric("nCycles", function(x) standardGeneric("nCycles"))
-
-#' @rdname nCycles
-#' @export
-setMethod("nCycles", "Cycif", function(x) x@n_cycles)
-
-#' @importFrom magrittr %>%
-#' @importFrom dplyr filter
-#' @export
-setGeneric("nCycles<-", function(x,...,value) standardGeneric("nCycles<-"))
-
-#' @export
-setMethod("nCycles<-", "Cycif", function(x,value){
-
-  if(!is.numeric(value)){
-    stop("value should be numeric")
-  }
-  value <- as.integer(value)
-
-  current.nc <- nCycles(x)
-  if(any(value > current.nc)){
-    stop("New max n_cycles should be less than or equal to the current max n_cycles.")
-  }
-
-  ## n_cycles, abs_list, raw, log_normalized, logTh_normalized, dna,
-  ## dna_thres
-  x@n_cycles <- value
-
-  x@abs_list <- abs_list(x) %>% filter(cycle <= value)
-  this.abs <- as.character(abs_list(x)$ab)
-
-  x@raw <- x@raw[this.abs]
-  if(all(this.abs %in% names(x@log_normalized))){
-    x@log_normalized <- x@log_normalized[this.abs]
-  }
-  if(all(this.abs %in% names(x@logTh_normalized))){
-    x@logTh_normalized <- x@logTh_normalized[this.abs]
-  }
-
-  x@dna <- x@dna[paste0("DNA",seq(value))]
-
-  if(nrow(x@used_cells)>0){
-    x@used_cells <- x@used_cells[,seq(value)]
-  }
-
-  if(nrow(x@dna_thres)>0){
-    x@dna_thres <- x@dna_thres[paste0("DNA",seq(value)),]
-  }
-
-  if(length(x@rois)>0){
-    ncys <- sapply(x@rois,function(y)y$cycle)
-    x@rois <- x@rois[ncys <= value]
-  }
-  return(x)
-})
-
-#_ -------------------------------------------------------
-
 # fun: parse_ft path ----
 parse_ft <- function(path){
   if(!file.exists(path)){
@@ -210,6 +84,30 @@ find_mcmicro_output_path <- function(smpl.path,mask_type=c("cellRing","cell")){
 #'   removed from the channel names.
 #' @param object a Cycif object
 #' @rdname Cycif
+#'
+#' @export
+
+#' @title Create a Cycif object
+#'
+#' @description
+#' The `Cycif` function creates a Cycif object from a given feature table file.
+#'
+#' @param ft_filename Character string, the name of the feature table file (a comma-separated file).
+#' @param path Character string, the path to the feature table file. Default is ".".
+#' @param mask_type Character vector specifying the type of mask used, options are "cellRing" or "cell".
+#' @param mcmicro Logical, indicating whether the feature table comes from MCMICRO.
+#' @param use_scimap Logical, indicating whether to use scimap python package for additional data processing. The default is FALSE (Note: scimap is used through reticulate but it's use is not fully implemented yet).
+#'
+#' @return
+#' A Cycif object containing information extracted from the feature table.
+#'
+#' @details
+#' The `Cycif` function reads a feature table file and extracts information such as the number of cycles,
+#' the number of cells, the list of antibodies, raw protein and DNA intensities, xy coordinates, and segment properties.
+#' It then creates a Cycif object with the extracted information.
+#'
+#' @seealso
+#' \code{\link{Cycif}}, \code{\link{CycifStack}}, \code{\link{CellTypes}}
 #'
 #' @export
 Cycif <- function(
@@ -384,100 +282,45 @@ setMethod("show", "Cycif", function(object) {
 
 
 #_ -------------------------------------------------------
-
-# fun: list2Cycif list ----
-#' Converting a list to a Cycif object
-#'
-#' @param x A list object
-#' @return A Cycif object
-#'
-#' @export
-setGeneric("list2Cycif", function(x) standardGeneric("list2Cycif"))
-
-#' @export
-setMethod("list2Cycif", "list",function(x){
-  slots.in.Cycif <- slotNames(getClassDef("Cycif"))
-  stopifnot(all(names(x) %in% slots.in.Cycif))
-  n.samples <- sum(sapply(x,length))
-  xs <- do.call(c,lapply(x,function(cs){
-    if(is(cs,"Cycif")){
-      out <- cs@samples
-    }else if(is(cs,"Cycif")){
-      out <- cs
-    }
-  }))
-
-  mask_type <- xs[[1]]@mask_type
-  nms <- 	names(xs) <- sapply(xs,names)
-  n_cells <- 	sapply(xs,nCells)
-  n_cycles <- sapply(xs,nCycles)
-  max_cycles <- max(n_cycles)
-
-  idx <- which(n_cycles == max_cycles)[1]
-  abs_list <- abs_list(xs[[idx]])
-  new("Cycif",
-     n_samples = n.samples,
-     names = nms,
-     abs_list = abs_list,
-     n_cycles = n_cycles,
-     max_cycles = max_cycles,
-     n_cells = n_cells,
-     samples = xs,
-     mask_type = mask_type
-  )
-})
-
-#_ -------------------------------------------------------
-
-# fun: set_abs ----
-setGeneric("set_abs<-", function(x,...,value)standardGeneric("set_abs<-"))
-setMethod("set_abs<-", "Cycif", function(x,value){
-  new.abs <- value
-  abs <- abs_list(x)$ab
-
-  if(length(abs)!=length(new.abs)){
-    stop("The number of 'new.abs' should be the same as the number of abs in abs_list(x)")
-  }else if(!all(names(new.abs)==abs)){
-    warning(names(new.abs))
-    warning(paste(abs,collapse="\n"))
-    stop("The names of the 'new.abs' should be the identical to abs_list(x)$ab")
-  }
-
-  x@abs_list$ab <- new.abs
-  names(x@raw) <- new.abs
-
-  if(nrow(x@log_normalized)>0){
-    names(x@log_normalized) <- new.abs
-  }
-
-  if(nrow(x@logTh_normalized)>0){
-    names(x@logTh_normalized) <- new.abs
-  }
-
-  return(x)
-})
-
-
-#_ -------------------------------------------------------
-
 # fun: cumUsedCells Cycif ----
-#' Show available cells at each cycle
+# fun: statUsedCells Cycif ----
+
+#' @title Calculate Cumulative and Summary Statistics for Used Cells
 #'
-#' @param x A Cycif object
-#' @param cumulative logical. If TRUE, available cells through cycles 1 to n are computed.
-#'   If FALSE, available cells at each cycle are computed.
-#' @param ratio Logical. If TRUE, show ratio of available and unavailable cells
-#'  at each cycle. If FALSE, actual actual number is provided.
+#' @description
+#' The `cumUsedCells` function calculates the number of cells that are available (ie, not dropped by `dnaFilter`)
+#' from 1st cycle to each cycle in a Cycif object.
+#'
+#' The `statUsedCells` function summarizes the available cells in each cycle,
+#' with options to return cumulative counts and ratios.
+#'
+#' @param x A Cycif object.
+#'
+#' @param cumulative Logical. If TRUE, return the cumulative number of used cells (cumUsedCells) or
+#' cumulative counts in each cycle (statUsedCells). If FALSE, return counts in each cycle (statUsedCells).
+#' Default is TRUE.
+#'
+#' @param ratio Logical. If TRUE, return the ratio of available cells over all the cells (statUsedCells).
+#' Default is TRUE.
+#'
+#' @param use_rois Logical. If TRUE, compute available cells within pre-specified ROIs.
+#' Default is TRUE.
 #'
 #' @usage
-#' cumUsedCells(x,use_rois=TRUE)
+#' cumUsedCells(x, use_rois = TRUE)
+#' statUsedCells(x, cumulative = TRUE, ratio = TRUE, use_rois = TRUE)
 #'
-#' @return cumUsedCells() returns a matrix where rows correspond to cells
-#'   and columns correspond to cycles. statUsedCells() returns a table sumarizing
-#'   the numbers of available and unavailable cells at each cycle.
+#' @return
+#' For cumUsedCells, a matrix with the cumulative number of used cells at each cycle is returned.
+#' For statUsedCells, a table summarizing the available cells is returned, with options for cumulative counts
+#' and ratios.
 #'
 #' @export
+#' @importFrom methods setMethod
 setGeneric("cumUsedCells", function(x,...) standardGeneric("cumUsedCells"))
+
+#' @rdname cumUsedCells
+#' @export
 setMethod("cumUsedCells", "Cycif",
           function(x,use_rois=TRUE){
             u <- x@used_cells
@@ -498,22 +341,11 @@ setMethod("cumUsedCells", "Cycif",
           }
 )
 
-# fun: statUsedCells Cycif ----
-
+#' @rdname cumUsedCells
 #' @export
 setGeneric("statUsedCells", function(x,...) standardGeneric("statUsedCells"))
 
-#' Summarize available cells at each cycle
-#' @rdname statUsedCells
-#'
-#' @param cumulative logical. If TRUE, return the number of cells available from cycle 1 to N. FALSE, return the number of cells in each cycle. Default is TRUE.
-#' @param ratio logical. If TRUE, return the ratio of available cells over all the cells. Default is TRUE.
-#' @param use_rois logical. If TRUE, compute available cells within pre-specified ROIs.
-#'
-#' @usage
-#' statUsedCells(x, cumulative=TRUE, ratio=TRUE, use_rois=TRUE)
-#'
-#' @order 2
+#' @rdname cumUsedCells
 #' @export
 setMethod("statUsedCells", "Cycif",
           function(x,cumulative=TRUE,ratio=TRUE,use_rois=TRUE){

@@ -3,39 +3,33 @@
 \name{normalize}
 \alias{normalize}
 \alias{normalize,Cycif-method}
-\alias{transform}
-\title{Show a raw or normalized protein expression matrix}
+\title{Normalize a Cycif or CycifStack object}
 \usage{
 normalize(x, ...)
 
 \S4method{normalize}{Cycif}(x, method = c("log", "logTh", "invlog"), trim = 0.001, p_thres = 0.5)
-
-transform(
-  r,
-  method = c("log", "logTh", "Th", "invlog"),
-  th,
-  p_thres = 0.5,
-  trim = 0.001
-)
 }
 \arguments{
 \item{x}{A Cycif or CycifStack object.}
 
-\item{method}{Either "log" or "logTh". "log" indicates that
-the raw values are transformed using log1p() function. "logTh" method
-further trim the outliers outside outside [trim,1-trim] quantiles,
-where trm is specified by trim parameter. Outlier-trimmed, log1p-transformed
-raw values are further transformed such that the value indicated by the threshold,
-th (in the case of transform() function) or threshold(x) (in the case of
-normalize() function) will be set to p_thres. Values below or above the threshold
-are linearly transformed to values between 0 and p_thres, or values between p_thres and 1,
-respectively.}
+\item{method}{Either "log" or "logTh". "log" indicates that the raw values are transformed using log1p() function. "logTh" method further trims the outliers outside the [trim, 1-trim] quantiles, where trim is specified by the trim parameter. Outlier-trimmed, log1p-transformed raw values are further transformed such that the value indicated by the threshold, th (in the case of transform() function) or threshold(x) (in the case of normalize() function) will be set to p_thres. Values below or above the threshold are linearly transformed to values between 0 and p_thres, or values between p_thres and 1, respectively.}
 
-\item{r}{A numeric scholar indicating a raw expression value.}
+\item{trim}{A numeric scalar specifying the trim value for outlier trimming.}
 
-\item{th}{A numeric scholar. A user-provided threshold for a raw expression value
-for each protein for each sample.}
+\item{p_thres}{A numeric scalar specifying the threshold value for linear transformation.}
+
+\item{th}{A numeric scholar. A user-provided threshold for a raw expression value for each protein for each sample.}
 }
 \description{
-Show a raw or normalized protein expression matrix
+This function allows you to normalize a Cycif or CycifStack object, either using a simple logarithmic transformation or a more advanced transformation method with optional thresholding and trimming.
+}
+\details{
+The \code{normalize} function is used to preprocess protein expression data in Cycif or CycifStack objects. It provides two main normalization methods: "log" for simple logarithmic transformation and "logTh" for more advanced normalization with optional thresholding and trimming.
+
+For "log" method, the function applies a logarithmic transformation using log1p(), followed by optional outlier trimming using the specified trim parameter.
+
+For "logTh" method, in addition to logarithmic transformation and trimming, the function allows users to set a threshold (th) for each protein. Values above or below the threshold are linearly transformed to fit within the specified range, defined by p_thres.
+}
+\seealso{
+\code{\link{transform}}
 }

@@ -2,22 +2,36 @@
 
 # fun: pData CycifStack ----
 
-#' Show sample metadata
+#' Show or Set Sample metadata
 #'
-#' @param x A Cycif object
+#' These functions allow you to show or set sample metadata for a Cycif or CycifStack object.
+#'
+#' @param x A Cycif or CycifStack object.
+#' @param value For `pData<-`, a data frame containing sample metadata.
+#' @param by (For `pData<-`) The column name in the value data frame that contains sample names.
+#'        This column name should be set as the 'id' for sample identification.
+#'
+#' @details
+#' - `pData` retrieves and displays the sample metadata associated with the input Cycif or CycifStack object.
+#' - `pData<-` allows you to insert or replace sample metadata in the Cycif or CycifStack object with a provided data frame.
+#'   Make sure the 'id' column in the data frame matches the sample names accessed by `names(x)`.
+#'
+#' @rdname pData
 #' @export
 setGeneric("pData", function(x) standardGeneric("pData"))
+
+#' @rdname pData
+#' @export
 setMethod("pData", "CycifStack", function(x) x@phenoData)
 
 # fun: pData<- CycifStack ----
 
-#' Insert sample metadata into a cycif object
-#'
-#' @param x A Cycif object
-#' @param value input value of a data frame object
-#' @param by the column name in the value. The variable should contain the sample names, which can be assessed by `names(x)`. The column name should be set as The variable is set as the 'id'.
+#' @rdname pData
 #' @export
 setGeneric("pData<-", function(x,...,value) standardGeneric("pData<-"))
+
+#' @rdname pData
+#' @export
 setMethod("pData<-", "CycifStack", function(x,value){
   if(!is(value,"data.frame")){
     stop("Input phenoData should be a data frame\n")

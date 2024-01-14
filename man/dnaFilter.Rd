@@ -2,28 +2,43 @@
 % Please edit documentation in R/preprocessing.R
 \name{dnaFilter}
 \alias{dnaFilter}
-\alias{hist_fun}
-\title{Filtering out unavaialble cells based on nuclei staining}
+\alias{dnaFilter,Cycif-method}
+\title{Identify available cells based on cell DNA contents on each cycle in a Cycif dataset interactively}
 \usage{
 dnaFilter(x, ...)
 
-hist_fun(x, n = 1000, ths, mar = c(3, 4, 4, 2) + 0.1, brks1, ttl1)
+\S4method{dnaFilter}{Cycif}(x, ncells = 1e+05, dna.thres, show.only = FALSE)
 }
 \arguments{
-\item{x}{A Cycif object}
+\item{x}{A Cycif object with DNA stains.}
 
-\item{n}{numeric. The number of breaks in the histogram.}
+\item{ncells}{Maximum number of cells to analyze. Default is 1e5.}
 
-\item{manual}{logical. If TRUE, lower and upper limits of DNA intensity should be chosen
-interactively by clicking the limit values in the heatmap. FALSE by default.}
+\item{dna.thres}{A list containing two data frames with low and high thresholds for DNA channels, or NULL to use default thresholds.}
 
-\item{ratio}{logical. If TRUE, the ratio of DNA intensity between each cycle and cycle 0 will be used.
-If FALSE, raw values of DNA intensity will be used.}
+\item{show.only}{Logical, indicating whether to perform DNA filtering without interactive adjustments (TRUE) or with interactive adjustments (FALSE).
+\itemize{
+\item When set to TRUE, the function performs DNA filtering without user interaction and applies the specified thresholds. Use this option if you want to apply pre-defined DNA thresholds without further adjustments.
+\item When set to FALSE, the function interactively adjusts the DNA thresholds by plotting DNA histograms and allows you to modify the thresholds based on the distribution of DNA content. You can manually adjust the thresholds to retain cells of interest while discarding outliers. Use this option for a more hands-on approach to DNA filtering.
+}
 
-\item{n1}{numeric. indices from 1 through n1 will be plugged into loess().}
-
-\item{show.only}{logical. If TRUE, only show the summary of the plots but don't attempt to filter cells.}
+The default value is FALSE.}
+}
+\value{
+A Cycif object with DNA filtering applied.
 }
 \description{
-Filtering out unavaialble cells based on nuclei staining
+This function determines whether cells are available through multiple cycles based on the intensity of DNA stains in a Cycif object.
+It allows interactive setting of thresholds and visualization of the filtering process.
+}
+\details{
+This function performs DNA filtering for a Cycif object,
+allowing you to specify the maximum number of cells to analyze (\code{ncells}) and the thresholds for DNA channels (\code{dna.thres}).
+You can also choose whether to interactively adjust the thresholds or perform DNA filtering without interaction using the \code{show.only} argument.
+
+If \code{show.only} is set to \code{FALSE}, the function interactively adjusts the thresholds by plotting DNA histograms and allowing you to modify the thresholds based on the distribution of DNA content. You can manually adjust the thresholds to retain cells of interest while discarding outliers.
+
+If \code{show.only} is set to \code{TRUE}, the function performs DNA filtering without user interaction and applies the specified thresholds.
+
+The \code{dna.thres} argument allows you to specify custom low and high thresholds for DNA channels. If \code{dna.thres} is NULL, the function uses default thresholds based on the data.
 }

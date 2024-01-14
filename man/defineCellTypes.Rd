@@ -5,13 +5,22 @@
 \alias{defineCellTypes,data.frame-method}
 \alias{defineCellTypes,Cycif-method}
 \alias{defineCellTypes,CycifStack-method}
-\title{Define cell types}
+\title{Define Cell Types and set them in a Cycif or CycifStack object}
 \usage{
 defineCellTypes(x, ...)
 
-defineCellTypes(x,ctype,cstate,gates,p_thres=0.5,...)
+\S4method{defineCellTypes}{data.frame}(x, ctype, cstate, p_thres = 0.5, mc.cores = 4, ...)
 
-defineCellTypes(x,ctype,cstate,p_thres=0.5,...)
+\S4method{defineCellTypes}{Cycif}(
+  x,
+  ctype,
+  cstate,
+  ct_name = "default",
+  p_thres = 0.5,
+  mc.cores = 4,
+  overwrite = FALSE,
+  ...
+)
 
 \S4method{defineCellTypes}{CycifStack}(
   x,
@@ -25,23 +34,33 @@ defineCellTypes(x,ctype,cstate,p_thres=0.5,...)
 )
 }
 \arguments{
-\item{x}{a CycifStack object}
+\item{x}{A Cycif or CycifStack object.}
 
-\item{...}{additional arguments (currently unused)}
+\item{...}{Additional arguments (currently unused).}
 
-\item{ctype}{a data.frame containing cell type definition}
+\item{ctype}{A data.frame containing cell type definition.}
 
-\item{cstate}{a data.frame containing cell state definition}
+\item{cstate}{A data.frame containing cell state definition.}
 
-\item{p_thres}{numerical between 0 and 1. A probability that corresponds to a threshold intensity}
+\item{p_thres}{Numerical value between 0 and 1. A probability that corresponds to a threshold intensity. Default is 0.5.}
 
-\item{gates}{a data.frame containing gates (n.samples x n.proteins)}
+\item{mc.cores}{Number of CPU cores to use for parallel processing. Default is 4.}
 
-\item{ct_anme}{name of the cell types}
+\item{ct_name}{Name of the cell types.}
+
+\item{overwrite}{Logical, if TRUE, overwrite existing cell type definitions with the same name. Default is FALSE.}
 }
 \value{
-a modified CycifStack object with updated cell type information
+A modified Cycif or CycifStack object with updated cell type information.
 }
 \description{
-Perform a cell type calling function and set cell types in a Cycif or CycifStack object
+This function performs a cell type calling operation and sets cell types in a Cycif or CycifStack object.
+}
+\details{
+The \code{defineCellTypes} function performs a cell type calling operation and sets cell types in a Cycif or CycifStack object. It takes as input a \code{ctype} data.frame, a \code{cstate} data.frame, and optional parameters for thresholding and parallel processing. Cell types can be defined at different hierarchy levels, and the results can be stored under a specified \code{ct_name}.
+
+If \code{ct_name} already exists and \code{overwrite} is set to FALSE, the function will not overwrite the existing cell type definitions and will issue a warning.
+}
+\seealso{
+\code{\link{CellTypeSkeleton}}, \code{\link{cyApply}}
 }

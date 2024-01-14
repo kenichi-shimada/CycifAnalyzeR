@@ -42,6 +42,7 @@ Collate:
     'dimensionality_reduction.R'
     'clustering.R'
     'spatial_analysis.R'
+    'utils.R'
 Suggests: 
     testthat (>= 3.0.0)
 Config/testthat/edition: 3

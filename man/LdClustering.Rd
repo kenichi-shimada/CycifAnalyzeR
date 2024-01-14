@@ -24,8 +24,8 @@ LdClustering(x, ...)
   x,
   ld_name,
   k.param = 20,
-  initial.membership = NULL,
-  node.sizes = NULL,
+  initial.membership,
+  node.sizes,
   resolution = 0.8,
   algorithm = 1,
   ...
@@ -43,48 +43,28 @@ LdClustering(x, ...)
 )
 }
 \arguments{
-\item{x}{Object of class "CycifStack"}
+\item{x}{An matrix, Cycif, or CycifStack object containing data to cluster.}
 
-\item{...}{Additional arguments to be passed}
+\item{...}{Additional arguments passed to the clustering function.}
 
-\item{k.param}{Integer, number of nearest neighbors}
+\item{k.param}{An integer specifying the number of nearest neighbors.}
 
-\item{initial.membership}{Vector of initial cluster assignments}
+\item{initial.membership}{A vector specifying the initial cluster membership of each cell.}
 
-\item{node.sizes}{List of node sizes for cluster centers}
+\item{node.sizes}{A vector specifying the size of each node in the clustering tree.}
 
-\item{resolution}{Double, resolution of the clustering algorithm}
+\item{resolution}{A numeric scalar specifying the granularity of the clustering.}
 
-\item{algorithm}{Integer, clustering algorithm to use}
+\item{algorithm}{An integer specifying the clustering algorithm to use.}
 
-\item{with.labels}{Logical scalar. Whether to include labels.}
+\item{with.labels}{Logical scalar indicating whether to include labels.}
 
-\item{ld_name}{Name of the label to use for clustering}
+\item{ld_name}{A character scalar indicating the name of the layout to use.}
 }
 \value{
-an object of the same class with x
-
-An integer vector with cluster assignments for each cell.
-
-A modified \code{\link{Cycif}} object with cluster assignments added to the specified layout.
-
-The input CycifStack object with the cluster assignments added
+A modified object with cluster assignments added to the specified layout (for a \code{matrix} object).
+An object of the same class as \code{x} with cluster assignments added (for a \code{Cycif} or \code{CycifStack} object).
 }
 \description{
-This function finds clusters in a given matrix using Seurat::FindNeighbors and Seurat::FindClusters functions.
-}
-\examples{
-\dontrun{
-mat <- matrix(rnorm(100), nrow = 10)
-LdClustering(mat, k.param = 5)
-}
-
-\dontrun{
-data("exampleCycif")
-clusters <- LdClustering(exampleCycif, "Layout1", k.param = 10)
-}
-
-\dontrun{
-LdClustering(x, ld_name = "label_name")
-}
+Find clusters using Seurat functions
 }

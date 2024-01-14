@@ -12,6 +12,35 @@ importROIs(x, ...)
 
 \S4method{importROIs}{CycifStack}(x, exported.rois)
 }
+\arguments{
+\item{x}{A Cycif or CycifStack object.}
+
+\item{exported.rois}{A data frame containing the exported ROIs with columns:
+\itemize{
+\item \code{type}: Type of ROI ('Rectangle', 'Polygon', or 'Ellipse').
+\item \code{Text}: Text describing the ROI, which includes direction and cycle information (e.g., 'pos5', 'neg7')
+}}
+}
+\value{
+A Cycif object with imported ROIs.
+}
 \description{
 Import Polygon coordinates of ROIs from OMERO
+}
+\details{
+This function imports Polygon, Ellipse, or Rectangle ROIs from OMERO and adds them to a Cycif or CycifStack objects.
+
+The \code{exported.rois} data frame should contain ROIs with valid direction ('pos' or 'neg') and cycle information.
+Supported ROI types are 'Rectangle', 'Polygon', and 'Ellipse'. The function processes these ROIs and adds
+them to the Cycif object. Each ROI in \code{lst.rois} consists of the following components:
+\itemize{
+\item \code{dir}: Direction of the ROI ('positive' or 'negative').
+\item \code{cycle}: Cycle information for the ROI (numeric).
+\item \code{roi_type}: Type of the ROI ('Polygon').
+\item \code{coords}: If \code{roi_type} is 'Polygon', \code{coords} is a data frame containing the coordinates of the ROI (x, y).
+For other \code{roi_type} values, \code{coords} may contain different information based on the shape of the ROI.
+}
+}
+\seealso{
+\code{\link{setWithinROIs}} \code{\link{roiFilter}}
 }

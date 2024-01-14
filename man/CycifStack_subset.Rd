@@ -22,7 +22,7 @@
 representing indices for the Cycif objects. If character, names of the Cycif
 objects.}
 
-\item{value}{A Cycif object to be inserted.}
+\item{value}{A Cycif object to be inserted or replaced.}
 }
 \description{
 Subsetting samples from a CycifStack object

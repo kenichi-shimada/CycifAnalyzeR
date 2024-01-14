@@ -2,9 +2,34 @@
 
 # fun: importROIs Cycif ----
 
-#' Import Polygon coordinates of ROIs from OMERO
+#' @title Import Polygon coordinates of ROIs from OMERO
+#'
+#' @details This function imports Polygon, Ellipse, or Rectangle ROIs from OMERO and adds them to a Cycif or CycifStack objects.
+#'
+#' @param x A Cycif or CycifStack object.
+#' @param exported.rois A data frame containing the exported ROIs with columns:
+#'   - `type`: Type of ROI ('Rectangle', 'Polygon', or 'Ellipse').
+#'   - `Text`: Text describing the ROI, which includes direction and cycle information (e.g., 'pos5', 'neg7')
+#'
+#' @details
+#' The `exported.rois` data frame should contain ROIs with valid direction ('pos' or 'neg') and cycle information.
+#' Supported ROI types are 'Rectangle', 'Polygon', and 'Ellipse'. The function processes these ROIs and adds
+#' them to the Cycif object. Each ROI in `lst.rois` consists of the following components:
+#'   - `dir`: Direction of the ROI ('positive' or 'negative').
+#'   - `cycle`: Cycle information for the ROI (numeric).
+#'   - `roi_type`: Type of the ROI ('Polygon').
+#'   - `coords`: If `roi_type` is 'Polygon', `coords` is a data frame containing the coordinates of the ROI (x, y).
+#'     For other `roi_type` values, `coords` may contain different information based on the shape of the ROI.
+#'
+#' @return A Cycif object with imported ROIs.
+#'
 #' @importFrom magrittr %>%
 #' @importFrom dplyr filter mutate select
+#'
+#' @seealso
+#' \code{\link{setWithinROIs}} \code{\link{roiFilter}}
+#'
+#' @rdname importROIs
 #' @export
 setGeneric("importROIs", function(x,...) standardGeneric("importROIs"))
 
@@ -112,9 +137,25 @@ setMethod("importROIs", "CycifStack",
 
 # fun: setWithinROIs Cycif ----
 
+#' @title Set within_roi slot in a Cycif object
+#'
+#' @description Compute if each cell is within any positive ROIs and outside any negative ROIs. The value is TRUE if that is the case, FALSE otherwise.
+#' This should be used after importROIs functions are called so ROIs are set in each Cycif object.
+#'
+#' @param x A Cycif object.
+#'
+#' @return A Cycif object with cells marked as within or outside ROIs in within_rois slot
+#'
+#' @details This function determines which cells in a Cycif object are within the defined ROIs. It uses information about the direction (positive or negative), cycle, and coordinates of the ROIs to classify cells as either within or outside ROIs. Cells are marked as within ROIs if they meet the following conditions:
+#' - They are within the polygonal boundaries of positive ROIs.
+#' - They are outside the polygonal boundaries of negative ROIs.
+#
 #' @importFrom sp point.in.polygon
 #' @export
 setGeneric("setWithinROIs", function(x,...) standardGeneric("setWithinROIs"))
+
+#' @rdname setWithinROIs
+#' @export
 setMethod("setWithinROIs", "Cycif",
           function(x){
             rois <- x@rois
@@ -161,20 +202,26 @@ setMethod("setWithinROIs", "Cycif",
 
 # fun: roiFilter Cycif ----
 
-#' Filtering out unavaialble cells based on nuclei staining
+#' @title Set ROIs in a Cycif object interactively by clicking on the plot (discontinued)
 #'
-#' @param x A Cycif object
-
-#' @param manual logical. If TRUE, lower and upper limits of DNA intensity should be chosen
-#'   interactively by clicking the limit values in the heatmap. FALSE by default.
-#' @param ratio logical. If TRUE, the ratio of DNA intensity between each cycle and cycle 0 will be used.
-#'   If FALSE, raw values of DNA intensity will be used.
-#' @param n numeric. The number of breaks in the histogram.
-#' @param n1 numeric. indices from 1 through n1 will be plugged into loess().
-#' @param show.only logical. If TRUE, only show the summary of the plots but don't attempt to filter cells.
+#' @description This function allows interactive setting of regions of interest (ROIs) in a Cycif object. ROIs can be defined as either positive or negative based on their intended use.
+#'
+#' @param x A Cycif object.
+#' @param roi_type A character string specifying the type of ROIs to set. It can be either "positive" or "negative."
+#'
+#' @return A Cycif object with the defined ROIs.
+#'
+#' @importFrom graphics locator
 #'
 #' @export
+#' @details This function provides an interactive way to define ROIs within a Cycif object. ROIs can be classified as either "positive" or "negative" based on their intended use. Users can set these ROIs by selecting points on the plot. For positive ROIs, cells within the polygonal boundaries are considered within the ROI. For negative ROIs, cells outside the polygonal boundaries are considered within the ROI. Users can set multiple ROIs of each type by following the prompts.
+#'
+#' @seealso \code{\link{importROIs}}, \code{\link{setWithinROIs}}
+#'
 setGeneric("roiFilter", function(x,...) standardGeneric("roiFilter"))
+
+#' @export
+#' @rdname roiFilter
 setMethod("roiFilter", "Cycif",
           function(x,rois){
             mat <- x@raw
@@ -226,22 +273,46 @@ setMethod("roiFilter", "Cycif",
           }
 )
 
+#_ -------------------------------------------------------
 # fun: dnaFilter Cycif ----
 
-#' Filtering out unavaialble cells based on nuclei staining
+#' @title Identify available cells based on cell DNA contents on each cycle in a Cycif dataset interactively
 #'
-#' @param x A Cycif object
-
-#' @param manual logical. If TRUE, lower and upper limits of DNA intensity should be chosen
-#'   interactively by clicking the limit values in the heatmap. FALSE by default.
-#' @param ratio logical. If TRUE, the ratio of DNA intensity between each cycle and cycle 0 will be used.
-#'   If FALSE, raw values of DNA intensity will be used.
-#' @param n numeric. The number of breaks in the histogram.
-#' @param n1 numeric. indices from 1 through n1 will be plugged into loess().
-#' @param show.only logical. If TRUE, only show the summary of the plots but don't attempt to filter cells.
+#' @description This function determines whether cells are available through multiple cycles based on the intensity of DNA stains in a Cycif object.
+#' It allows interactive setting of thresholds and visualization of the filtering process.
+#'
+#' @param x A Cycif object with DNA stains.
+#' @param ncells Maximum number of cells to analyze. Default is 1e5.
+#' @param dna.thres A list containing two data frames with low and high thresholds for DNA channels, or NULL to use default thresholds.
+#' @param show.only Logical, indicating whether to perform DNA filtering without interactive adjustments (TRUE) or with interactive adjustments (FALSE).
+#'
+#' - When set to TRUE, the function performs DNA filtering without user interaction and applies the specified thresholds. Use this option if you want to apply pre-defined DNA thresholds without further adjustments.
+#'
+#' - When set to FALSE, the function interactively adjusts the DNA thresholds by plotting DNA histograms and allows you to modify the thresholds based on the distribution of DNA content. You can manually adjust the thresholds to retain cells of interest while discarding outliers. Use this option for a more hands-on approach to DNA filtering.
+#'
+#' The default value is FALSE.
+#'
+#' @return A Cycif object with DNA filtering applied.
+#'
+#' @importFrom graphics locator par
+#' @importFrom grDevices colorRampPalette
+#' @importFrom RColorBrewer brewer.pal
 #'
 #' @export
+#' @details This function performs DNA filtering for a Cycif object,
+#' allowing you to specify the maximum number of cells to analyze (`ncells`) and the thresholds for DNA channels (`dna.thres`).
+#' You can also choose whether to interactively adjust the thresholds or perform DNA filtering without interaction using the `show.only` argument.
+#'
+#' If `show.only` is set to `FALSE`, the function interactively adjusts the thresholds by plotting DNA histograms and allowing you to modify the thresholds based on the distribution of DNA content. You can manually adjust the thresholds to retain cells of interest while discarding outliers.
+#'
+#' If `show.only` is set to `TRUE`, the function performs DNA filtering without user interaction and applies the specified thresholds.
+#'
+#' The `dna.thres` argument allows you to specify custom low and high thresholds for DNA channels. If `dna.thres` is NULL, the function uses default thresholds based on the data.
+#'
 setGeneric("dnaFilter", function(x,...) standardGeneric("dnaFilter"))
+
+#' @export
+#' @rdname dnaFilter
 setMethod("dnaFilter", "Cycif",
           function(x,ncells=1e5,dna.thres,show.only=FALSE){
             set.seed(1)
@@ -463,8 +534,7 @@ setMethod("dnaFilter", "Cycif",
           }
 )
 
-#' @rdname dnaFilter
-#' @export
+# not exported
 hist_fun <- function(x,n=1000,ths,mar=c(3,4,4,2)+.1,brks1,ttl1){
   omar <- par()$mar
   par(mar=mar)
@@ -499,16 +569,17 @@ hist_fun <- function(x,n=1000,ths,mar=c(3,4,4,2)+.1,brks1,ttl1){
 #'
 #' @param x A Cycif or CycifStack object.
 
-#' @param type type. If "raw", a raw expression matrix is shown. If "normalized",
-#'   a normalized expression matrix will be shown. The method of normalization is
-#'   specified by "log" or "LogTh" in the normalize function provided previously.
+#' @param type type. If "raw", a raw expression matrix is shown. If "log" or "logTh",
+#'   a log or logTh normalized expression matrix will be shown.
 #' @param silent logical. If FALSE, the method of normalization was shown in
 #'  the error prompt.
 #'
+#' @seealso \code{\link{normalize}} \code{\link{transform}}
 #' @export
 setGeneric("exprs", function(x,...) standardGeneric("exprs"))
 
 #' @export
+#' @rdname exprs
 setMethod("exprs", "Cycif", function(x,type=c("raw","log","logTh")){
   if(missing(type)){
     stop("'type'argument should be specified\n")
@@ -534,7 +605,8 @@ setMethod("exprs", "Cycif", function(x,type=c("raw","log","logTh")){
 })
 
 #' @export
-setMethod("exprs", "CycifStack",function(x,type=c("raw","log_normalized","logTh_normalized")){
+#' @rdname exprs
+setMethod("exprs", "CycifStack",function(x,type=c("raw","log","logTh")){
   if(missing(type)){
     stop("'type' should be specified\n")
   }
@@ -556,21 +628,25 @@ setMethod("exprs", "CycifStack",function(x,type=c("raw","log_normalized","logTh_
 
 # fun: normalize Cycif ----
 
-#' Show a raw or normalized protein expression matrix
+#' Normalize a Cycif or CycifStack object
 #'
-#' @param r A numeric scholar indicating a raw expression value.
+#' This function allows you to normalize a Cycif or CycifStack object, either using a simple logarithmic transformation or a more advanced transformation method with optional thresholding and trimming.
+#'
 #' @param x A Cycif or CycifStack object.
-#' @param method Either "log" or "logTh". "log" indicates that
-#'   the raw values are transformed using log1p() function. "logTh" method
-#'   further trim the outliers outside outside \[trim,1-trim\] quantiles,
-#'   where trm is specified by trim parameter. Outlier-trimmed, log1p-transformed
-#'   raw values are further transformed such that the value indicated by the threshold,
-#'   th (in the case of transform() function) or threshold(x) (in the case of
-#'   normalize() function) will be set to p_thres. Values below or above the threshold
-#'   are linearly transformed to values between 0 and p_thres, or values between p_thres and 1,
-#'   respectively.
-#' @param th A numeric scholar. A user-provided threshold for a raw expression value
-#'   for each protein for each sample.
+#' @param method Either "log" or "logTh". "log" indicates that the raw values are transformed using log1p() function. "logTh" method further trims the outliers outside the \[trim, 1-trim\] quantiles, where trim is specified by the trim parameter. Outlier-trimmed, log1p-transformed raw values are further transformed such that the value indicated by the threshold, th (in the case of transform() function) or threshold(x) (in the case of normalize() function) will be set to p_thres. Values below or above the threshold are linearly transformed to values between 0 and p_thres, or values between p_thres and 1, respectively.
+#' @param trim A numeric scalar specifying the trim value for outlier trimming.
+#' @param p_thres A numeric scalar specifying the threshold value for linear transformation.
+#' @param th A numeric scholar. A user-provided threshold for a raw expression value for each protein for each sample.
+#'
+#' @details
+#' The `normalize` function is used to preprocess protein expression data in Cycif or CycifStack objects. It provides two main normalization methods: "log" for simple logarithmic transformation and "logTh" for more advanced normalization with optional thresholding and trimming.
+#'
+#' For "log" method, the function applies a logarithmic transformation using log1p(), followed by optional outlier trimming using the specified trim parameter.
+#'
+#' For "logTh" method, in addition to logarithmic transformation and trimming, the function allows users to set a threshold (th) for each protein. Values above or below the threshold are linearly transformed to fit within the specified range, defined by p_thres.
+#'
+#' @seealso \code{\link{transform}}
+#'
 #' @export
 #' @rdname normalize
 setGeneric("normalize", function(x,...) standardGeneric("normalize"))
@@ -647,8 +723,23 @@ setMethod("normalize", "Cycif",
 
 # fun: transform numeric ----
 
-# at some point I should switch to nls() to apply sigmoidal curve
-#' @rdname normalize
+#' Transform Numeric Data
+#'
+#' This function applies various transformations to numeric data based on the specified method.
+#'
+#' @param r A numeric vector or array.
+#' @param method The transformation method to apply. Choose from "log", "logTh", "Th", or "invlog".
+#'   - "log": Log-transforms the data using log1p().
+#'   - "logTh": Log-transforms the data and trims outliers.
+#'   - "Th": Trims outliers.
+#'   - "invlog": Reverts the data back to its original scale.
+#' @param th The threshold value for transformation (only for "Th" and "logTh" methods).
+#' @param p_thres The threshold value for data scaling (only for "logTh" and "Th" methods).
+#' @param trim The quantile-based trimming level for outlier removal (default is 1e-3).
+#'
+#' @return Transformed numeric data.
+#'
+#' @seealso \code{\link{normalize}}
 #' @export
 transform <- function(r,method=c("log","logTh","Th","invlog"),th,p_thres=0.5,trim=1e-3){
   if(missing(method)){
@@ -707,5 +798,12 @@ transform <- function(r,method=c("log","logTh","Th","invlog"),th,p_thres=0.5,tri
   return(r1)
 }
 
+# not exported
+trim_fun <- function(x,trim_th = 1e-3){
+  qts <- stats::quantile(x,c(trim_th,1-trim_th),na.rm=T)
+  x[x < qts[1]] <- qts[1]
+  x[x > qts[2]] <- qts[2]
+  return(x)
+}
 #_ -------------------------------------------------------
 

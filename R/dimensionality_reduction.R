@@ -1,15 +1,48 @@
 #_ -------------------------------------------------------
 
 # utils LDCoords ----
+
+#' Get Names of UMAP or Clustering Results
+#'
+#' This function retrieves the names of UMAP embeddings or clustering results associated with a 'Cycif' or 'CycifStack' object.
+#'
+#' @param x A 'Cycif' or 'CycifStack' object containing UMAP embeddings or clustering results.
+#'
+#' @return A character vector containing the names of UMAP embeddings or clustering results.
+#'
+#' @details
+#' The 'ld_names' function allows you to obtain the names of UMAP embeddings or clustering results stored within a 'Cycif' or 'CycifStack' object. These names can be used to reference specific UMAP embeddings or clustering outcomes for further analysis or visualization.
+#'
+#' @rdname ld_names
 #' @export
 setGeneric("ld_names", function(x)standardGeneric("ld_names"))
+
+#' @rdname ld_names
+#' @export
 setMethod("ld_names", "Cycif",function(x)names(x@ld_coords))
 
+#' @rdname ld_names
 #' @export
 setMethod("ld_names", "CycifStack",function(x)names(x@ld_coords))
 
+#' Get UMAP Coordinates or Clustering Results
+#'
+#' This function retrieves UMAP coordinates or clustering results associated with a specified name from a 'Cycif' or 'CycifStack' object.
+#'
+#' @param x A 'Cycif' or 'CycifStack' object containing UMAP embeddings or clustering results.
+#' @param ld_name The name of the UMAP embedding or clustering result to retrieve.
+#'
+#' @return UMAP coordinates or clustering results specified by 'ld_name'.
+#'
+#' @details
+#' The 'ld_coords' function allows you to obtain UMAP coordinates or clustering outcomes stored within a 'Cycif' or 'CycifStack' object. You need to specify the name of the UMAP embedding or clustering result you want to retrieve using the 'ld_name' parameter. If the specified 'ld_name' does not exist in the object, an error will be raised.
+#'
+#' @rdname ld_coords
 #' @export
 setGeneric("ld_coords", function(x,...)standardGeneric("ld_coords"))
+
+#' @rdname ld_coords
+#' @export
 setMethod("ld_coords", "Cycif",function(x,ld_name){
   if(missing(ld_name)){
     stop("'ld_name' should be specified to retrieve ld_coords")
@@ -19,7 +52,8 @@ setMethod("ld_coords", "Cycif",function(x,ld_name){
   return(x@ld_coords[[ld_name]])
 })
 
-#'@export
+#' @rdname ld_coords
+#' @export
 setMethod("ld_coords", "CycifStack",function(x,ld_name){
   if(missing(ld_name)){
     stop("'ld_name' should be specified to retrieve ld_coords")
@@ -91,18 +125,31 @@ setMethod("show", "LDCoords", function(object) {
 #_ -------------------------------------------------------
 
 # fun: RunUMAP Cycif, CycifStack ----
-#' Run visualization with dimensionality reduction (t-SNE and U-MAP) on CyCIF data.
+
+#' Run visualization with dimensionality reduction (t-SNE or U-MAP) on CyCIF data.
+#'
+#' This function performs dimensionality reduction (t-SNE or U-MAP) on CyCIF data, either for a single sample or across multiple samples (CycifStack). It generates UMAP or t-SNE coordinates for visualization purposes.
 #'
 #' @param x A Cycif or CycifStack object.
-#' @param type character. It should be "raw" or "normalized", indicating which expression
-#'  values to use for the U-MAP.
-#' @param n.cells numeric. The number of cells sampled from each CyCIF object.
-#' @param n_neighbors numeric. The number of neighbors, passed on to dimensionality reduction function.
-#' @param used.abs A character vector containing a set of antibodies used for UMAP computation.
-#' @param init.seed initial seed to set for computing UMAP.
-#' @param smpls Character vector containign a set of samples to be included inthe UMAP.
-#' @param ncells.per.smpl A numeric scholar. The number of cells per sample to be set when a CycifStack is run.
-#' @param ... arguments passed to uwot::umap().
+#' @param norm_type Character string specifying the type of expression values to use for dimensionality reduction. It should be one of "raw," "log," or "logTh" indicating whether to use raw or normalized data.
+#' @param ld_name Character string specifying the name to assign to the dimensionality reduction results. This name will be used to retrieve the data later.
+#' @param ct_name Character string specifying the cell type name to be used for analysis. Default is "default."
+#' @param ncells.per.smpl Numeric value specifying the number of cells per sample. If NULL, the maximum number of cells per sample will be used.
+#' @param used.abs Character vector containing a set of antibodies used for UMAP computation.
+#' @param used.cts Character vector containing a set of cell types used for UMAP computation.
+#' @param strict Logical indicating whether strict filtering of cell types should be applied. Default is TRUE.
+#' @param n_neighbors Numeric specifying the number of neighbors to consider during dimensionality reduction.
+#' @param init.seed Numeric specifying the initial seed for reproducible UMAP results.
+#' @param save.coords Logical indicating whether to save the computed UMAP coordinates in the object. Default is FALSE.
+#' @param ... Additional arguments passed to uwot::umap().
+#'
+#' @return A Cycif or CycifStack object with added UMAP or t-SNE coordinates and related metadata.
+#'
+#' @details
+#' The `RunUMAP` function performs dimensionality reduction on CyCIF data using UMAP or t-SNE algorithms, depending on the specified parameters. It generates UMAP or t-SNE coordinates for visualization purposes and adds them to the provided Cycif or CycifStack object. The resulting object contains the computed coordinates, along with metadata such as the type of dimensionality reduction, normalization type, used antibodies, and used cell types.
+#'
+#' @seealso \code{\link{LDCoords}}, \code{\link{Cycif}}, \code{\link{CycifStack}}
+#'
 #' @export
 setGeneric("RunUMAP", function(x,...) standardGeneric("RunUMAP"))
 

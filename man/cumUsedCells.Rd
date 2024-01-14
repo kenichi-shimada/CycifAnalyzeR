@@ -2,24 +2,42 @@
 % Please edit documentation in R/cycif.R
 \name{cumUsedCells}
 \alias{cumUsedCells}
-\title{Show available cells at each cycle}
+\alias{cumUsedCells,Cycif-method}
+\alias{statUsedCells}
+\alias{statUsedCells,Cycif-method}
+\title{Calculate Cumulative and Summary Statistics for Used Cells}
 \usage{
-cumUsedCells(x,use_rois=TRUE)
+cumUsedCells(x, use_rois = TRUE)
+statUsedCells(x, cumulative = TRUE, ratio = TRUE, use_rois = TRUE)
+
+\S4method{cumUsedCells}{Cycif}(x, use_rois = TRUE)
+
+statUsedCells(x, ...)
+
+\S4method{statUsedCells}{Cycif}(x, cumulative = TRUE, ratio = TRUE, use_rois = TRUE)
 }
 \arguments{
-\item{x}{A Cycif object}
+\item{x}{A Cycif object.}
 
-\item{cumulative}{logical. If TRUE, available cells through cycles 1 to n are computed.
-If FALSE, available cells at each cycle are computed.}
+\item{use_rois}{Logical. If TRUE, compute available cells within pre-specified ROIs.
+Default is TRUE.}
 
-\item{ratio}{Logical. If TRUE, show ratio of available and unavailable cells
-at each cycle. If FALSE, actual actual number is provided.}
+\item{cumulative}{Logical. If TRUE, return the cumulative number of used cells (cumUsedCells) or
+cumulative counts in each cycle (statUsedCells). If FALSE, return counts in each cycle (statUsedCells).
+Default is TRUE.}
+
+\item{ratio}{Logical. If TRUE, return the ratio of available cells over all the cells (statUsedCells).
+Default is TRUE.}
 }
 \value{
-cumUsedCells() returns a matrix where rows correspond to cells
-and columns correspond to cycles. statUsedCells() returns a table sumarizing
-the numbers of available and unavailable cells at each cycle.
+For cumUsedCells, a matrix with the cumulative number of used cells at each cycle is returned.
+For statUsedCells, a table summarizing the available cells is returned, with options for cumulative counts
+and ratios.
 }
 \description{
-Show available cells at each cycle
+The \code{cumUsedCells} function calculates the number of cells that are available (ie, not dropped by \code{dnaFilter})
+from 1st cycle to each cycle in a Cycif object.
+
+The \code{statUsedCells} function summarizes the available cells in each cycle,
+with options to return cumulative counts and ratios.
 }
