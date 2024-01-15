@@ -222,7 +222,7 @@ setMethod("ratioTumorStroma", "Cycif",
 
 #' @rdname ratioTumorStroma
 #' @export
-setMethod("ratioTumorStroma", "Cycif",
+setMethod("ratioTumorStroma", "CycifStack",
           function(x,stroma.cts,...){
     ratio <- cyApply(x,ratioTumorStroma,stroma.cts=stroma.cts,...)
     r.ts <- data.frame(do.call(rbind,ratio))
@@ -364,20 +364,52 @@ setMethod("dist2tumorBorder","Cycif",
 
     gds <- unlist(gds)
 
-    gds.all[[n]] <- gds
-    tum.borders[[n]] <- sp.polys
-
     return(list(dist=gds,sp.polys=sp.polys))
   }
 )
 
 # Function to check if a point is inside a polygon using 'point.in.polygon()'
 # not exported
+
 is_point_inside_polygon <- function(point, polygon) {
   sp::point.in.polygon(point$X, point$Y, polygon$X, polygon$Y)
 }
 
+if(0){
+  is_point_inside_polygon_sf <- function(point, polygon) {
+    # Create an sf point object
+    point_sf <- sf::st_sfc(sf::st_point(c(point$X, point$Y)), crs = NA_crs_)
 
+    # Create an sf polygon object
+    polygon_coords <- matrix(c(polygon$X, polygon$Y), ncol = 2, byrow = FALSE)
+    polygon_sf <- sf::st_sfc(st_polygon(list(polygon_coords)), crs = NA_crs_)
+
+    # Check if the point is inside the polygon
+    sf::st_intersects(point_sf, polygon_sf, sparse = FALSE)[1, 1]
+  }
+
+  #example
+  point <- list(X = 2, Y = 2)
+
+  # Define a polygon
+  # Note: The first and last coordinates should be the same to close the polygon
+  polygon <- list(X = c(1, 1, 3, 3, 1), Y = c(1, 3, 3, 1, 1))
+
+  # Call the function
+  system.time({
+    for(i in 1:1e4){
+      is_inside <- is_point_inside_polygon_sf(point, polygon)
+    }# 6.729 sec
+  })
+  system.time({
+    for(i in 1:1e4){
+      is_inside <- is_point_inside_polygon(point, polygon)
+    } # 0.023 sec
+  })
+  print(is_inside)
+
+}
+# Print the result
 #_ -------------------------------
 
 # fun: computeArea (for density) ----
@@ -548,14 +580,14 @@ setMethod("computeArea", "Cycif",
 #' @param r The radius within which neighboring cells are considered (in 'unit').
 #' @param unit The unit of measurement for the radius ('pixel' or 'um'). If 'um' is specified,
 #' the radius 'r' will be converted to pixels based on the assumed resolution (0.65 um per pixel).
-#' @param focused.cts A character vector specifying the cell types of interest for RCN analysis.
-#' @param cts.in.rcn A character vector specifying the cell types to consider when computing RCN values.
+#' @param cts.in.center A character vector specifying the cell types around which RCN is computed. If not is specified, all available cts are used.
+#' @param cts.in.rcn A character vector specifying the cell types to consider when computing RCN values. If not is specified, all avaialble cts are used.
 #' @param n.sampling The number of cells to randomly sample for RCN analysis.
 #' @param seed The random seed for reproducibility.
 #'
 #' @return A list containing the following components:
 #' - 'within.rois': A logical vector indicating whether each cell is within a region of interest (ROI).
-#' - 'focused.cts': A character vector specifying the cell types of interest for RCN analysis.
+#' - 'cts.in.center': A character vector specifying the cell types around which RCN is computed.
 #' - 'cts.in.rcn': A character vector specifying the cell types considered when computing RCN values.
 #' - 'n.cells.selected': The number of cells selected for RCN analysis.
 #' - 'frnn': A list with recurrent Neighborhood information, including 'dist', 'id', 'eps', and 'sort'.
@@ -581,7 +613,7 @@ setGeneric("computeRCN", function(x,...) standardGeneric("computeRCN"))
 #' @export
 setMethod("computeRCN", "Cycif",
           function(x,r,unit=c("pixel","um"),
-                     focused.cts,
+                     cts.in.center,
                      cts.in.rcn,
                      n.sampling,
                      seed=123){ # only for Cycif, and CycifStack
@@ -603,8 +635,8 @@ setMethod("computeRCN", "Cycif",
     lev.cts <- levels(cts1$cell_types)
     lev.cts <- lev.cts[lev.cts != "outOfROI"]
 
-    if(missing(focused.cts)){
-      focused.cts <- lev.cts
+    if(missing(cts.in.center)){
+      cts.in.center <- lev.cts
     }
 
     if(missing(cts.in.rcn)){
@@ -613,6 +645,12 @@ setMethod("computeRCN", "Cycif",
 
     ## frnn object - all within_rois samples
     frnn <- dbscan::frNN(xy1,eps=r,bucketSize=10) # 265793 cells
+    frnn <- new("frNN",
+                dist = frnn$dist,
+                id = frnn$id,
+                eps = frnn$eps,
+                sort = frnn$sort)
+
     frnn.ids <- frnn$id
     n.frnn <- sapply(frnn.ids,length)
     n0 <- which(n.frnn==0)
@@ -650,7 +688,7 @@ setMethod("computeRCN", "Cycif",
     has.neighbors <- !seq(nrow(dt)) %in% n0
 
     ## within positive ROIs + has neighbors
-    selected.ids1 <- which(cts1$cell_types %in% focused.cts &
+    selected.ids1 <- which(cts1$cell_types %in% cts.in.center &
                           sapply(frnn$id,length)>0 &
                           sapply(frnn$id,function(ids){
                             any(cts1$cell_types[ids] %in% cts.in.rcn)
@@ -668,7 +706,6 @@ setMethod("computeRCN", "Cycif",
     ## selected ids among avialble focused celltypes (eg tumor cells)
     sid <- seq(frnn$id) %in% selected.ids2
 
-
     ## cell type frequency (not absolute count)
     rcn.freq <- t(sapply(frnn$id,function(ids){ # [c(83538,101787)]
       ct <- cts1$cell_types[ids]
@@ -683,7 +720,7 @@ setMethod("computeRCN", "Cycif",
     }))
 
     return(list(within.rois=wr,
-                focused.cts=focused.cts,
+                cts.in.center=cts.in.center,
                 cts.in.rcn=cts.in.rcn,
                 n.cells.selected=n.cts,
                 frnn=frnn,
@@ -698,7 +735,7 @@ setMethod("computeRCN", "Cycif",
 #' @export
 setMethod("computeRCN", "CycifStack",
   function(x,r,unit=c("pixel","um"),
-           focused.cts,
+           cts.in.center,
            cts.in.rcn,
            n.sampling,
            seed=123){ # only for Cycif, and CycifStack
@@ -707,7 +744,7 @@ setMethod("computeRCN", "CycifStack",
     frnn1 <- cyApply(x,function(cy){
       cat(names(cy),"\n")
       computeRCN(x=cy,r=r,unit=c("pixel","um"),
-        focused.cts=focused.cts,
+        cts.in.center=cts.in.center,
         cts.in.rcn=cts.in.rcn,
         n.sampling=n.sampling,
         seed=seed)
@@ -747,8 +784,8 @@ setMethod("computeRCN", "CycifStack",
     ## within.rois
     within.rois <- do.call(c,lapply(frnn1,function(fr)fr$within.rois))
 
-    ## focused.cts
-    focused.cts <- unique(as.vector(sapply(frnn1,function(fr)fr$focused.cts)))
+    ## cts.in.center
+    cts.in.center <- unique(as.vector(sapply(frnn1,function(fr)fr$cts.in.center)))
 
     ## cts.in.rcn
     cts.in.rcn <- frnn1[[1]]$cts.in.rcn
@@ -768,7 +805,7 @@ setMethod("computeRCN", "CycifStack",
     rcn.freq <- data.table::rbindlist(lapply(frnn1,function(fr)as.data.frame(fr$rcn.freq)))
 
     return(list(within.rois=within.rois, ## all cells (including outOfROIs)
-                focused.cts=focused.cts, ## 1 or a few
+                cts.in.center=cts.in.center, ## 1 or a few
                 cts.in.rcn=cts.in.rcn, ## 1 or a few
                 n.cells.selected=n.cells.selected,
                 v.smpls=v.smpls,
@@ -782,7 +819,7 @@ setMethod("computeRCN", "CycifStack",
 
 #_ -------------------------------
 
-# fun: rcnClust ----
+# fun: tcnClust ----
 
 #' Cluster and Sort Recurrent Cell Neighbors (RCN) for CyCIF or CyCIFStack Objects
 #'
@@ -802,6 +839,12 @@ setMethod("computeRCN", "CycifStack",
 #'
 #' @return An updated 'frnn' object with clustering and sorting information.
 #'
+#' @details
+#' The `tcnClust` function uses the provided `frnn` object to perform clustering and classification of cells based on their neighborhood relationships. It allows you to specify the number of clusters (`g`), the cell type to sort clusters by (`sort.by`), and other clustering parameters.
+#' The clustering process results in the classification of cells into distinct clusters, and the function provides information about these clusters, including the mean frequencies, counts, and more.
+#' By specifying different options for `sort.by`, `sort.type`, and `sort.smpls`, you can customize the sorting behavior of clusters based on cell types and data types.
+#' Additionally, you can choose to extrapolate clusters to the entire dataset using the `extrapolate` argument, which can be helpful for analyzing the overall dataset.
+#'
 #' @seealso \code{\link{computeRCN}}
 #'
 #' @importFrom mclust Mclust
@@ -810,11 +853,11 @@ setMethod("computeRCN", "CycifStack",
 #' @importFrom data.table as.data.table rbindlist
 #' @importFrom parallel mclapply
 #' @export
-setGeneric("rcnClust", function(frnn,...) standardGeneric("rcnClust"))
+setGeneric("tcnClust", function(frnn,...) standardGeneric("tcnClust"))
 
-#' @rdname rcnClust
+#' @rdname tcnClust
 #' @export
-setMethod("rcnClust","data.frame",
+setMethod("tcnClust","data.frame",
   function(frnn,
            g=50,
            seed=123,
@@ -950,6 +993,174 @@ setMethod("rcnClust","data.frame",
   return(frnn)
 })
 
+
+# fun: rcnClust ----
+
+#' Cluster and Sort Recurrent Cell Neighbors (RCN) for CyCIF or CyCIFStack Objects
+#'
+#' This function clusters and sorts the Recurrent Cell Neighbors (RCN) for CyCIF or CyCIFStack objects.
+#' It clusters cells based on their RCN profiles, sorts clusters based on the specified cell type,
+#' and optionally extrapolates the clustering to the entire dataset.
+#'
+#' @param frnn An object containing RCN information, typically obtained from 'computeRCN'.
+#' @param g The number of clusters to create.
+#' @param seed The random seed for reproducibility.
+#' @param sort.by The cell type to sort clusters by (e.g., "CD8T").
+#' @param sort.type The type of data to use for sorting: "freq" (relative frequencies) or "count" (counts).
+#' @param sort.smpls The subset of samples to use for sorting: "all" (entire dataset) or "selected" (selected cells).
+#' @param data.type The type of data to use for clustering: "ct_exp" (cell type and expression data) or "ct" (cell type data only).
+#' @param extrapolate Whether to extrapolate clusters to the entire dataset (TRUE) or not (FALSE).
+#' @param mc.cores The number of CPU cores to use for parallel processing.
+#'
+#' @return An updated 'frnn' object with clustering and sorting information.
+#'
+#' @seealso \code{\link{computeRCN}}
+#'
+#' @importFrom mclust Mclust
+#' @importFrom parallel mclapply
+#' @importFrom dbscan frNN
+#' @importFrom data.table as.data.table rbindlist
+#' @importFrom parallel mclapply
+#' @export
+setGeneric("rcnClust", function(frnn,...) standardGeneric("rcnClust"))
+
+#' @rdname rcnClust
+#' @export
+setMethod("rcnClust","data.frame",
+          function(frnn,
+                   g=50,
+                   seed=123,
+                   sort.by="CD8T",
+                   sort.type=c("freq","count"),
+                   sort.smpls=c("all","selected"),
+                   data.type=c("ct_exp","ct"),
+                   extrapolate=FALSE,
+                   mc.cores=1){
+            mclustda <- frnn$mclustda
+
+            exps <- as.matrix(frnn$exp)[,-1]
+            exps.imp <- imputeData(exps)
+
+            this.cts <- cts.in.rcn
+
+            mat.count.all <- as.matrix(frnn$rcn.count)[,this.cts]
+            mat.freq.all <- t(apply(as.matrix(frnn$rcn.freq)[,this.cts],1,function(x)x/sum(x)))
+
+            is.selected <- mclustda$sele$is.used
+
+            if(missing(data.type)){
+              data.type="ct_exp"
+            }
+
+            if(data.type=="ct"){
+              mat.count.sele <- mat.count.all[is.selected,]
+              mat.freq.sele <- mat.freq.all[is.selected,]
+            }else if(data.type=="ct_exp"){
+              mat.count.sele <- cbind(mat.count.all,exps.imp)[is.selected,]
+              mat.freq.sele <- cbind(mat.freq.all,exps.imp)[is.selected,]
+            }
+
+            ## clustering & classification
+            set.seed(seed)
+
+            cat("Clustering with Mclust ...\n")
+            mem.ori <- mclust::Mclust(data=mat.freq.sele,G=g,modelNames="EII")$classification
+
+            cat("Training MclustDA ...\n")
+            mc1 <- mclust::MclustDA(data=mat.freq.sele,class=mem.ori,
+                                    G=g,modelNames="EII",modelType = "EDDA") # 100, EII
+            mem.sele <- factor(predict(mc1)$classification)
+            g1 <- nlevels(mem.sele)
+
+            ## mean counts & frequencies
+
+            mean.count.sele <- sapply(seq(g1),function(i)colMeans(mat.count.sele[mem.sele==i,]))
+            mean.freq.sele <- sapply(seq(g1),function(i)colMeans(mat.freq.sele[mem.sele==i,]))
+            colnames(mean.count.sele) <- colnames(mean.freq.sele) <- seq(g1)
+
+            if(extrapolate){
+              ## extrapolate clusters
+              is.available <- !apply(mat.freq.all,1,function(x)any(is.na(x))) # 8587
+              mat.count.all1 <- mat.count.all[is.available,]
+              mat.freq.all1 <- mat.freq.all[is.available,]
+
+              cat("Applying MclustDA to the entire data ...\n")
+              mc.idx <- sort(rep(seq(mc.cores),length=nrow(mat.freq.all1)))
+
+              mem.all <- parallel::mclapply(seq(mc.cores),function(i){
+                predict(mc1,newdata=mat.freq.all1[mc.idx==i,frnn$cts.in.rcn])$classification
+              },mc.cores=mc.cores)
+              mem.all <- do.call(c,mem.all)
+
+              ## update labels
+              mem.all <- factor(mem.all)
+              g1 <- nlevels(mem.all)
+              levels(mem.all) <- seq(g1)
+
+              ## mean counts & frequencies
+              mean.count.all <- sapply(seq(g1),function(i)colMeans(mat.count.all1[mem.all==i,]))
+              mean.freq.all <- sapply(seq(g1),function(i)colMeans(mat.freq.all1[mem.all==i,]))
+
+              colnames(mean.count.all) <- colnames(mean.freq.all) <- seq(g1)
+            }
+
+            ## Sort clusters based on frequency of a cell type (CD8T by default)
+            if(missing(sort.type)){
+              sort.type <- "freq"
+            }
+
+            if(missing(sort.smpls)){
+              if(extrapolate){
+                sort.smpls <- "all"
+              }else{
+                sort.smpls <- "selected"
+              }
+            }
+
+            if(sort.type == "freq" & sort.smpls == "all"){
+              mean.freq <- mean.freq.all
+            }else if(sort.type == "freq" & sort.smpls == "selected"){
+              mean.freq <- mean.freq.sele
+            }else if(sort.type == "count" & sort.smpls == "all"){
+              mean.freq <- mean.count.all
+            }else if(sort.type == "count" & sort.smpls == "selected"){
+              mean.freq <- mean.count.sele
+            }
+
+            if(sort.by=="CD8T"){
+              o <- order(mean.freq["CD8T",],decreasing=T)
+              mean.freq.sele <-  mean.freq.sele[,o]
+              mean.count.sele <-  mean.count.sele[,o]
+              mem.sele <- as.numeric(factor(as.character(mem.sele),levels=as.character(seq(ncol(mean.freq))[o])))
+              colnames(mean.count.sele) <- colnames(mean.freq.sele) <- paste0("Rcn",seq(g1))
+
+              mclustda$sele <- list(is.used = mclustda$sele$is.used,
+                                    mem = mem.sele,
+                                    mean.freq = mean.freq.sele,
+                                    mean.count = mean.count.sele)
+
+              if(extrapolate){
+                mean.freq.all <-  mean.freq.all[,o]
+                mean.count.all <-  mean.count.all[,o]
+                mem.all <- as.numeric(factor(as.character(mem.all),levels=as.character(seq(ncol(mean.freq))[o]))) ## mem redefined
+                colnames(mean.count.all) <- colnames(mean.freq.all) <- paste0("RCN",seq(g1))
+
+                mclustda$all <- list(is.used = is.available,
+                                     mem = mem.all,
+                                     mean.freq = mean.freq.all,
+                                     mean.count = mean.count.all)
+              }
+            }else{
+              stop("Define 'sort.by' first")
+            }
+
+            ##
+            mclustda$g <- g1
+
+            frnn$mclustda <- mclustda
+
+            return(frnn)
+          })
 #_ -------------------------------
 # fun: meanExpRCN ----
 
@@ -965,7 +1176,7 @@ setMethod("rcnClust","data.frame",
 #'
 #' @param x A data frame containing expression data, typically from a CyCIF or similar dataset.
 #' @param frnn An object containing RCN information, typically obtained from 'computeRCN'.
-#' @param focused.cts A character vector specifying the cell types to focus on (e.g., "Tumor").
+#' @param cts.in.center A character vector specifying the cell typesaround which RCN was computed (e.g., "Tumor").
 #' @param cts.in.rcn A character vector specifying the cell types to include in the RCN analysis.
 #' @param per.ct A logical value indicating whether to compute mean expression profiles per RCN cluster (TRUE) or for the entire dataset (FALSE).
 #' @param extrapolate A logical value indicating whether to extrapolate clustering results to the entire dataset (TRUE) or not (FALSE).
@@ -975,13 +1186,13 @@ setMethod("rcnClust","data.frame",
 #' @details
 #' The 'meanExpRCN' function calculates the mean expression profiles for the specified cell types or features within RCN clusters. The function works as follows:
 #' - It takes a data frame 'x' containing expression data and an object 'frnn' containing RCN information obtained from the 'computeRCN' function.
-#' - You can specify the 'focused.cts' argument to select specific cell types to focus on during the analysis.
+#' - You can specify the 'cts.in.center' argument to select specific cell types to focus on during the analysis.
 #' - The 'cts.in.rcn' argument allows you to specify the cell types to include in the RCN analysis.
 #' - If 'per.ct' is set to TRUE, the function computes mean expression profiles per RCN cluster; otherwise, it computes mean expression profiles for the entire dataset.
 #' - The 'extrapolate' argument determines whether to extrapolate clustering results to the entire dataset based on RCN information.
 #' The function returns a list of data frames containing mean expression profiles for the specified cell types or features within RCN clusters.
 #'
-#' @seealso \code{\link{computeRCN}}, \code{\link{rcnClust}}
+#' @seealso \code{\link{computeRCN}}, \code{\link{tcnClust}}
 #'
 #' @importFrom mclust Mclust
 #' @importFrom parallel mclapply
@@ -996,7 +1207,7 @@ setGeneric("meanExpRCN", function(x,...) standardGeneric("meanExpRCN"))
 setMethod("meanExpRCN","data.frame",
           function(x,
                    frnn,
-                   focused.cts="Tumor",
+                   cts.in.center="Tumor",
                    cts.in.rcn=levels(cell_types(x)$cell_types)[1:10],
                    per.ct=TRUE,
                    extrapolate=TRUE){
@@ -1027,7 +1238,7 @@ setMethod("meanExpRCN","data.frame",
                   tibble::rowid_to_column("idx"),by="idx") %>%
       rename(idx.all="idx")## 1325874, within ROIs
 
-    idx.nonna.tum <-!is.na(df1$tcn) & df1$cell_types %in% focused.cts # 471910 / 1325874
+    idx.nonna.tum <-!is.na(df1$tcn) & df1$cell_types %in% cts.in.center # 471910 / 1325874
     df.tum <- df1 %>%
       filter(idx.nonna.tum) %>%
       tibble::rowid_to_column("idx.tum") # 471910

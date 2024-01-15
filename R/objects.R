@@ -352,40 +352,61 @@ setClass("CycifStack",
 )
 
 #_ -------------------------------------------------------
+
 # class: frnn ----
 
-setClass("CellNeighborhood",
+#' Class "frNN" - output of dbscan::frNN()
+#'
+#' @slot id A list of integer vector (length of the number of cell neighborhoods). Each vector contains the ids of the fixed radius nearest neighbors.
+#' @slot dist A list with distances (same structure as id)
+#' @slot eps A numeric vector (scalar) containing neighborhood radius eps that was used.
+#' @slot sort A logical value indicating whether the distances are sorted.
+#'
+#' @seealso \code{\link{dbscan::frNN}}
+#'
+#' @rdname frNN
+#'
+#' @export
+setClass("frNN",
          slots = c(
-           # [list of Cycif objs]
-           samples = "list",
-
-           # [sample basic info]
-           names = "character",
-           mask_type = "character",
-
-           # [n_cycles, n_cells]
-           n_samples = "numeric",
-           n_cycles = "numeric",
-           max_cycles = "numeric",
-           n_cells = "numeric",
-
-           # [abs_list] - should contain gates and dynamic ranges
-           abs_list = "data.frame",
-
-           # [normalized] - should contain log_normalized and logTh_normalized
-           # log_normalized = "data.frame",
-           # logTh_normalized = "data.frame",
-
-           # [cell types]
-           cell_types = "list", # CellTypeCycifStack
-
-           # [ld_coords]
-           ld_coords = "list",
-
-           # [phenotypes]
-           phenoData = "data.frame",
-
-           # [call]
-           calls = "list"
+           dist = "list",
+           id = "list",
+           eps = "numeric",
+           sort = "logical"
          )
 )
+
+# class: CellNeighborhood ----
+
+#' Class "CellNeighborhood" - Cell Neighborhood Object
+#'
+#' An object of class "CellNeighborhood" represents the results of the computeRCN function
+#' for a Cycif or CycifStack object, providing information about the cell neighborhood analysis.
+#'
+#' @slot within.rois A logical vector indicating whether each cell is within a region of interest (ROI).
+#' @slot focused.cts A character vector of the focused cell types around which Cell Neighborhood is considered in the analysis.
+#' @slot cts.in.rcn A character vector of cell types considered in the neighborhood analysis.
+#' @slot n.cells.selected An integer indicating the number of cells selected for the analysis.
+#' @slot frnn A frNN object containing information about cell neighbors.
+#' @slot exp A data.table containing expression data for selected cells.
+#' @slot is.selected A logical vector indicating whether each cell is selected.
+#' @slot rcn.count A matrix containing the counts of cell types in the neighborhood.
+#' @slot rcn.freq A matrix containing the frequency of cell types in the neighborhood.
+#'
+#' @seealso \code{\link{computeRCN}}
+#'
+#' @rdname CellNeighborhood
+#' @export
+setClass("CellNeighborhood",
+         slots = c(
+           within.rois = "logical",
+           focused.cts = "character",
+           cts.in.rcn = "character",
+           n.cells.selected = "integer",
+           frnn = "frNN",
+           exp = "data.table",
+           is.selected = "logical",
+           rcn.count = "matrix",
+           rcn.freq = "matrix"
+         ))
+

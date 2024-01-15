@@ -2,7 +2,7 @@
 % Please edit documentation in R/visualization.R
 \name{h3}
 \alias{h3}
-\title{3D Heatmap Plot}
+\title{3D Heatmap Plot (extension of heatmap3)}
 \usage{
 h3(
   x,
@@ -85,11 +85,11 @@ h3(
 \item{legendfun}{A custom function to create the legend (default is NULL).}
 }
 \description{
-This function creates a 3D heatmap plot to visualize a matrix of data.
+This function creates a 3D heatmap plot to visualize a matrix of data, extending \code{heatmap3::heatmap3}.
 }
 \details{
 \itemize{
-\item The \code{h3} function creates a 3D heatmap plot to visualize a matrix of data.
+\item The \code{h3} function creates a 3D heatmap plot to visualize a matrix of data, extending and customizing \code{heatmap3::heatmap3} function.
 \item It allows customization of various aspects of the plot, including colors, labels, and dendrograms.
 \item Additional functionalities like distance matrix calculations and custom legends are available.
 }

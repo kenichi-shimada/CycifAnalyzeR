@@ -3,13 +3,14 @@
 \name{ratioTumorStroma}
 \alias{ratioTumorStroma}
 \alias{ratioTumorStroma,Cycif-method}
+\alias{ratioTumorStroma,CycifStack-method}
 \title{Calculate the Tumor-to-Stroma Ratio in CyCIF data.}
 \usage{
 ratioTumorStroma(x, ...)
 
 \S4method{ratioTumorStroma}{Cycif}(x, stroma.cts, ...)
 
-\S4method{ratioTumorStroma}{Cycif}(x, stroma.cts, ...)
+\S4method{ratioTumorStroma}{CycifStack}(x, stroma.cts, ...)
 }
 \arguments{
 \item{x}{A CyCIF or CyCIFStack object.}

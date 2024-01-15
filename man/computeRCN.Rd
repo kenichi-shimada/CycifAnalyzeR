@@ -12,7 +12,7 @@ computeRCN(x, ...)
   x,
   r,
   unit = c("pixel", "um"),
-  focused.cts,
+  cts.in.center,
   cts.in.rcn,
   n.sampling,
   seed = 123
@@ -22,7 +22,7 @@ computeRCN(x, ...)
   x,
   r,
   unit = c("pixel", "um"),
-  focused.cts,
+  cts.in.center,
   cts.in.rcn,
   n.sampling,
   seed = 123
@@ -36,9 +36,9 @@ computeRCN(x, ...)
 \item{unit}{The unit of measurement for the radius ('pixel' or 'um'). If 'um' is specified,
 the radius 'r' will be converted to pixels based on the assumed resolution (0.65 um per pixel).}
 
-\item{focused.cts}{A character vector specifying the cell types of interest for RCN analysis.}
+\item{cts.in.center}{A character vector specifying the cell types around which RCN is computed. If not is specified, all available cts are used.}
 
-\item{cts.in.rcn}{A character vector specifying the cell types to consider when computing RCN values.}
+\item{cts.in.rcn}{A character vector specifying the cell types to consider when computing RCN values. If not is specified, all avaialble cts are used.}
 
 \item{n.sampling}{The number of cells to randomly sample for RCN analysis.}
 
@@ -48,7 +48,7 @@ the radius 'r' will be converted to pixels based on the assumed resolution (0.65
 A list containing the following components:
 \itemize{
 \item 'within.rois': A logical vector indicating whether each cell is within a region of interest (ROI).
-\item 'focused.cts': A character vector specifying the cell types of interest for RCN analysis.
+\item 'cts.in.center': A character vector specifying the cell types around which RCN is computed.
 \item 'cts.in.rcn': A character vector specifying the cell types considered when computing RCN values.
 \item 'n.cells.selected': The number of cells selected for RCN analysis.
 \item 'frnn': A list with recurrent Neighborhood information, including 'dist', 'id', 'eps', and 'sort'.
