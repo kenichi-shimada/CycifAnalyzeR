@@ -645,13 +645,14 @@ setMethod("computeRCN", "Cycif",
 
     ## frnn object - all within_rois samples
     frnn <- dbscan::frNN(xy1,eps=r,bucketSize=10) # 265793 cells
+    frnn.ids <- frnn$id
+
     frnn <- new("frNN",
                 dist = frnn$dist,
-                id = frnn$id,
+                id = frnn.ids,
                 eps = frnn$eps,
                 sort = frnn$sort)
 
-    frnn.ids <- frnn$id
     n.frnn <- sapply(frnn.ids,length)
     n0 <- which(n.frnn==0)
     idx.df <- data.frame(center_id=rep(seq(frnn.ids),n.frnn),
@@ -684,13 +685,13 @@ setMethod("computeRCN", "Cycif",
     dt0 <- data.table::as.data.table(cbind(n0,array(NA,c(length(n0),length(cst.abs)))))
     names(dt0) <- names(dt)
 
-    dt <- data.table::rbindlist(list(dt,dt0))[order(center_id),]
+    dt <- as.data.frame(data.table::rbindlist(list(dt,dt0))[order(center_id),])
     has.neighbors <- !seq(nrow(dt)) %in% n0
 
     ## within positive ROIs + has neighbors
     selected.ids1 <- which(cts1$cell_types %in% cts.in.center &
-                          sapply(frnn$id,length)>0 &
-                          sapply(frnn$id,function(ids){
+                          sapply(frnn.ids,length)>0 &
+                          sapply(frnn.ids,function(ids){
                             any(cts1$cell_types[ids] %in% cts.in.rcn)
                           }) &
                           has.neighbors
@@ -704,31 +705,33 @@ setMethod("computeRCN", "Cycif",
     selected.ids2 <- sample(selected.ids1,n.cts) # idx after ROI filter
 
     ## selected ids among avialble focused celltypes (eg tumor cells)
-    sid <- seq(frnn$id) %in% selected.ids2
+    sid <- seq(frnn.ids) %in% selected.ids2
 
     ## cell type frequency (not absolute count)
-    rcn.freq <- t(sapply(frnn$id,function(ids){ # [c(83538,101787)]
+    rcn.freq <- t(sapply(frnn.ids,function(ids){ # [c(83538,101787)]
       ct <- cts1$cell_types[ids]
       tab <- table(ct)
       ntab <- tab/sum(tab)
       return(ntab)
     }))
-    rcn.count <- t(sapply(frnn$id,function(ids){ # [c(83538,101787)]
+    rcn.count <- t(sapply(frnn.ids,function(ids){ # [c(83538,101787)]
       ct <- cts1$cell_types[ids]
       tab <- table(ct)
       return(tab)
     }))
 
-    return(list(within.rois=wr,
-                cts.in.center=cts.in.center,
-                cts.in.rcn=cts.in.rcn,
-                n.cells.selected=n.cts,
-                frnn=frnn,
-                exp=dt,
-                is.selected=sid,
-                rcn.count=rcn.count,
-                rcn.freq=rcn.freq))
+    cn <- new("CellNeighborhood",
+              within.rois=wr,
+              cts.in.center=cts.in.center,
+              cts.in.rcn=cts.in.rcn,
+              n.cells.selected=n.cts,
+              frnn=frnn,
+              exp=dt,
+              is.selected=sid,
+              rcn.count=rcn.count,
+              rcn.freq=rcn.freq)
 
+    return(cn)
 })
 
 #' @rdname computeRCN
@@ -755,10 +758,10 @@ setMethod("computeRCN", "CycifStack",
     lst.frnn <- lapply(frnn1,function(fr)fr$frnn)
 
     ### dists
-    dists <- do.call(c,lapply(lst.frnn,function(frnn)frnn$dist))
+    dists <- do.call(c,lapply(lst.frnn,function(frnn)frnn@dist))
 
     ### ids
-    n.frnns <- sapply(lst.frnn,function(frnn)length(frnn$id)) # 1325874, all cells, excluding outOfROIs
+    n.frnns <- sapply(lst.frnn,function(frnn)length(frnn@id)) # 1325874, all cells, excluding outOfROIs
     n.frnns.pre <- c(0,cumsum(n.frnns)[-length(n.frnns)])
     names(n.frnns.pre) <- names(x)
 
@@ -776,8 +779,8 @@ setMethod("computeRCN", "CycifStack",
     frnn.ids1 <- do.call(c,frnn.ids) ## 1325874, now all data are combined - and the indices are after excluding outOfROIs
 
     ### eps, sort
-    eps <- unique(sapply(lst.frnn,function(frnn)frnn$eps))
-    sort <- unique(sapply(lst.frnn,function(frnn)frnn$sort))
+    eps <- unique(sapply(lst.frnn,function(frnn)frnn@eps))
+    sort <- unique(sapply(lst.frnn,function(frnn)frnn@sort))
 
     frnn <- list(dist=dists,id=frnn.ids1,eps=eps,sort=sort)
 
@@ -800,10 +803,22 @@ setMethod("computeRCN", "CycifStack",
     mclustda$sele$is.used <- do.call(c,lapply(frnn1,function(fr)fr$is.selected)) #67119 -> 66904, how did I do that?
 
     ##
-    exps <- data.table::rbindlist(lapply(frnn1,function(fr)as.data.frame(fr$exp)))
-    rcn.count <- data.table::rbindlist(lapply(frnn1,function(fr)as.data.frame(fr$rcn.count)))
-    rcn.freq <- data.table::rbindlist(lapply(frnn1,function(fr)as.data.frame(fr$rcn.freq)))
+    exps <- as.data.frame(data.table::rbindlist(lapply(frnn1,function(fr)as.data.frame(fr$exp))))
+    rcn.count <- as.matrix(data.table::rbindlist(lapply(frnn1,function(fr)as.data.frame(fr$rcn.count))))
+    rcn.freq <- as.matrix(data.table::rbindlist(lapply(frnn1,function(fr)as.data.frame(fr$rcn.freq))))
 
+    cn <- new("CellNeighborhood",
+              within.rois=within.rois,
+              cts.in.center=cts.in.center,
+              cts.in.rcn=cts.in.rcn,
+              n.cells.selected=n.cells.selected,
+              frnn=frnn,
+              exp=dt,
+              is.selected=sid,
+              rcn.count=rcn.count,
+              rcn.freq=rcn.freq)
+
+    return(cn)
     return(list(within.rois=within.rois, ## all cells (including outOfROIs)
                 cts.in.center=cts.in.center, ## 1 or a few
                 cts.in.rcn=cts.in.rcn, ## 1 or a few
@@ -867,15 +882,15 @@ setMethod("tcnClust","data.frame",
            data.type=c("ct_exp","ct"),
            extrapolate=FALSE,
            mc.cores=1){
-  mclustda <- frnn$mclustda
+  mclustda <- frnn@mclustda
 
-  exps <- as.matrix(frnn$exp)[,-1]
+  exps <- as.matrix(frnn@exp)[,-1]
   exps.imp <- imputeData(exps)
 
   this.cts <- cts.in.rcn
 
-  mat.count.all <- as.matrix(frnn$rcn.count)[,this.cts]
-  mat.freq.all <- t(apply(as.matrix(frnn$rcn.freq)[,this.cts],1,function(x)x/sum(x)))
+  mat.count.all <- frnn$rcn.count[,this.cts]
+  mat.freq.all <- t(apply(frnn$rcn.freq[,this.cts],1,function(x)x/sum(x)))
 
   is.selected <- mclustda$sele$is.used
 

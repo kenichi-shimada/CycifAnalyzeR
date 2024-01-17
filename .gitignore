@@ -14,3 +14,4 @@ R1/_unused/*.R
 test.R
 *.rda
 *.csv
+library

@@ -388,7 +388,7 @@ setClass("frNN",
 #' @slot cts.in.rcn A character vector of cell types considered in the neighborhood analysis.
 #' @slot n.cells.selected An integer indicating the number of cells selected for the analysis.
 #' @slot frnn A frNN object containing information about cell neighbors.
-#' @slot exp A data.table containing expression data for selected cells.
+#' @slot exp A data.frame containing expression data for selected cells.
 #' @slot is.selected A logical vector indicating whether each cell is selected.
 #' @slot rcn.count A matrix containing the counts of cell types in the neighborhood.
 #' @slot rcn.freq A matrix containing the frequency of cell types in the neighborhood.
@@ -403,10 +403,10 @@ setClass("CellNeighborhood",
            focused.cts = "character",
            cts.in.rcn = "character",
            n.cells.selected = "integer",
+           smpls = "character",
            frnn = "frNN",
-           exp = "data.table",
+           exp = "data.frame",
            is.selected = "logical",
            rcn.count = "matrix",
            rcn.freq = "matrix"
          ))
-
