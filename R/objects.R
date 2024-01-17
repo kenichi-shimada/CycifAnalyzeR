@@ -384,14 +384,15 @@ setClass("frNN",
 #' for a Cycif or CycifStack object, providing information about the cell neighborhood analysis.
 #'
 #' @slot within.rois A logical vector indicating whether each cell is within a region of interest (ROI).
-#' @slot focused.cts A character vector of the focused cell types around which Cell Neighborhood is considered in the analysis.
 #' @slot cts.in.rcn A character vector of cell types considered in the neighborhood analysis.
 #' @slot n.cells.selected An integer indicating the number of cells selected for the analysis.
+#' @slot smpls A character vector containing sample names.
 #' @slot frnn A frNN object containing information about cell neighbors.
-#' @slot exp A data.frame containing expression data for selected cells.
+#' @slot n.neighbors An integer indicating the number of neighbors (including self).
+#' @slot cn_exp A data.frame containing expression data for each cell neighborhood.
 #' @slot is.selected A logical vector indicating whether each cell is selected.
-#' @slot rcn.count A matrix containing the counts of cell types in the neighborhood.
-#' @slot rcn.freq A matrix containing the frequency of cell types in the neighborhood.
+#' @slot rcn.count A data.frame containing the counts of cell types in the neighborhood.
+#' @slot rcn.freq A data.frame containing the frequency of cell types in the neighborhood.
 #'
 #' @seealso \code{\link{computeRCN}}
 #'
@@ -400,12 +401,13 @@ setClass("frNN",
 setClass("CellNeighborhood",
          slots = c(
            within.rois = "logical",
-           focused.cts = "character",
            cts.in.rcn = "character",
-           n.cells.selected = "integer",
+           n.cells.selected = "numeric",
            smpls = "character",
            frnn = "frNN",
-           exp = "data.frame",
+           n.neighbors = "numeric",
+           exp.per.ct.cn = "data.table",
+           exp.per.cn = "data.table",
            is.selected = "logical",
            rcn.count = "matrix",
            rcn.freq = "matrix"

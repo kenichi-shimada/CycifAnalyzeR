@@ -585,16 +585,23 @@ setMethod("computeArea", "Cycif",
 #' @param n.sampling The number of cells to randomly sample for RCN analysis.
 #' @param seed The random seed for reproducibility.
 #'
-#' @return A list containing the following components:
-#' - 'within.rois': A logical vector indicating whether each cell is within a region of interest (ROI).
-#' - 'cts.in.center': A character vector specifying the cell types around which RCN is computed.
-#' - 'cts.in.rcn': A character vector specifying the cell types considered when computing RCN values.
-#' - 'n.cells.selected': The number of cells selected for RCN analysis.
-#' - 'frnn': A list with recurrent Neighborhood information, including 'dist', 'id', 'eps', and 'sort'.
-#' - 'exp': A data frame containing expression data for selected cells.
-#' - 'is.selected': A logical vector indicating whether each cell is selected for RCN analysis.
+#' @return A CellNeighborhood object containing the following components:
+#' - 'within.rois': A logical vector indicating whether each cell is within a region of interest (ROI). The length is the same as the number of cells in the dataset.
+#' - 'cts.in.rcn': A character vector specifying the cell types considered when computing cell neighbors, cell type frequency, and expressions.
+#' - 'n.cells.selected': The number of cells selected for RCN analysis, which is the smaller of `n.sampling` and the number of cells within ROIs.
+#' - 'frnn': A list with recurrent Neighborhood information, including 'dist', 'id', 'eps', and 'sort'. The length of 'dist' and 'id' is the same as 'n.cells.selected'.
+#' - 'cn_exp': A data frame containing expression data for selected cells.
+#' - 'is.selected': A logical vector indicating whether each cell is selected for RCN analysis. The sum of the vector is the same as 'n.cells.selected'.
 #' - 'rcn.count': A data frame containing the counts of neighboring cell types.
 #' - 'rcn.freq': A data frame containing the relative frequencies of neighboring cell types.
+#'
+#' @details The RCN analysis is performed as follows:
+#' 1. The function first identifies the cells that are within the ROIs.
+#' 2. It then computes the Recurrent Neighborhood (frNN) for the selected cells using the 'dbscan::frNN' function.
+#' 3. It then computes the RCN values for each cell type based on the relative frequencies of neighboring cell types.
+#' 4. The function returns a list containing the RCN values for each cell type.
+#' The RCN analysis can be performed on a single Cycif object or across a CycifStack object.
+#' If the input is a CycifStack object, the RCN analysis is performed on each Cycif object in the stack.
 #'
 #' @seealso \code{\link{cyApply}}, \code{\link{dbscan::frNN}}
 #'
@@ -613,7 +620,6 @@ setGeneric("computeRCN", function(x,...) standardGeneric("computeRCN"))
 #' @export
 setMethod("computeRCN", "Cycif",
           function(x,r,unit=c("pixel","um"),
-                     cts.in.center,
                      cts.in.rcn,
                      n.sampling,
                      seed=123){ # only for Cycif, and CycifStack
@@ -624,113 +630,145 @@ setMethod("computeRCN", "Cycif",
       unit <- "pixel"
     }
 
-    xy <- xys(x)
+    smpl <- names(x)
+
+    xy <- xys(x) # this is data.table
     ymax <- max(xy$Y_centroid)
     xy$Y_centroid <- ymax - xy$Y_centroid
+
     cts <- cell_types(x)
 
+    ## ---- select cells that are within_rois ----
     wr <- x@within_rois
     xy1 <- xy[wr,]
-    cts1 <- cts[wr,]
-    lev.cts <- levels(cts1$cell_types)
-    lev.cts <- lev.cts[lev.cts != "outOfROI"]
 
-    if(missing(cts.in.center)){
-      cts.in.center <- lev.cts
-    }
+    ## ---- cell types to consider (cts.in.rcn) - "OutOfROI" is removed for this subset of cells ----
+    cts1 <- cts[wr,]
 
     if(missing(cts.in.rcn)){
+      lev.cts <- levels(cts1$cell_types)
+      lev.cts <- lev.cts[lev.cts != "outOfROI"]
       cts.in.rcn <- lev.cts
     }
 
-    ## frnn object - all within_rois samples
-    frnn <- dbscan::frNN(xy1,eps=r,bucketSize=10) # 265793 cells
-    frnn.ids <- frnn$id
 
+    # ---- expression matrix per cell type per CellNeighborhood ----
+    ## expression matrix for cells within ROIs
+    df1 <- exprs(x,type="log")[wr,]
+
+    ## convert xy1, cts1, df1 to data.table
+    setDT(xy1)
+    setDT(cts1)
+    setDT(df1)
+
+    # Add a row number column to xy1 and cts1 for joining
+    xy1[, rn := .I]
+    cts1[, rn := .I]
+    df1[, rn := .I]
+
+    # Join xy1, cts1, and df1 by row number
+    combined_df <- xy1[cts1, on = "rn"][df1, on = "rn"]
+
+    ## find out which cell types express which cell state markers
+    csts <- x@cell_types$default@cell_state_def[cts.in.rcn,] %>%
+      tibble::rownames_to_column("cell_types")
+
+    protein_columns <- names(csts)
+    protein_columns <- protein_columns[protein_columns != "cell_types"]
+
+    # Convert csts to data.table and melt it to long format
+    csts_dt <- melt(setDT(csts), id.vars = "cell_types", variable.name = "ab", value.name = "expression")
+
+    # Filter for cell types that do not express each antibody (i.e., expression is NA)
+    csts_dt <- csts_dt[is.na(expression)]
+
+    # Loop through each antibody and set expression to NA for cell types that do not express it
+    for (ab in unique(csts_dt$ab)) {
+      non_expressing_cts <- csts_dt[ab == ab, cell_types]
+      combined_df[.(non_expressing_cts), (ab) := NA, on = .(cell_types)]
+    }
+
+    ## ---- compute frNN for all cells within ROIs and convert them to frNN object.  ----
+    frnn <- dbscan::frNN(xy1,eps=r,bucketSize=10)
+    frnn.ids <- frnn$id <- lapply(seq_along(frnn$id), function(i) c(i, frnn$id[[i]]))
+    frnn$dist <- lapply(seq_along(frnn$dist), function(i) c(0, frnn$dist[[i]]))
+
+    # Create a neighborhood data table from frnn
+    nmat <- data.table(
+      cell_id = rep(seq_along(frnn$id), lengths(frnn$id)),
+      neighbor_id = unlist(frnn$id, use.names = FALSE)
+    )
+
+    # Join with combined_df to get cell type and expression data for each neighbor
+    neighborhood <- nmat[
+      combined_df, on = .(neighbor_id = rn), nomatch = 0
+    ]
+
+    # Calculate the average expression per cell type in each neighborhood
+    # Assuming protein columns in combined_df are named "protein1", "protein2", etc.
+
+    exp_per_ct_cn <- neighborhood[, lapply(.SD, mean, na.rm = TRUE), by = .(cell_id, cell_types), .SDcols = protein_columns]
+    exp_per_cn <- neighborhood[, lapply(.SD, mean, na.rm = TRUE), by = .(cell_id), .SDcols = protein_columns]
+
+    # exp_per_ct_cn and exp_per_cn are data.table with average protein expression per neighborhood, per cell type or not
+
+    ##  ---- convert frnn to frNN object (not necessary?)  ----
     frnn <- new("frNN",
                 dist = frnn$dist,
                 id = frnn.ids,
                 eps = frnn$eps,
                 sort = frnn$sort)
 
-    n.frnn <- sapply(frnn.ids,length)
-    n0 <- which(n.frnn==0)
-    idx.df <- data.frame(center_id=rep(seq(frnn.ids),n.frnn),
-                         neighbor_id=.Internal(unlist(frnn.ids, FALSE, FALSE))) %>%
-      data.table::as.data.table()
+    ##  ---- within positive ROIs + has neighbors ----
+    n.frnn <- lengths(frnn@id) # number of neighbors - the same as sum(wr)
+    n0 <- which(n.frnn==0) # no neighbors
+    has.neighbors <- n.frnn > 0
 
-    ##
-    df1 <- cell_types(x) %>%
-      cbind(exprs(x,type="log")) %>%
-      filter(cell_types != "outOfROI") %>%
-      # tibble::rowid_to_column("center_id") %>%
-      data.table::data.table()
-
-    rn <- levels(df1$cell_types)
-    csts <- x@cell_types$default@cell_state_def[rn,]
-
-    lst.csts <- lapply(csts,function(x1){
-      rn[!is.na(x1) & x1 == "CAN"]
-    })
-    cst.abs <- names(csts)
-
-    for(ab in cst.abs){
-      this.cts <- lst.csts[[ab]]
-      df1 <- df1[!cell_types %in% this.cts ,(ab) := NA]
-    }
-
-    ##
-    df1 <- cbind(idx.df,df1[idx.df$neighbor_id,])
-    dt <-  df1[ ,lapply(.SD, mean, na.rm=T), by=center_id,.SDcols=cst.abs]
-    dt0 <- data.table::as.data.table(cbind(n0,array(NA,c(length(n0),length(cst.abs)))))
-    names(dt0) <- names(dt)
-
-    dt <- as.data.frame(data.table::rbindlist(list(dt,dt0))[order(center_id),])
-    has.neighbors <- !seq(nrow(dt)) %in% n0
-
-    ## within positive ROIs + has neighbors
-    selected.ids1 <- which(cts1$cell_types %in% cts.in.center &
-                          sapply(frnn.ids,length)>0 &
-                          sapply(frnn.ids,function(ids){
-                            any(cts1$cell_types[ids] %in% cts.in.rcn)
-                          }) &
-                          has.neighbors
-                        )
-
-    ## sampling
-    set.seed(seed)
+    selected.ids1 <- which(sapply(frnn.ids,length)>0 &
+                             sapply(frnn.ids,function(ids){
+                               any(cts1$cell_types[ids] %in% cts.in.rcn)
+                             }) &
+                             has.neighbors
+    )
     n.this <- length(selected.ids1)
     n.cts <- min(n.sampling,n.this)
 
-    selected.ids2 <- sample(selected.ids1,n.cts) # idx after ROI filter
+    if(0){
 
-    ## selected ids among avialble focused celltypes (eg tumor cells)
-    sid <- seq(frnn.ids) %in% selected.ids2
+      ## sampling
+      set.seed(seed)
 
-    ## cell type frequency (not absolute count)
-    rcn.freq <- t(sapply(frnn.ids,function(ids){ # [c(83538,101787)]
+
+      selected.ids2 <- sample(selected.ids1,n.cts) # idx after ROI filter
+
+      ## selected ids among available focused celltypes (eg tumor cells)
+      sid <- seq(frnn.ids) %in% selected.ids2
+    }
+
+    rcn.freq <- t(sapply(frnn@id,function(ids){
       ct <- cts1$cell_types[ids]
       tab <- table(ct)
       ntab <- tab/sum(tab)
       return(ntab)
     }))
-    rcn.count <- t(sapply(frnn.ids,function(ids){ # [c(83538,101787)]
+
+    rcn.count <- t(sapply(frnn@id,function(ids){
       ct <- cts1$cell_types[ids]
       tab <- table(ct)
       return(tab)
     }))
 
     cn <- new("CellNeighborhood",
-              within.rois=wr,
-              cts.in.center=cts.in.center,
-              cts.in.rcn=cts.in.rcn,
-              n.cells.selected=n.cts,
+              within.rois=wr, # logical, within ROIs
+              cts.in.rcn=cts.in.rcn, # character, cell types to consider
+              n.cells.selected=n.cts, # integer, number of cells selected
+              smpls = smpl,
               frnn=frnn,
-              exp=dt,
-              is.selected=sid,
+              n.neighbors = n.frnn,
+              exp.per.ct.cn=exp_per_ct_cn,
+              exp.per.cn=exp_per_cn,
               rcn.count=rcn.count,
               rcn.freq=rcn.freq)
-
     return(cn)
 })
 
@@ -747,7 +785,6 @@ setMethod("computeRCN", "CycifStack",
     frnn1 <- cyApply(x,function(cy){
       cat(names(cy),"\n")
       computeRCN(x=cy,r=r,unit=c("pixel","um"),
-        cts.in.center=cts.in.center,
         cts.in.rcn=cts.in.rcn,
         n.sampling=n.sampling,
         seed=seed)
@@ -755,10 +792,10 @@ setMethod("computeRCN", "CycifStack",
 
     cat("Restructure data ...\n")
     ## assemble frnn
-    lst.frnn <- lapply(frnn1,function(fr)fr$frnn)
+    lst.frnn <- lapply(frnn1,function(fr)fr@frnn)
 
     ### dists
-    dists <- do.call(c,lapply(lst.frnn,function(frnn)frnn@dist))
+    dists <- do.call(c,lapply(lst.frnn,function(fr)fr@dist))
 
     ### ids
     n.frnns <- sapply(lst.frnn,function(frnn)length(frnn@id)) # 1325874, all cells, excluding outOfROIs
