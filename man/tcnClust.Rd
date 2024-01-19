@@ -20,7 +20,7 @@ tcnClust(frnn, ...)
 )
 }
 \arguments{
-\item{frnn}{An object containing RCN information, typically obtained from 'computeRCN'.}
+\item{frnn}{An object containing RCN information, typically obtained from 'computeCN'.}
 
 \item{g}{The number of clusters to create.}
 
@@ -53,5 +53,5 @@ By specifying different options for \code{sort.by}, \code{sort.type}, and \code{
 Additionally, you can choose to extrapolate clusters to the entire dataset using the \code{extrapolate} argument, which can be helpful for analyzing the overall dataset.
 }
 \seealso{
-\code{\link{computeRCN}}
+\code{\link{computeCN}}
 }

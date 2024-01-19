@@ -20,7 +20,7 @@ rcnClust(frnn, ...)
 )
 }
 \arguments{
-\item{frnn}{An object containing RCN information, typically obtained from 'computeRCN'.}
+\item{frnn}{An object containing RCN information, typically obtained from 'computeCN'.}
 
 \item{g}{The number of clusters to create.}
 
@@ -47,5 +47,5 @@ It clusters cells based on their RCN profiles, sorts clusters based on the speci
 and optionally extrapolates the clustering to the entire dataset.
 }
 \seealso{
-\code{\link{computeRCN}}
+\code{\link{computeCN}}
 }

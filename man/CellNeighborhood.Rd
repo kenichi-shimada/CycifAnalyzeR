@@ -5,7 +5,7 @@
 \alias{CellNeighborhood-class}
 \title{Class "CellNeighborhood" - Cell Neighborhood Object}
 \description{
-An object of class "CellNeighborhood" represents the results of the computeRCN function
+An object of class "CellNeighborhood" represents the results of the computeCN function
 for a Cycif or CycifStack object, providing information about the cell neighborhood analysis.
 }
 \section{Slots}{
@@ -13,23 +13,31 @@ for a Cycif or CycifStack object, providing information about the cell neighborh
 \describe{
 \item{\code{within.rois}}{A logical vector indicating whether each cell is within a region of interest (ROI).}
 
-\item{\code{focused.cts}}{A character vector of the focused cell types around which Cell Neighborhood is considered in the analysis.}
-
 \item{\code{cts.in.rcn}}{A character vector of cell types considered in the neighborhood analysis.}
 
 \item{\code{n.cells.selected}}{An integer indicating the number of cells selected for the analysis.}
 
+\item{\code{smpls}}{A character vector containing sample names.}
+
 \item{\code{frnn}}{A frNN object containing information about cell neighbors.}
 
-\item{\code{exp}}{A data.table containing expression data for selected cells.}
+\item{\code{n.neighbors}}{An integer indicating the number of neighbors (including self).}
+
+\item{\code{exp.per.ct.cn}}{A data.table containing expression data for each cell type in the neighborhood.}
+
+\item{\code{exp.per.cn}}{A data.table containing expression data for each cell neighborhood.}
 
 \item{\code{is.selected}}{A logical vector indicating whether each cell is selected.}
 
-\item{\code{rcn.count}}{A matrix containing the counts of cell types in the neighborhood.}
+\item{\code{rcn.count}}{A data.frame containing the counts of cell types in the neighborhood.}
 
-\item{\code{rcn.freq}}{A matrix containing the frequency of cell types in the neighborhood.}
+\item{\code{rcn.freq}}{A data.frame containing the frequency of cell types in the neighborhood.}
+
+\item{\code{dist2tumor}}{A numeric vector containing the distance of each cell to tumor border.}
+
+\item{\code{mclustda}}{A list containing the results of the mclustDA function.}
 }}
 
 \seealso{
-\code{\link{computeRCN}}
+\code{\link{computeCN}}
 }

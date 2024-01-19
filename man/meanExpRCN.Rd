@@ -19,7 +19,7 @@ meanExpRCN(x, ...)
 \arguments{
 \item{x}{A data frame containing expression data, typically from a CyCIF or similar dataset.}
 
-\item{frnn}{An object containing RCN information, typically obtained from 'computeRCN'.}
+\item{frnn}{An object containing RCN information, typically obtained from 'computeCN'.}
 
 \item{cts.in.center}{A character vector specifying the cell typesaround which RCN was computed (e.g., "Tumor").}
 
@@ -36,14 +36,14 @@ A list of data frames containing mean expression profiles for specified cell typ
 This function computes the mean expression profiles for specified cell types
 or features within Recurrent Cell Neighborhood (RCN) clusters. It takes a data frame,
 typically containing expression data, and computes the mean expression values
-for each RCN cluster based on the provided RCN information from 'computeRCN'.
+for each RCN cluster based on the provided RCN information from 'computeCN'.
 The function allows you to focus on specific cell types and features and can
 extrapolate the clustering results to the entire dataset if needed.
 }
 \details{
 The 'meanExpRCN' function calculates the mean expression profiles for the specified cell types or features within RCN clusters. The function works as follows:
 \itemize{
-\item It takes a data frame 'x' containing expression data and an object 'frnn' containing RCN information obtained from the 'computeRCN' function.
+\item It takes a data frame 'x' containing expression data and an object 'frnn' containing RCN information obtained from the 'computeCN' function.
 \item You can specify the 'cts.in.center' argument to select specific cell types to focus on during the analysis.
 \item The 'cts.in.rcn' argument allows you to specify the cell types to include in the RCN analysis.
 \item If 'per.ct' is set to TRUE, the function computes mean expression profiles per RCN cluster; otherwise, it computes mean expression profiles for the entire dataset.
@@ -52,5 +52,5 @@ The function returns a list of data frames containing mean expression profiles f
 }
 }
 \seealso{
-\code{\link{computeRCN}}, \code{\link{tcnClust}}
+\code{\link{computeCN}}, \code{\link{tcnClust}}
 }

@@ -380,7 +380,7 @@ setClass("frNN",
 
 #' Class "CellNeighborhood" - Cell Neighborhood Object
 #'
-#' An object of class "CellNeighborhood" represents the results of the computeRCN function
+#' An object of class "CellNeighborhood" represents the results of the computeCN function
 #' for a Cycif or CycifStack object, providing information about the cell neighborhood analysis.
 #'
 #' @slot within.rois A logical vector indicating whether each cell is within a region of interest (ROI).
@@ -389,26 +389,31 @@ setClass("frNN",
 #' @slot smpls A character vector containing sample names.
 #' @slot frnn A frNN object containing information about cell neighbors.
 #' @slot n.neighbors An integer indicating the number of neighbors (including self).
-#' @slot cn_exp A data.frame containing expression data for each cell neighborhood.
+#' @slot exp.per.ct.cn A data.table containing expression data for each cell type in the neighborhood.
+#' @slot exp.per.cn A data.table containing expression data for each cell neighborhood.
 #' @slot is.selected A logical vector indicating whether each cell is selected.
 #' @slot rcn.count A data.frame containing the counts of cell types in the neighborhood.
 #' @slot rcn.freq A data.frame containing the frequency of cell types in the neighborhood.
+#' @slot dist2tumor A numeric vector containing the distance of each cell to tumor border.
+#' @slot mclustda A list containing the results of the mclustDA function.
 #'
-#' @seealso \code{\link{computeRCN}}
+#' @seealso \code{\link{computeCN}}
 #'
 #' @rdname CellNeighborhood
 #' @export
 setClass("CellNeighborhood",
          slots = c(
            within.rois = "logical",
-           cts.in.rcn = "character",
            n.cells.selected = "numeric",
+           is.selected = "logical",
+           cts.in.rcn = "character",
            smpls = "character",
            frnn = "frNN",
            n.neighbors = "numeric",
            exp.per.ct.cn = "data.table",
            exp.per.cn = "data.table",
-           is.selected = "logical",
            rcn.count = "matrix",
-           rcn.freq = "matrix"
+           rcn.freq = "matrix",
+           dist2tumor = "numeric",
+           mclustda = "list"
          ))
