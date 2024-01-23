@@ -33,7 +33,7 @@ for a Cycif or CycifStack object, providing information about the cell neighborh
 
 \item{\code{rcn.freq}}{A data.frame containing the frequency of cell types in the neighborhood.}
 
-\item{\code{dist2tumor}}{A numeric vector containing the distance of each cell to tumor border.}
+\item{\code{dist2tumorBorder}}{A numeric vector containing the distance of each cell to tumor border.}
 
 \item{\code{mclustda}}{A list containing the results of the mclustDA function.}
 }}

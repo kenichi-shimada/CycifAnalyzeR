@@ -198,6 +198,74 @@ setClass("LDCoords",
    )
 )
 
+
+#_ -------------------------------------------------------
+
+# class: frnn ----
+
+#' Class "frNN" - output of dbscan::frNN()
+#'
+#' @slot id A list of integer vector (length of the number of cell neighborhoods). Each vector contains the ids of the fixed radius nearest neighbors.
+#' @slot dist A list with distances (same structure as id)
+#' @slot eps A numeric vector (scalar) containing neighborhood radius eps that was used.
+#' @slot sort A logical value indicating whether the distances are sorted.
+#'
+#' @seealso \code{\link{dbscan::frNN}}
+#'
+#' @rdname frNN
+#'
+#' @export
+setClass("frNN",
+         slots = c(
+           dist = "list",
+           id = "list",
+           eps = "numeric",
+           sort = "logical"
+         )
+)
+
+# class: CellNeighborhood ----
+
+#' Class "CellNeighborhood" - Cell Neighborhood Object
+#'
+#' An object of class "CellNeighborhood" represents the results of the computeCN function
+#' for a Cycif or CycifStack object, providing information about the cell neighborhood analysis.
+#'
+#' @slot within.rois A logical vector indicating whether each cell is within a region of interest (ROI).
+#' @slot cts.in.rcn A character vector of cell types considered in the neighborhood analysis.
+#' @slot n.cells.selected An integer indicating the number of cells selected for the analysis.
+#' @slot smpls A character vector containing sample names.
+#' @slot frnn A frNN object containing information about cell neighbors.
+#' @slot n.neighbors An integer indicating the number of neighbors (including self).
+#' @slot exp.per.ct.cn A data.table containing expression data for each cell type in the neighborhood.
+#' @slot exp.per.cn A data.table containing expression data for each cell neighborhood.
+#' @slot is.selected A logical vector indicating whether each cell is selected.
+#' @slot rcn.count A data.frame containing the counts of cell types in the neighborhood.
+#' @slot rcn.freq A data.frame containing the frequency of cell types in the neighborhood.
+#' @slot dist2tumorBorder A numeric vector containing the distance of each cell to tumor border.
+#' @slot mclustda A list containing the results of the mclustDA function.
+#'
+#' @seealso \code{\link{computeCN}}
+#'
+#' @rdname CellNeighborhood
+#' @export
+setClass("CellNeighborhood",
+         slots = c(
+           within.rois = "logical",
+           n.cells.selected = "numeric",
+           is.selected = "logical",
+           cts.in.rcn = "character",
+           smpls = "character",
+           frnn = "frNN",
+           n.neighbors = "numeric",
+           exp.per.ct.cn = "data.table",
+           exp.per.cn = "data.table",
+           rcn.count = "matrix",
+           rcn.freq = "matrix",
+           dist2tumorBorder = "numeric",
+           mclustda = "list"
+         ))
+
 #_ -------------------------------------------------------
 # class: Cycif ----
 
@@ -225,6 +293,7 @@ setClass("LDCoords",
 #'   \item{\code{logTh_normalized}}{A data frame representing log-transformed and thresholded normalized data, which are computed by \code{normalize} function.}
 #'   \item{\code{cell_types}}{A named list of \code{CellTypes} objects representing cell types.}
 #'   \item{\code{ld_coords}}{A list of \code{LDCoords} objects.}
+#'   \item{\code{cell_neighborhood}}{An object of class \code{CellNeighborhood} representing cell neighborhood analysis results.}
 #'   \item{\code{calls}}{A list of functions called.}
 #' }
 #'
@@ -277,9 +346,8 @@ setClass("Cycif",
            ld_coords = "list", # list of ld_coords object
            # clusters = "numeric", # numeric
 
-           # # [ranges]
-           # qt_gates = "vector", # quantification gates - for cell type calling
-           # ch_ranges = "vector", # channel gates
+           # # [cellneighborhood]
+           cell_neighborhood = "CellNeighborhood",
 
            # [call]
            calls = "list" # list of functions called
@@ -303,6 +371,7 @@ setClass("Cycif",
 #'   \item{\code{abs_list}}{A data frame containing information about antibodies and the cycles they were used imaging cycles.}
 #'   \item{\code{cell_types}}{A list of \code{CellType} objects representing cell types in the stack.}
 #'   \item{\code{ld_coords}}{A list of \code{LDCoords} objects.}
+#'   \item{\code{cell_neighborhood}}{An object of class \code{CellNeighborhood} representing cell neighborhood analysis results.}
 #'   \item{\code{phenoData}}{A data frame containing phenotypic information.}
 #'   \item{\code{calls}}{A list of functions called.}
 #' }
@@ -343,6 +412,9 @@ setClass("CycifStack",
            # [ld_coords]
            ld_coords = "list",
 
+           # # [cellneighborhood]
+           cell_neighborhood = "CellNeighborhood",
+
            # [phenotypes]
            phenoData = "data.frame",
 
@@ -350,70 +422,3 @@ setClass("CycifStack",
            calls = "list"
          )
 )
-
-#_ -------------------------------------------------------
-
-# class: frnn ----
-
-#' Class "frNN" - output of dbscan::frNN()
-#'
-#' @slot id A list of integer vector (length of the number of cell neighborhoods). Each vector contains the ids of the fixed radius nearest neighbors.
-#' @slot dist A list with distances (same structure as id)
-#' @slot eps A numeric vector (scalar) containing neighborhood radius eps that was used.
-#' @slot sort A logical value indicating whether the distances are sorted.
-#'
-#' @seealso \code{\link{dbscan::frNN}}
-#'
-#' @rdname frNN
-#'
-#' @export
-setClass("frNN",
-         slots = c(
-           dist = "list",
-           id = "list",
-           eps = "numeric",
-           sort = "logical"
-         )
-)
-
-# class: CellNeighborhood ----
-
-#' Class "CellNeighborhood" - Cell Neighborhood Object
-#'
-#' An object of class "CellNeighborhood" represents the results of the computeCN function
-#' for a Cycif or CycifStack object, providing information about the cell neighborhood analysis.
-#'
-#' @slot within.rois A logical vector indicating whether each cell is within a region of interest (ROI).
-#' @slot cts.in.rcn A character vector of cell types considered in the neighborhood analysis.
-#' @slot n.cells.selected An integer indicating the number of cells selected for the analysis.
-#' @slot smpls A character vector containing sample names.
-#' @slot frnn A frNN object containing information about cell neighbors.
-#' @slot n.neighbors An integer indicating the number of neighbors (including self).
-#' @slot exp.per.ct.cn A data.table containing expression data for each cell type in the neighborhood.
-#' @slot exp.per.cn A data.table containing expression data for each cell neighborhood.
-#' @slot is.selected A logical vector indicating whether each cell is selected.
-#' @slot rcn.count A data.frame containing the counts of cell types in the neighborhood.
-#' @slot rcn.freq A data.frame containing the frequency of cell types in the neighborhood.
-#' @slot dist2tumor A numeric vector containing the distance of each cell to tumor border.
-#' @slot mclustda A list containing the results of the mclustDA function.
-#'
-#' @seealso \code{\link{computeCN}}
-#'
-#' @rdname CellNeighborhood
-#' @export
-setClass("CellNeighborhood",
-         slots = c(
-           within.rois = "logical",
-           n.cells.selected = "numeric",
-           is.selected = "logical",
-           cts.in.rcn = "character",
-           smpls = "character",
-           frnn = "frNN",
-           n.neighbors = "numeric",
-           exp.per.ct.cn = "data.table",
-           exp.per.cn = "data.table",
-           rcn.count = "matrix",
-           rcn.freq = "matrix",
-           dist2tumor = "numeric",
-           mclustda = "list"
-         ))

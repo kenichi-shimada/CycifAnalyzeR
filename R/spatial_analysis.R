@@ -772,7 +772,8 @@ setMethod("computeCN", "CycifStack",
     cts.in.rcn <- frnn1[[1]]@cts.in.rcn
 
     ## smpls
-    v.smpls <- rep(names(n.cells.selected),n.cells.selected)
+    n.smpls <- sapply(frnn1,function(fr)sum(fr@within.rois))
+    smpls <- rep(names(n.smpls),n.smpls)
 
     ## frnn
     lst.frnn <- lapply(frnn1,function(fr)fr@frnn)
@@ -834,7 +835,7 @@ setMethod("computeCN", "CycifStack",
               n.cells.selected=n.cells.selected,
               is.selected=is.selected,
               cts.in.rcn=cts.in.rcn,
-              smpls=v.smpls,
+              smpls=smpls,
               frnn=frnn,
               exp.per.ct.cn=exp.per.ct.cn,
               exp.per.cn=exp.per.cn,
@@ -860,10 +861,12 @@ setGeneric("setDist", function(x,...) standardGeneric("setDist"))
 
 #' @rdname setDist
 #' @export
-setMethod("setDist", "frNN",
-          function(x,value){
-            x@dist <- value# only for Cycif, and CycifStack
-          })
+setMethod("setDist", "CellNeighborhood",
+  function(x,value){
+    x@dist2tumorBorder <- value # only for Cycif, and CycifStack
+    return(x)
+  }
+)
 
 #_ -------------------------------
 # fun: tcnClust ----
@@ -1041,6 +1044,8 @@ setMethod("tcnClust","data.frame",
 })
 
 
+#_ -------------------------------
+
 # fun: rcnClust ----
 
 #' Cluster and Sort Recurrent Cell Neighbors (RCN) for CyCIF or CyCIFStack Objects
@@ -1049,7 +1054,7 @@ setMethod("tcnClust","data.frame",
 #' It clusters cells based on their RCN profiles, sorts clusters based on the specified cell type,
 #' and optionally extrapolates the clustering to the entire dataset.
 #'
-#' @param frnn An object containing RCN information, typically obtained from 'computeCN'.
+#' @param cn An object containing CN information, typically obtained from 'computeCN'.
 #' @param g The number of clusters to create.
 #' @param seed The random seed for reproducibility.
 #' @param sort.by The cell type to sort clusters by (e.g., "CD8T").
@@ -1069,73 +1074,108 @@ setMethod("tcnClust","data.frame",
 #' @importFrom data.table as.data.table rbindlist
 #' @importFrom parallel mclapply
 #' @export
-setGeneric("rcnClust", function(frnn,...) standardGeneric("rcnClust"))
+setGeneric("rcnClust", function(cn,...) standardGeneric("rcnClust"))
 
 #' @rdname rcnClust
 #' @export
-setMethod("rcnClust","data.frame",
-          function(frnn,
+setMethod("rcnClust","CellNeighborhood",
+          function(cn,
                    g=50,
                    seed=123,
-                   sort.by="CD8T",
+                   sort.by="dist",
                    sort.type=c("freq","count"),
                    sort.smpls=c("all","selected"),
                    data.type=c("ct_exp","ct"),
                    extrapolate=FALSE,
                    mc.cores=1){
-            mclustda <- frnn$mclustda
 
-            exps <- as.matrix(frnn$exp)[,-1]
+            mclustda <- cn@mclustda
+            is.selected <- cn@is.selected # n1 = 1325874
+            smpls <- cn@smpls # n1
+
+            ## exps
+            exps <- as.matrix(cn@exp.per.cn)[,-1] # nrow = n1
             exps.imp <- imputeData(exps)
 
-            this.cts <- cts.in.rcn
+            ## rcn.freq
+            rcn.freq <- cn@rcn.freq[,cts.in.rcn] # nrow = n1
+            rf <- t(apply(rcn.freq,1,function(x)x/sum(x)))
 
-            mat.count.all <- as.matrix(frnn$rcn.count)[,this.cts]
-            mat.freq.all <- t(apply(as.matrix(frnn$rcn.freq)[,this.cts],1,function(x)x/sum(x)))
+            ## dist
+            dist <- cn@dist2tumorBorder # length = n1
 
-            is.selected <- mclustda$sele$is.used
-
+            ## data type
             if(missing(data.type)){
               data.type="ct_exp"
             }
 
             if(data.type=="ct"){
-              mat.count.sele <- mat.count.all[is.selected,]
-              mat.freq.sele <- mat.freq.all[is.selected,]
+              df <- rcn.freq
             }else if(data.type=="ct_exp"){
-              mat.count.sele <- cbind(mat.count.all,exps.imp)[is.selected,]
-              mat.freq.sele <- cbind(mat.freq.all,exps.imp)[is.selected,]
+              ## combine the data
+              # df <- cbind(exps.imp,rcn.freq,dist)
+              df <- cbind(exps.imp,rcn.freq)
             }
+
+            df.sele <- df[is.selected,]
+            norm.df.sele <- scale(df.sele,center=TRUE,scale=TRUE)
 
             ## clustering & classification
             set.seed(seed)
 
             cat("Clustering with Mclust ...\n")
-            mem.ori <- mclust::Mclust(data=mat.freq.sele,G=g,modelNames="EII")$classification
+            mem.ori <- mclust::Mclust(data=norm.df.sele,G=g,modelNames="EII")$classification
 
-            cat("Training MclustDA ...\n")
-            mc1 <- mclust::MclustDA(data=mat.freq.sele,class=mem.ori,
-                                    G=g,modelNames="EII",modelType = "EDDA") # 100, EII
-            mem.sele <- factor(predict(mc1)$classification)
-            g1 <- nlevels(mem.sele)
+            if(extrapolate){
+              cat("Training MclustDA ...\n")
+              mc1 <- mclust::MclustDA(data=norm.df.sele,class=mem.ori,
+                                      G=g,modelNames="EII",modelType = "EDDA") # 100, EII
+              mem.sele <- factor(predict(mc1)$classification)
+              g1 <- nlevels(mem.sele)
+            }else{
+              mem.sele <- mem.ori
+              g1 <- nlevels(mem.sele)
+            }
 
             ## mean counts & frequencies
+            df.sele1 <- cbind(dist[is.selected],df.sele)
+            colnames(df.sele1)[1] <- "dist"
+            mean.df.sele <- sapply(seq(g1),function(i)colMeans(df.sele1[mem.sele==i,]))
+            o <- order(mean.df.sele["dist",],decreasing=T)
 
-            mean.count.sele <- sapply(seq(g1),function(i)colMeans(mat.count.sele[mem.sele==i,]))
-            mean.freq.sele <- sapply(seq(g1),function(i)colMeans(mat.freq.sele[mem.sele==i,]))
-            colnames(mean.count.sele) <- colnames(mean.freq.sele) <- seq(g1)
+            ## update labels
+            mem.sele1 <- factor(as.numeric(factor(mem.sele,levels=levels(mem.sele)[o])))
+            mean.df.sele1 <- sapply(seq(g1),function(i)colMeans(df.sele1[mem.sele1==i,]))
+
+            boxplot(df.sele1[,"dist"] ~ mem.sele1,pch=NA)
+            boxplot(df.sele1[,"pTBK1"] ~ mem.sele1,pch=NA)
+
+            par(mfrow=c(2,1))
+            boxplot(df.sele1[,"cCaspase3"] ~ mem.sele1,pch=NA)
+            boxplot(df.sele1[,"CD8T"] ~ mem.sele1,pch=NA)
+            # boxplot(df.sele1[,"pTBK1"] ~ mem.sele1,pch=NA)
+            par(mfrow=c(2,1))
+            boxplot(df.sele1[,"cCaspase3"] ~ mem.sele1,pch=NA)
+            boxplot(df.sele1[,"BCLXL"] ~ mem.sele1,pch=NA)
+
+            plot(t(mean.df.sele1)[,c("cCasepase3","BCLXL")])
+
+            colnames(mean.df.sele1) <- seq(g1)
+
+            heatmap3(mean.df.sele1,Rowv=NA,Colv=NA,scale="row",balanceColor = TRUE)
+            heatmap3(mean.df.sele1[1:9,],Rowv=NA,Colv=NA,scale="row",balanceColor = TRUE)
+            heatmap3(mean.df.sele1[10:18,],Rowv=NA,Colv=NA,scale="none",balanceColor = FALSE)
 
             if(extrapolate){
               ## extrapolate clusters
-              is.available <- !apply(mat.freq.all,1,function(x)any(is.na(x))) # 8587
-              mat.count.all1 <- mat.count.all[is.available,]
-              mat.freq.all1 <- mat.freq.all[is.available,]
+              is.available <- !apply(df,1,function(x)any(is.na(x))) # 8587
+              df1 <- df[is.available,]
 
               cat("Applying MclustDA to the entire data ...\n")
-              mc.idx <- sort(rep(seq(mc.cores),length=nrow(mat.freq.all1)))
+              mc.idx <- sort(rep(seq(mc.cores),length=nrow(df1)))
 
               mem.all <- parallel::mclapply(seq(mc.cores),function(i){
-                predict(mc1,newdata=mat.freq.all1[mc.idx==i,frnn$cts.in.rcn])$classification
+                predict(mc1,newdata=df1[mc.idx==i,cn@cts.in.rcn])$classification
               },mc.cores=mc.cores)
               mem.all <- do.call(c,mem.all)
 
@@ -1145,37 +1185,25 @@ setMethod("rcnClust","data.frame",
               levels(mem.all) <- seq(g1)
 
               ## mean counts & frequencies
-              mean.count.all <- sapply(seq(g1),function(i)colMeans(mat.count.all1[mem.all==i,]))
-              mean.freq.all <- sapply(seq(g1),function(i)colMeans(mat.freq.all1[mem.all==i,]))
-
-              colnames(mean.count.all) <- colnames(mean.freq.all) <- seq(g1)
+              mean.df.all <- sapply(seq(g1),function(i)colMeans(df1[mem.all==i,]))
+              colnames(mean.freq.all) <- seq(g1)
             }
 
             ## Sort clusters based on frequency of a cell type (CD8T by default)
-            if(missing(sort.type)){
-              sort.type <- "freq"
-            }
-
-            if(missing(sort.smpls)){
-              if(extrapolate){
-                sort.smpls <- "all"
-              }else{
-                sort.smpls <- "selected"
-              }
+            if(extrapolate){
+              sort.smpls <- "all"
+            }else{
+              sort.smpls <- "selected"
             }
 
             if(sort.type == "freq" & sort.smpls == "all"){
               mean.freq <- mean.freq.all
             }else if(sort.type == "freq" & sort.smpls == "selected"){
               mean.freq <- mean.freq.sele
-            }else if(sort.type == "count" & sort.smpls == "all"){
-              mean.freq <- mean.count.all
-            }else if(sort.type == "count" & sort.smpls == "selected"){
-              mean.freq <- mean.count.sele
             }
 
-            if(sort.by=="CD8T"){
-              o <- order(mean.freq["CD8T",],decreasing=T)
+            if(sort.by=="dist"){
+              o <- order(mean.freq[sort.by,],decreasing=T)
               mean.freq.sele <-  mean.freq.sele[,o]
               mean.count.sele <-  mean.count.sele[,o]
               mem.sele <- as.numeric(factor(as.character(mem.sele),levels=as.character(seq(ncol(mean.freq))[o])))
@@ -1197,16 +1225,14 @@ setMethod("rcnClust","data.frame",
                                      mean.freq = mean.freq.all,
                                      mean.count = mean.count.all)
               }
-            }else{
-              stop("Define 'sort.by' first")
             }
 
             ##
             mclustda$g <- g1
 
-            frnn$mclustda <- mclustda
+            cn$mclustda <- mclustda
 
-            return(frnn)
+            return(cn)
           })
 #_ -------------------------------
 # fun: meanExpRCN ----

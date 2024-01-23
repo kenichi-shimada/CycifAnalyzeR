@@ -2,12 +2,12 @@
 % Please edit documentation in R/spatial_analysis.R
 \name{setDist}
 \alias{setDist}
-\alias{setDist,frNN-method}
+\alias{setDist,CellNeighborhood-method}
 \title{set distance to tumorBorder for frNN objects}
 \usage{
 setDist(x, ...)
 
-\S4method{setDist}{frNN}(x, value)
+\S4method{setDist}{CellNeighborhood}(x, value)
 }
 \arguments{
 \item{x}{A frNN object.}

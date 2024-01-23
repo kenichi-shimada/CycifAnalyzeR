@@ -2,16 +2,16 @@
 % Please edit documentation in R/spatial_analysis.R
 \name{rcnClust}
 \alias{rcnClust}
-\alias{rcnClust,data.frame-method}
+\alias{rcnClust,CellNeighborhood-method}
 \title{Cluster and Sort Recurrent Cell Neighbors (RCN) for CyCIF or CyCIFStack Objects}
 \usage{
-rcnClust(frnn, ...)
+rcnClust(cn, ...)
 
-\S4method{rcnClust}{data.frame}(
-  frnn,
+\S4method{rcnClust}{CellNeighborhood}(
+  cn,
   g = 50,
   seed = 123,
-  sort.by = "CD8T",
+  sort.by = "dist",
   sort.type = c("freq", "count"),
   sort.smpls = c("all", "selected"),
   data.type = c("ct_exp", "ct"),
@@ -20,7 +20,7 @@ rcnClust(frnn, ...)
 )
 }
 \arguments{
-\item{frnn}{An object containing RCN information, typically obtained from 'computeCN'.}
+\item{cn}{An object containing CN information, typically obtained from 'computeCN'.}
 
 \item{g}{The number of clusters to create.}
 

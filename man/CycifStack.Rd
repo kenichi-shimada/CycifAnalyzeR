@@ -56,6 +56,7 @@ The \code{CycifStack} class represents a collection of CyCIF samples organized a
 \item{\code{abs_list}}{A data frame containing information about antibodies and the cycles they were used imaging cycles.}
 \item{\code{cell_types}}{A list of \code{CellType} objects representing cell types in the stack.}
 \item{\code{ld_coords}}{A list of \code{LDCoords} objects.}
+\item{\code{cell_neighborhood}}{An object of class \code{CellNeighborhood} representing cell neighborhood analysis results.}
 \item{\code{phenoData}}{A data frame containing phenotypic information.}
 \item{\code{calls}}{A list of functions called.}
 }

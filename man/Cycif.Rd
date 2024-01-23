@@ -68,6 +68,7 @@ It then creates a Cycif object with the extracted information.
 \item{\code{logTh_normalized}}{A data frame representing log-transformed and thresholded normalized data, which are computed by \code{normalize} function.}
 \item{\code{cell_types}}{A named list of \code{CellTypes} objects representing cell types.}
 \item{\code{ld_coords}}{A list of \code{LDCoords} objects.}
+\item{\code{cell_neighborhood}}{An object of class \code{CellNeighborhood} representing cell neighborhood analysis results.}
 \item{\code{calls}}{A list of functions called.}
 }
 }
