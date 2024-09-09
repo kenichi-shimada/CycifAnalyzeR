@@ -2,6 +2,8 @@
 
 # utils LDCoords ----
 
+## ld_names ----
+
 #' Get Names of UMAP or Clustering Results
 #'
 #' This function retrieves the names of UMAP embeddings or clustering results associated with a 'Cycif' or 'CycifStack' object.
@@ -15,15 +17,58 @@
 #'
 #' @rdname ld_names
 #' @export
-setGeneric("ld_names", function(x)standardGeneric("ld_names"))
+setGeneric("ld_names", function(x,...)standardGeneric("ld_names"))
 
 #' @rdname ld_names
 #' @export
-setMethod("ld_names", "Cycif",function(x)names(x@ld_coords))
+setMethod("ld_names", "Cycif",function(x,simplify=TRUE,show=T){
+  n.lds <- names(x@ld_coords)
+  if(length(n.lds) == 0){
+    stop("No ld_coords found. Run LdRunUMAP on this object first.")
+  }
+  if(show){
+    cat ("==== ",length(n.lds)," ld_coords found ====\n")
+    for(ld in n.lds){
+      if(simplify){
+        cat(ld,"\n")
+      }else{
+        cat("====",ld,"====\n")
+        show(x@ld_coords[[ld]])
+        cat("\n")
+      }
+    }
+    cat ("==== ",length(n.lds)," ld_coords found ====\n")
+  }
+  invisible(n.lds)
+  }
+)
 
 #' @rdname ld_names
 #' @export
-setMethod("ld_names", "CycifStack",function(x)names(x@ld_coords))
+setMethod("ld_names", "CycifStack",function(x,simplify=TRUE,show=T){
+  n.lds <- names(x@ld_coords)
+  if(length(n.lds) == 0){
+    stop("No ld_coords found. Run LdRunUMAP on this object first.")
+  }
+  if(show){
+    cat ("==== ",length(n.lds)," ld_coords found ====\n")
+    for(ld in n.lds){
+      if(simplify){
+        cat(ld,"\n")
+      }else{
+        cat("====",ld,"====\n")
+        show(x@ld_coords[[ld]])
+        cat("\n")
+      }
+    }
+    cat ("==== ",length(n.lds)," ld_coords found ====\n")
+  }
+  invisible(n.lds)
+
+  }
+)
+
+## ld_coords ----
 
 #' Get UMAP Coordinates or Clustering Results
 #'
@@ -95,30 +140,66 @@ LDCoords <- function(ld_type,norm_type,smpls,used.abs,used.cts,
   )
 }
 
+#' @rdname LDCoords
+#' @export
+
+setMethod("show", "LDCoords",function(object){
+  ld.type <- ld$ld_type
+  norm.type <- ld$norm_type
+  used.cts <- ld$used.cts
+  n.cts <- length(used.cts)
+  cts <- paste(used.cts,collapse=",")
+
+  used.abs <- ld$used.abs
+  n.abs <- length(used.abs)
+  abs <- paste(used.abs,collapse=",")
+
+  n.cells.per.smpl <- ld$n_cells_per_smpl
+  n.smpls <- length(n.cells.per.smpl)
+
+  n.cells.total <- ld$n_cells_total
+
+  cat("[",is(object)[[1]], " object]\n\n",
+      "Type: ", object@ld_type, "\n",
+      "Exp norm: ",object@norm_type, "\n\n",
+      "cts (",n.cts,") : ",cts,"\n",
+      "abs (",n.abs,") : ",abs,"\n\n",
+      "# samples : ", n.smpls,"\n",
+      "# cells per smpl :\t", n.cells.per.smpl, "\n",
+      "# cells in total :\t", n.cells.total, "\n\n",sep="")
+
+})
+
 # fun: show LDCoords ----
 #' @export
 setMethod("show", "LDCoords", function(object) {
-  n.smpls <- length(object@smpls)
   used.abs <- object@used.abs
   n.abs <- length(used.abs)
-  abs <- paste(used.abs,collapse=",")
+  abs <- paste(used.abs,collapse=", ")
   used.cts <- object@used.cts
   n.cts <- length(object@used.cts)
-  cts <- paste(used.cts,collapse=",")
+  cts <- paste(used.cts,collapse=", ")
 
-  n_cells_per_smpl <- object@n_cells_per_smpl
-  n_cells_total <- object@n_cells_total
+  n.cells.per.smpl <- max(object@n_cells_per_smpl)
+  n.smpls <- length(object@n_cells_per_smpl)
+  mean.n.cells <- round(mean(object@n_cells_per_smpl),2)
+  n.cells.total <- object@n_cells_total
+
+  # aaa
+  # is clustering performed yet?
+  # ld_params?
+  # clust_params?
 
   cat("[",is(object)[[1]], " object]\n\n",
       "Type: ", object@ld_type, "\n",
       "Normalization: ",object@norm_type, "\n\n",
-      "cts (",n.cts,") : ",cts,"\n",
-      "abs (",n.abs,") : ",abs,"\n\n",
+      "Cell types (",n.cts,") : \n ",cts,"\n",
+      "Abs (",n.abs,") : \n ",abs,"\n\n",
       "# samples : ", n.smpls,"\n",
-      "# cells per smpl :\t", n_cells_per_smpl, "\n",
-      "# cells in total :\t", sum(n_cells_total), "\n\n",sep="")
-  if(length(n_cells_total)>1){
-    print(n_cells_total)
+      "# cells per smpl : ", mean.n.cells, "\t (max: ", n.cells.per.smpl, ")\n",
+      "# cells in total : ", sum(n.cells.total), "\n\n",sep="")
+  if(length(n.cells.total)>1){
+    print(n.cells.total)
   }
 })
 
@@ -187,7 +268,7 @@ setMethod("LdRunUMAP", "Cycif",
 
             ## used.cts ----
             cts.df <- cell_types(x, ct_name = ct_name, strict = strict)
-            cts <- cts.df$cell_type
+            cts <- cts.df$cell_types
             levels(cts) <- sub(",.+", "", levels(cts))
             if (missing(used.cts)) {
               used.cts <- levels(cts)
@@ -203,37 +284,63 @@ setMethod("LdRunUMAP", "Cycif",
             }
 
             ## is.used ----
-            is.used <- cts %in% used.cts & !has.na
+            cts.df <- cts.df %>%
+              mutate(is.used = cell_types %in% used.cts & !has.na)
 
-            is.used <- cts %in% used.cts
-            n.used <- sum(is.used)
+            n.used <- cts.df %>%
+              group_by(sample) %>%
+              summarize(n.used = sum(is.used)) %>%
+              dplyr::pull(n.used)
+
+            uniq.smpls <- names(x)
+            names(n.used) <- uniq.smpls
 
             ### Select 'ncells.per.smpl' cells ----
             smpl <- names(x)
 
             if(missing(ncells.per.smpl)){
               stop("`ncells.per.smpl` should be specified.")
-            }else{
-              ncells.per.smpl <- min(n.used,ncells.per.smpl)
             }
 
+            ## list of is.used based on ncells.per.smpl and is.used for each sample
             set.seed(smpl.seed)
-            used.idx <- sample(which(is.used),ncells.per.smpl)
-            is.used.1 <- seq(is.used) %in% used.idx
-            idx.per.smpl <- which(is.used.1)
+            is.used.df <- lapply(uniq.smpls,function(smpl){
+              is.used.1 <- cts.df %>%
+                filter(sample == smpl) %>%
+                dplyr::pull(is.used)
+
+              if(ncells.per.smpl < sum(is.used.1)){
+                used.idx <- sample(which(is.used.1),ncells.per.smpl)
+                is.used.2 <- seq(is.used.1) %in% used.idx
+              }else{
+                is.used.2 <- is.used.1
+              }
+              idx <- seq_along(is.used.2)
+              return(data.frame(is.used=is.used.2,idx=idx))
+            }) ## this value is used for is.used in LDCoords
+            is.used.df <- data.table::rbindlist(is.used.df)
+            cts.df <- cts.df[1:2] %>% cbind(is.used.df)
+
+            is.used.2 <- cts.df$is.used
 
             ## subsetting exprs ----
-            mat <- mat[is.used.1,used.abs,drop=F]
+            mat <- mat[is.used.2,used.abs,drop=F]
+
+            if(sum(is.na(mat))>0){
+              stop("There are NA values in the expression matrix")
+            }
 
             set.seed(umap.seed)
-            ru <- uwot::umap(mat,n_neighbors=n_neighbors,...)
+            ru <- uwot::umap(mat,n_neighbors=n_neighbors,scale=TRUE)#,...)
 
             ru <- data.frame(ru)
-            rownames(ru) <- which(is.used.1)
+            rownames(ru) <- which(is.used.2)
             names(ru) <- c("x","y")
 
-            ru <- ru %>% cbind(cts.df[is.used.1,])
-            ru <- ru %>% mutate(idx = idx.per.smpl)
+            ru <- ru %>% cbind(cts.df %>% filter(is.used))
+
+            n.smpls <- as.numeric(table(ru$sample))
+            names(n.smpls) <- unique(ru$sample)
 
             ##
             ld <- LDCoords(
@@ -247,7 +354,7 @@ setMethod("LdRunUMAP", "Cycif",
               n_cells_per_smpl = ncells.per.smpl,
               n_cells_total = ncells.per.smpl,
               ld_coords = ru,
-              is_used = is.used.1,
+              is_used = is.used.2,
               cts_params = list(
                 strict = strict,
                 leaves.only= TRUE,
@@ -257,7 +364,8 @@ setMethod("LdRunUMAP", "Cycif",
                 umap.seed = umap.seed,
                 n_neighbors = n_neighbors
               ),
-              ld_call=call1)
+              ld_call=call1,
+              clust_call=call("function"))
 
             x@ld_coords[[ld_name]] <- ld
             return(x)
@@ -296,8 +404,8 @@ setMethod("LdRunUMAP", "CycifStack",
 
             ## used.cts ----
             cts.df <- cell_types(x, ct_name = ct_name, strict = strict)
-            cts <- cts.all$cell_type
-            smpls <- cts.all$sample
+            cts <- cts.df$cell_types
+            smpls <- cts.df$sample
             levels(cts) <- sub(",.+", "", levels(cts))
             if (missing(used.cts)) {
               used.cts <- levels(cts)
@@ -306,54 +414,71 @@ setMethod("LdRunUMAP", "CycifStack",
             used.cts <- used.cts[used.cts != "outOfROI"]
 
             ## exprs ----
-            mat <- exprs(x,type=norm_type)
+            mat <- exprs(x,type=norm_type) %>%
+              select(!!!syms(used.abs))
             has.na <- apply(is.na(mat),1,any)
             if(length(has.na) != length(cts)){
               stop("exprs(x) and cell_types(x) should have the same number of rows")
             }
 
             ## is.used ----
-            is.used <- cts %in% used.cts & !has.na
-            n.used <- table(is.used,smpls)["TRUE",]
+            cts.df <- cts.df %>%
+              mutate(is.used = cell_types %in% used.cts & !has.na)
+
+            n.used <- cts.df %>%
+              group_by(sample) %>%
+              summarize(n.used = sum(is.used)) %>%
+              dplyr::pull(n.used)
+
+            uniq.smpls <- names(x)
+            names(n.used) <- uniq.smpls
 
             ### Select 'ncells.per.smpl' cells ----
             if(missing(ncells.per.smpl)){
               stop("`ncells.per.smpl` should be specified.")
-            }else{
-              ncells.per.smpl <- pmin(n.used,ncells.per.smpl)
             }
 
             ## list of is.used based on ncells.per.smpl and is.used for each sample
             set.seed(smpl.seed)
-            uniq.smpls <- names(x)
             is.used.df <- lapply(uniq.smpls,function(smpl){
-              is.used.1 <- is.used[smpls==smpl]
-              if(ncells.per.smpl[smpl] < sum(is.used.1)){
-                used.idx <- sample(which(is.used.1),ncells.per.smpl[smpl])
+              is.used.1 <- cts.df %>%
+                filter(sample == smpl) %>%
+                dplyr::pull(is.used)
+
+              if(ncells.per.smpl < sum(is.used.1)){
+                used.idx <- sample(which(is.used.1),ncells.per.smpl)
                 is.used.2 <- seq(is.used.1) %in% used.idx
               }else{
                 is.used.2 <- is.used.1
               }
-              idx <- which(is.used.2)
-              return(list(is.used=is.used.2,idx=idx))
+              idx <- seq_along(is.used.2)
+              return(data.frame(is.used=is.used.2,idx=idx))
             }) ## this value is used for is.used in LDCoords
+            is.used.df <- data.table::rbindlist(is.used.df)
+            cts.df <- cts.df[1:2] %>% cbind(is.used.df)
 
-            is.used.2 <- unlist(is.used.df,function(x)x$is.used)
-            idx.per.smpl <- unlist(is.used.df,function(x)x$idx)
+            is.used.2 <- cts.df$is.used
 
             ## subsetting exprs ----
             mat <- mat[is.used.2,used.abs,drop=F]
 
+            if(sum(is.na(mat))>0){
+              stop("There are NA values in the expression matrix")
+            }
+
             ##
             set.seed(umap.seed)
-            ru <- uwot::umap(mat,n_neighbors=n_neighbors,...)
+            # ru <- uwot::umap(mat,n_neighbors=n_neighbors,...)
+            ru <- uwot::umap(mat,n_neighbors=n_neighbors,scale=TRUE,...)
 
             ru <- data.frame(ru)
             rownames(ru) <- rownames(mat)
             names(ru) <- c("x","y")
 
-            ru <- ru %>% cbind(cts.df[is.used.2,])
-            ru <- ru %>% mutate(idx = idx.per.smpl)
+            ru <- ru %>% cbind(cts.df %>% filter(is.used))
+
+            n.smpls <- as.numeric(table(ru$sample))
+            names(n.smpls) <- unique(ru$sample)
 
             ld <- LDCoords(
               ld_type = "UMAP",
@@ -361,10 +486,10 @@ setMethod("LdRunUMAP", "CycifStack",
               smpls = as.character(ru$sample),
               used.abs = used.abs,
               used.cts = used.cts,
-              n_cells_per_smpl = ncells.per.smpl,
+              n_cells_per_smpl = n.smpls,
               n_cells_total = nrow(ru),
               ld_coords = ru,
-              is_used = is.used.3,
+              is_used = cts.df$is.used,
               cts_params = list(
                 strict = strict,
                 leaves.only= TRUE,

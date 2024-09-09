@@ -105,6 +105,9 @@ AbsSummary <- function(x,show.cycles.in.row=FALSE,...){
 #'   "exp" for protein expression, "cell_type" for cell types, or "custom" for custom annotations.
 #' - The function allows you to display ROIs, customize color schemes, and control various plotting parameters.
 #'
+#' @importFrom ggplot2 ggplot aes geom_point geom_polygon guides guide_colorbar guide_legend scale_color_distiller scale_color_manual
+#' @importFrom dplyr mutate select filter rename
+#'
 #' @export
 #' @rdname slidePlot
 setGeneric("slidePlot", function(x,...) standardGeneric("slidePlot"))
@@ -217,7 +220,7 @@ setMethod("slidePlot", "Cycif",
               ## is.na
               mat <- cts %>%
                 mutate(is.na = (is.na(cell_types)) | !x@within_rois) %>%
-                rename(ab="cell_types") %>%
+                dplyr::rename(ab="cell_types") %>%
                 select(ab,is.na)
 
               ## combine the mat
@@ -249,10 +252,10 @@ setMethod("slidePlot", "Cycif",
             ## guide_legend
             if(is(df$ab,"numeric")){
               my_guides <- function(txt)guides(color=guide_colorbar(title=txt))
-              cols <- function(uc)scale_color_distiller(palette="Specral",direction=-1)
+              cols <- function(uc)ggplot2::scale_color_distiller(palette="Specral",direction=-1)
             }else{
               my_guides <- function(txt)guides(color=guide_legend(title=txt,ncol=1,override.aes = list(size = 2)))
-              cols <- function(uc)scale_color_manual(labels=names(uc),values=uc)
+              cols <- function(uc)ggplot2::scale_color_manual(labels=names(uc),values=uc)
             }
 
             ## roi.rec
@@ -650,6 +653,7 @@ setMethod("vlnPlot", "CycifStack",
                 dplyr::filter(cell_types %in% uniq.cts) %>%
                 # dplyr::mutate(thres=ab_thres[as.character(sample)]) %>%
                 dplyr::filter(!is.na(!!!syms(ab)))
+              return(df1)
 
               if(missing(fill.var)){
                 fill.var <- "sample"
@@ -678,7 +682,7 @@ setMethod("vlnPlot", "CycifStack",
 
               p <- ggplot(df1,aes(cell_types,!!sym(ab))) +
                 geom_violin(aes(fill = cell_types)) +
-                scale_fill_manual(values=ct.cols[1:14])
+                ggplot2::scale_fill_manual(values=ct.cols[1:14])
             }
 
             p <- p +
@@ -1231,10 +1235,15 @@ setGeneric("heatmapSummAb", function(x,...) standardGeneric("heatmapSummAb"))
 #' @rdname heatmapSummAb
 #' @export
 setMethod("heatmapSummAb", "CycifStack",
-          function(x,norm_type=c("log","logTh"), ab,
+          function(x,norm_type=c("log","logTh"),
+                   summBy=c("ab","heatmap"),ab,
                    sum_type=c("freq","mean","median","x percentile"),
                    ct_name="default",
-                   uniq_cts,uniq.smpls,strict=FALSE,scale="none",...){
+                   uniq_cts,
+                   uniq.smpls,
+                   strict=FALSE,
+                   p_thres=0.5,
+                   scale="none",...){
     options(dplyr.summarise.inform = FALSE)
 
     if(missing(sum_type)){
@@ -1243,10 +1252,15 @@ setMethod("heatmapSummAb", "CycifStack",
     if(missing(ab)){
       stop("ab should be always specified")
     }
-    if(missing(norm_type)){
+
+    # norm_type
+    if(sum_type=="freq"){
+      norm_type="logTh"
+    }else if(missing(norm_type)){
       norm_type <- "log"
     }
 
+    # sum_fun
     if(grepl("percentile$",sum_type)){
       pct <- strsplit(sum_type," ")[[1]]
       p.ile <- as.numeric(pct[[1]])
@@ -1256,72 +1270,78 @@ setMethod("heatmapSummAb", "CycifStack",
     }else if(sum_type=="mean"){
       sum_fun=function(y,...)mean(y,na.rm=T)
     }else if(sum_type=="freq"){
-      thres <- unlist(x@cell_type@gates[ab,]) # identical whichever ctype.full
-      norm_type="logTh"
       sum_fun=function(y,th){
         if(length(y)==0){
           return(NA)
         }else{
-          return(sum(y > 0.5,na.rm=T)/sum(!is.na(y)))
+          return(sum(y > th, na.rm=T)/sum(!is.na(y)))
         }
       }
     }
 
+    # balanceColor
     if(sum_type=="freq" || norm_type=="log"){
       balanceColor <- FALSE
     }else if(norm_type=="logTh"){
       balanceColor <- TRUE
-      scale <- "none"
     }
 
     ## cell types
-    cts <- cell_types(x,ct_name=ct_name,strict=strict)$cell_types
-
-    within.rois <- unlist(cyApply(x,function(cs)within_rois(cs),simplify=FALSE))
+    cts <- cell_types(x,ct_name=ct_name,strict=strict)
 
     df <- exprs(x,type=norm_type) %>%
-      mutate(smpl = rep(names(x),nCells(x))) %>%
-      mutate(cell_type=cts) %>%
-      filter(within.rois)
+      cbind(cts) %>%
+      filter(cell_types != "outOfROI") %>%
+      rename(smpl = sample) %>%
+      rename(cell_type = cell_types)
 
     if(missing(uniq.smpls)){
-      uniq.smpls <- unique(df$smpl)
+      uniq.smpls <- levels(df$smpl)
     }
+
     if(missing(uniq_cts)){
       uniq_cts <- levels(df$cell_type)
-      uniq_cts <- uniq_cts[!uniq_cts %in% c("all","T","Mac","Immune","unknown","outOfROI")]
     }
 
     df <- df %>%
-      filter(smpl %in% uniq.smpls) %>%
       mutate(smpl = factor(smpl,levels=uniq.smpls)) %>%
-      filter(cell_type %in% uniq_cts) %>%
+      filter(smpl %in% uniq.smpls) %>%
       mutate(cell_type=factor(cell_type,levels=uniq_cts)) %>%
+      mutate(cell_type=factor(cell_type)) %>%
       filter(!is.na(cell_type)) %>%
-      rename(this_ab=!!sym(ab)) %>%
+      dplyr::rename(this_ab=!!sym(ab)) %>%
       group_by(smpl,cell_type) %>%
-      summarise(sum_ab=sum_fun(this_ab,thres1))
+      dplyr::summarise(sum_ab=sum_fun(this_ab,th=p_thres))
 
-    ttl <- paste0(ab,",",sum_type,",",sub("_.+","",norm_type),",(scale:",scale,")")
+    ttl <- paste0(ab,",",sum_type,",",norm_type,",(scale:",scale,")")
+
     m1 <- as.matrix(with(df, Matrix::sparseMatrix(as.integer(smpl), as.integer(cell_type), x=sum_ab)))
+
     m1[apply(m1,1,function(x)any(is.nan(x))),] <- NA
     if(sum_type!="freq"){
       m1[m1==0] <- NA
     }
+
     rownames(m1) <- levels(df$smpl)
     colnames(m1) <- levels(df$cell_type)
     m1 <- m1[rev(seq(nrow(m1))),]
-    # m1 <- m1[rowSums(is.na(m1))!=ncol(m1),colSums(is.na(m1))!=nrow(m1)]
 
-    if(sum_type!="freq" && norm_type=="logTh_normalized"){
+    if(sum_type!="freq" && norm_type=="logTh"){
       m1 <- m1 - 0.5 ## hardcode!!!!
     }
 
+    ## cols
+    if(sum_type=="mean"){
+      cols <- viridis::viridis(1024)
+    }else if(sum_type == "freq"){
+      cols <- colorRampPalette(RColorBrewer::brewer.pal(9,"YlOrRd"))(1024)
+    }
     h3(m1,
        margins=c(10,5),
        main=ttl,
        cexRow=.7,
        na.rm = T,
+       col = cols,
        balanceColor=balanceColor,
        scale=scale,...)
 
@@ -1330,7 +1350,7 @@ setMethod("heatmapSummAb", "CycifStack",
 
 #_ -------------------------------------------------------
 
-# fun: lowDimPlot Cycif, CycifStack ----
+# fun: LdPlot LDCoords, Cycif, CycifStack ----
 
 #' Create Low-Dimensional Plot
 #'
@@ -1338,7 +1358,7 @@ setMethod("heatmapSummAb", "CycifStack",
 #'
 #' @param x A `Cycif` or `CycifStack` object containing protein expression data.
 #' @param ld_name The name of the low-dimensional representation (e.g., UMAP or clustering).
-#' @param plot_type The type of low-dimensional plot to create, one of "cell_type", "cluster", "exp", or "smpl".
+#' @param plot_type The type of low-dimensional plot to create, one of "cell_type", "clusters", "exp", or "smpl".
 #' @param ab The name of the protein to be used for coloring points (required when `plot_type` is "exp").
 #' @param uniq.cols Vector of unique colors to use for plotting points (optional).
 #' @param with.labels Logical, indicating whether to label points (default is TRUE).
@@ -1356,179 +1376,308 @@ setMethod("heatmapSummAb", "CycifStack",
 #' @param cex Size of data point labels (default is 0.3).
 #'
 #' @details
-#' - The `lowDimPlot` function creates low-dimensional plots for protein expression data based on the specified `Cycif` or `CycifStack` object.
+#' - The `LdPlot` function creates low-dimensional plots for protein expression data based on the specified `Cycif` or `CycifStack` object.
 #' - Users can choose from different types of low-dimensional plots, including those based on cell types, clusters, protein expression, or samples.
 #' - Various customization options are available for labeling, coloring, and scaling the plot.
 #'
-#' @rdname lowDimPlot
+#' @rdname LdPlot
 #' @export
-setGeneric("lowDimPlot", function(x,...) standardGeneric("lowDimPlot"))
+setGeneric("LdPlot", function(x,...) standardGeneric("LdPlot"))
 
-#' @rdname lowDimPlot
+#' @rdname LdPlot
 #' @export
-setMethod("lowDimPlot", "Cycif",
-    function(x,ld_name,plot_type=c("cell_type","cluster","exp","smpl"),
-             ab,uniq.cols,with.labels=TRUE,
-             ct_name="default",used.smpls,xlab="",ylab="",
-             used.cts,cex.main=2,
-             main,p_thres=0.5,mar,cex.labs=1,cex.leg=.5,
-             cex=.3,...){
-    x <- list2CycifStack(list(x))
-    lowDimPlot(x,
-               ld_name=ld_name,
-               plot_type=plot_type,
-               ab=ab,
-               uniq.cols=uniq.cols,
-               with.labels=with.labels,
-               ct_name=ct_name,
-               used.smpls=used.smpls,
-               xlab=xlab,ylab=ylab,
-               used.cts=used.cts,
-               cex.main=2,
-               main=main,
-               cex=cex,...)
-  }
+setMethod("LdPlot", "LDCoords",
+          function(x,
+                   ld_name,
+                   plot_type=c("cell_type","clusters","exp","smpl","meta","custom"),
+                   ab, # exp
+                   meta.var, # meta
+                   vals, # custom
+
+                   uniq.cols,with.labels=TRUE,
+                   used.smpls,xlab="",ylab="",
+                   used.cts,cex.main=2,
+                   balanceColor=FALSE,
+                   main,p_thres=0.5,mar,cex.labs=1,cex.leg=.5,
+                   cex=.3,...){
+            if(missing(plot_type)){
+              stop("'plot_type' should be specified. (one of cell_type, clusters, exp, smpl, custom)")
+            }
+
+            ## xy coords ----
+            xys <- x@ld_coords %>%
+              dplyr::rename(smpl=sample) %>%
+              dplyr::rename(cell_type=cell_types)
+
+            if(plot_type=="exp"){
+              xys <- xys %>%mutate(exp=vals)
+              ptype <- paste0(ab," exp")
+
+            }else if(plot_type=="cell_type"){
+              if(!missing(used.cts)){
+                if(any(!used.cts %in% levels(xys$cell_type))){
+                  stop("used.cts contain cell types not used")
+                }else{
+                  xys$cell_type <- factor(xys$cell_type,levels=used.cts)
+                }
+              }
+
+              ptype <- "Cell types"
+
+            }else if(plot_type=="clusters"){
+              # stop(paste(slotNames(x),collapse="\n"))
+              if(length(x@clusters)==0){
+                stop("first run LdClustering() to plot clusters")
+              }else if(length(x@clusters)!=nrow(x@ld_coords)){
+                stop("x@clusters doesn't have the same # of clusters as the cells")
+              }else{
+                # stop(paste(names(xys),collapse=", "))
+                # stop(paste(dim(xys),collapse=","))
+                clusts <- x@clusters
+                # stop(paste(head(clusts),collapse=","))
+                xys <- xys %>% mutate(clusters=clusts)
+              }
+
+              ptype <- "Clusters"
+
+            }else if(plot_type=="smpl"){
+              xys$smpl <- factor(xys$smpl)
+              if(!missing(used.smpls)){
+                if(!any(used.smpls %in% levels(xys$smpl))){
+                  stop("used.smpls contain samples that don't exist")
+                }
+              }else{
+                used.smpls <- levels(xys$smpl)
+              }
+
+              xys$smpl  <- factor(xys$smpl,levels=used.smpls)
+
+              ptype <- "Samples"
+
+            }else if(plot_type=="meta"){
+              xys <- xys %>% mutate(meta=vals)
+              ptype <- meta.var
+              # return(xys)
+            }else if(plot_type=="custom"){
+              if(missing(vals)){
+                stop("'vals' should be specified when 'plot_type' is 'custom'")
+              }else{
+                if(length(vals)!=nrow(x@ld_coords)){
+                  stop("vals doesn't have the same # of values as the cells")
+                }
+              }
+              xys <- xys %>% mutate(custom=vals)
+
+              # stop(names(xys))
+
+              ptype <- "custom"
+            }else{
+              stop("plot_type should be one of cell_type, cluster, exp, smpl, meta, custom")
+            }
+
+            ## main
+            if(missing(main)){
+              main <- paste(ld_name,ptype,x@ld_type,sep=", ")
+            }
+
+            ## colors, with.labels
+            if(is.null(xys[[plot_type]])){
+              stop("xys[[plot_type]] is null")
+            }else{
+              vals <- xys[[plot_type]]
+              if(is(vals,"numeric")){
+                if(plot_type=="custom"){
+                  if(missing(main)){
+                    stop("specify plot title in 'main'")
+                  }else{
+                    ab <- main
+                  }
+                }
+                if(missing(ab)){
+                  ab <- meta.var
+                }
+                my_guides <- guides(color=guide_colorbar(title=ab))
+                if(balanceColor==TRUE){
+                  cols <- scale_color_distiller(palette="RdBu",direction=-1,
+                                                limits = c(-1,1)*max(abs(vals)))
+                }else{
+                  rng <- range(vals,is.na=T)
+                  if(prod(rng)<0){
+                    cols <- scale_color_distiller(palette="RdBu",direction=-1)
+                  }else{
+                    cols <- scale_color_distiller(palette="YlGnBu",direction=1)
+                  }
+                }
+                with.labels <- FALSE
+              }else if(is(vals,"factor")){
+                my_guides <- guides(color=guide_legend(title=plot_type,override.aes = list(size = cex.main)))
+                if(!missing(uniq.cols)){
+                  tab <- table(vals)
+                  names(tab[tab>0])
+                  uc <- uniq.cols[names(tab[tab>0])]
+                  cols <- scale_color_manual(values=uc)
+                }else{
+                  ## viridis color palette for factor
+                  # cols <- scale_color_viridis_d(direction=1)
+                  # uniq.cols <- rainbow(nlevels(xys$clusters))
+                  # names(uniq.cols) <- levels(xys$clusters)
+
+                  num_classes <- length(unique(vals))
+                  spectral_colors <- colorRampPalette(RColorBrewer::brewer.pal(11, "Spectral"))(num_classes)
+                  cols <- scale_color_manual(values = spectral_colors)
+                  # stop("uniq.cols should be provided when values are a factor")
+                }
+              }
+            }
+
+            p <- ggplot(xys,aes(x=x,y=y)) +
+              geom_point(aes(color=!!sym(plot_type)),size=cex) +
+              ggtitle(main) +
+              xlab(xlab)+
+              ylab(ylab)+
+              theme_void() +
+              theme(
+                axis.title = element_blank(),
+                axis.text = element_blank(),
+                axis.ticks = element_blank(),
+                axis.line = element_blank(),
+                plot.title = element_text(hjust = 0.5)) +
+              my_guides +
+              cols
+
+            if(with.labels){
+              xys1<- xys %>%
+                select(x,y,!!sym(plot_type)) %>%
+                group_by(!!sym(plot_type)) %>%
+                summarize_at(c("x","y"),median)
+
+              p <- p + geom_text_repel(data=xys1,aes(x=x,y=y,label=!!sym(plot_type)))
+            }
+            # print(p)
+            # return(xys)
+            return(p)
+          }
 )
 
-#' @rdname lowDimPlot
+
+#' @rdname LdPlot
 #' @export
-setMethod("lowDimPlot", "CycifStack",
-  function(x,ld_name,plot_type=c("cell_type","cluster","exp","smpl"),
-           ab,uniq.cols,with.labels=TRUE,
-           ct_name="default",used.smpls,xlab="",ylab="",
+setMethod("LdPlot", "Cycif",
+  function(x,
+           ld_name,
+           plot_type=c("cell_type","clusters","exp","smpl","meta","custom"),
+           ab, # exp
+           meta.var, # meta
+           vals, # custom
+
+           uniq.cols,with.labels=TRUE,
+           used.smpls,xlab="",ylab="",
            used.cts,cex.main=2,
-           main,p_thres=0.5,mar,cex.labs=1,cex.leg=.5,
+           main,mar,cex.labs=1,cex.leg=.5,
            cex=.3,...){
     if(missing(plot_type)){
-      stop("Which plot type? (plot_type = cell_type, cluster, exp)")
+      stop("'plot_type' should be specified. (one of cell_type, cluster, exp, smpl, meta, custom)")
     }
 
-    ## ld_name
-    if(missing(ld_name)){
-      stop("'ld_name' should be specified (it's used to retrieve the specific UMAP/Clustgering)")
-    }else if(!ld_name %in% ld_names(x)){
-      stop("Specified 'ld_name' does not exist.")
-    }else{
-      ld <- ld_coords(x,ld_name=ld_name)
-    }
-
-    xys <- ld@ld_coords %>%
-      rename(cell_type = "cell_types") %>%
-      rename(smpl = "sample")
-
-    smpls <- ld@smpls
-
-    if(plot_type=="exp"){
+    ld <- x@ld_coords[[ld_name]]
+    if(plot_type=="meta"){
+      stop("plot_type='meta' is not supported for Cycif object")
+    }else if(plot_type=="exp"){
       if(missing(ab)){
-        stop("'ab' should be specified when plot_type == 'exp'")
+        stop("'ab' should be specified when 'plot_type' is 'exp'")
       }
+
       n <- exprs(x,type=ld@norm_type)[ld@is_used,]
+
       if(!ab %in% names(n)){
         stop(paste0(ab," is not included in the exprs(x)"))
       }
 
-      xys <- xys %>%  mutate(exp=n[[ab]])
-      ptype <- paste0(ab," exp")
-
-    }else if(plot_type=="cell_type"){
-      if(!missing(used.cts)){
-        if(any(!used.cts %in% levels(xys$cell_type))){
-          stop("used.cts contain cell types not used")
-        }else{
-          xys$cell_type <- factor(xys$cell_type,levels=used.cts)
-        }
-      }
-      xys$cell_type <- factor(xys$cell_type)
-
-      ptype <- "cell types"
-
-    }else if(plot_type=="cluster"){
-      if(length(ld@clusters)!=nrow(ld@ld_coords)){
-        stop("ld@clusters doesn't have the same # of clusters as the cells")
-      }
-      xys <- xys %>% mutate(cluster=ld@clusters)
-
-      if(missing(uniq.cols)){
-        uniq.cols <- rainbow(nlevels(xys$cluster))
-        names(uniq.cols) <- levels(xys$cluster)
-      }
-
-      ptype <- "clusters"
-
-    }else if(plot_type=="smpl"){
-      if(!missing(used.smpls)){
-        if(!any(used.smpls %in% levels(xys$smpl))){
-          stop("used.smpls contain samples that don't exist")
-        }else{
-          xys$smpl  <- factor(xys$smpl,levels=used.smpls)
-        }
-      }
-      xys$smpl <- factor(xys$smpl)
-
-      if(missing(uniq.cols)){
-        uniq.cols <- rainbow(nlevels(xys$smpl))
-        names(uniq.cols) <- levels(xys$smpl)
-      }
-      ptype <- "samples"
-    }else{
-      pd <- pData(x)
-      if(!plot_type %in% names(pd)){
-        stop("'plot_type' should be either 'exp','cell_type','smpl','cluster' or one of colnames(pd)" )
-      }
-      xys <- xys %>% rename(id="sample") %>% dplyr::left_join(pd,by="id")
+      vals <- n[[ab]]
     }
-
-    ## main
-    if(missing(main)){
-      main <- paste(ld_name,ptype,ld@ld_type,sep=", ")
-    }
-
-    ## colors, with.labels
-    if(is.null(xys[[plot_type]])){
-      stop("xys[[plot_type]] is null")
-    }else{
-      facs <- xys[[plot_type]]
-      if(is(xys[[plot_type]],"numeric")){
-        my_guides <- guides(color=guide_colorbar(title=ab))
-        # cols <- scale_color_distiller(palette="viridis",direction=-1)
-        cols <- scale_color_viridis(direction=1)
-        with.labels <- FALSE
-      }else if(is(xys[[plot_type]],"factor")){
-        my_guides <- guides(color=guide_legend(title=plot_type,override.aes = list(size = cex.main)))
-        if(!missing(uniq.cols)){
-          tab <- table(xys[[plot_type]])
-          names(tab[tab>0])
-          uc <- uniq.cols[names(tab[tab>0])]
-          cols <- scale_color_manual(values=uc)
-        }else{
-          stop("uniq.cols should be provided when values are a factor")
-        }
-      }
-    }
-
-    p <- ggplot(xys,aes(x=x,y=y)) +
-      geom_point(aes(color=!!sym(plot_type)),size=cex) +
-      ggtitle(main) +
-      xlab(xlab)+
-      ylab(ylab)+
-      theme_void() +
-      theme(axis.text.x = element_text(angle = 90, vjust = 0.5, hjust=1),
-            plot.title = element_text(hjust = 0.5)) +
-      my_guides +
-      cols
-
-    if(with.labels){
-      xys1<- xys %>%
-        select(x,y,!!sym(plot_type)) %>%
-        group_by(!!sym(plot_type)) %>%
-        summarize_at(c("x","y"),median)
-
-      p <- p + geom_text_repel(data=xys1,aes(x=x,y=y,label=!!sym(plot_type)))
-    }
-    print(p)
+    LdPlot(ld,
+           ld_name=ld_name,
+           plot_type=plot_type,
+           ab=ab,
+           meta.var=meta.var,
+           vals=vals,
+           uniq.cols=uniq.cols,
+           with.labels=with.labels,
+           used.smpls=used.smpls,
+           xlab=xlab,ylab=ylab,
+           used.cts=used.cts,
+           cex.main=2,
+           main=main,
+           mar=mar,
+           cex.labs=cex.labs,
+           cex.leg=cex.leg,
+           cex=cex,...)
   }
 )
 
+#' @rdname LdPlot
+#' @export
+setMethod("LdPlot", "CycifStack",
+    function(x,
+             ld_name,
+             plot_type=c("cell_type","clusters","exp","smpl","meta","custom"),
+             ab, # exp
+             meta.var, # meta
+             vals, # custom
+
+             uniq.cols,with.labels=TRUE,
+             used.smpls,xlab="",ylab="",
+             used.cts,cex.main=2,
+             main,p_thres=0.5,mar,cex.labs=1,cex.leg=.5,
+             cex=.3,...){
+    if(missing(plot_type)){
+      stop("'plot_type' should be specified. (one of cell_type, cluster, exp, smpl, meta, custom)")
+    }
+
+    ld <- x@ld_coords[[ld_name]]
+    if(plot_type == "meta"){
+      pd <- pData(x)
+      if(missing(meta.var)){
+        stop("'meta.var' should be specified when 'plot_type' is 'meta'")
+      }else{
+        if(!meta.var %in% names(pd)){
+          stop(paste0(meta.var," is not included in the pData(x)"))
+        }else{
+          vals <- pd[[meta.var]][match(ld@ld_coords$sample,pd$id)]
+        }
+      }
+    }else if(plot_type=="exp"){
+      if(missing(ab)){
+        stop("'ab' should be specified when 'plot_type' is 'exp'")
+      }
+
+      n <- exprs(x,type=ld@norm_type)[ld@is_used,]
+
+      if(!ab %in% names(n)){
+        stop(paste0(ab," is not included in the exprs(x)"))
+      }
+
+      vals <- n[[ab]]
+    }
+    LdPlot(ld,
+           ld_name=ld_name,
+           plot_type=plot_type,
+           ab=ab,
+           meta.var=meta.var,
+           vals=vals,
+           uniq.cols=uniq.cols,
+           with.labels=with.labels,
+           used.smpls=used.smpls,
+           xlab=xlab,ylab=ylab,
+           used.cts=used.cts,
+           cex.main=2,
+           main=main,
+           mar=mar,
+           cex.labs=cex.labs,
+           cex.leg=cex.leg,
+           cex=cex,...)
+  }
+)
 #_ -------------------------------------------------------
 
 # Following functions are unique to TALAVE project ----

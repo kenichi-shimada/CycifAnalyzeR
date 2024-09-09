@@ -39,7 +39,7 @@ rcnClust(cn, ...)
 \item{mc.cores}{The number of CPU cores to use for parallel processing.}
 }
 \value{
-An updated 'frnn' object with clustering and sorting information.
+An updated 'nn' object with clustering and sorting information.
 }
 \description{
 This function clusters and sorts the Recurrent Cell Neighbors (RCN) for CyCIF or CyCIFStack objects.

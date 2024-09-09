@@ -17,6 +17,7 @@ LdClustering(x, ...)
   resolution = 0.8,
   algorithm = 1,
   with.labels = FALSE,
+  method = "igraph",
   ...
 )
 
@@ -28,6 +29,7 @@ LdClustering(x, ...)
   node.sizes,
   resolution = 0.8,
   algorithm = 1,
+  method = "igraph",
   ...
 )
 
@@ -39,6 +41,7 @@ LdClustering(x, ...)
   node.sizes,
   resolution = 0.8,
   algorithm = 1,
+  method = "igraph",
   ...
 )
 }

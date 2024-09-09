@@ -12,6 +12,8 @@ cellTypeFrequency(x, ...)
 \item{ct_name}{The name of the cell type definition to use. Default is "default."}
 
 \item{simple}{Logical, if TRUE, return a simple table of cell type frequencies. If FALSE, return a hierarchical structure of cell type frequencies. Default is TRUE.}
+
+\item{count}{Logical, if TRUE, return the count of cells per cell type. If FALSE, return the frequency of cells per cell type.}
 }
 \value{
 If \code{simple} is TRUE (default), a matrix with row names representing samples and column names representing cell types (that are leaf nodes in the cell type definition tree), with the number of cells per cell type. If \code{simple} is FALSE, a list of 'non-leaf' cell type frequency matrices is also returned in the matrix.

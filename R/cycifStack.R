@@ -91,7 +91,6 @@ CycifStack <- function(ft_filenames,
       abs_list = abs_list,
       cell_types = list(),
       ld_coords = list(),
-      adata = list(),
       samples = samples
   )
 }
@@ -298,15 +297,6 @@ setMethod("cyApply", "CycifStack", function(x,fun,simplify=FALSE,as.CycifStack=T
     }
     if(length(x@ld_coords)>0){
       out@ld_coords <- x@ld_coords
-    }
-    if(length(x@adata)>0){
-      out@adata <- x@adata
-    }
-    if(length(x@interaction)>0){
-      out@interaction <- x@interaction
-    }
-    if(length(x@neighborhoods)>0){
-      out@neighborhoods <- x@neighborhoods
     }
     if(nrow(x@phenoData)>0){
       pData(out) <- x@phenoData

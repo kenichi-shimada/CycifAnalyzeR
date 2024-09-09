@@ -3,17 +3,17 @@
 \name{setDist}
 \alias{setDist}
 \alias{setDist,CellNeighborhood-method}
-\title{set distance to tumorBorder for frNN objects}
+\title{set distance to tumorBorder for NN objects}
 \usage{
 setDist(x, ...)
 
 \S4method{setDist}{CellNeighborhood}(x, value)
 }
 \arguments{
-\item{x}{A frNN object.}
+\item{x}{A NN object.}
 
 \item{value}{A numeric vector specifying the distance to tumor border for each cell.}
 }
 \description{
-set distance to tumorBorder for frNN objects
+set distance to tumorBorder for NN objects
 }

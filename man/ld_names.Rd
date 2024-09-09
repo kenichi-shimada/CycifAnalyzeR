@@ -6,11 +6,11 @@
 \alias{ld_names,CycifStack-method}
 \title{Get Names of UMAP or Clustering Results}
 \usage{
-ld_names(x)
+ld_names(x, ...)
 
-\S4method{ld_names}{Cycif}(x)
+\S4method{ld_names}{Cycif}(x, simplify = TRUE, show = T)
 
-\S4method{ld_names}{CycifStack}(x)
+\S4method{ld_names}{CycifStack}(x, simplify = TRUE, show = T)
 }
 \arguments{
 \item{x}{A 'Cycif' or 'CycifStack' object containing UMAP embeddings or clustering results.}

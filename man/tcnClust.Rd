@@ -5,10 +5,10 @@
 \alias{tcnClust,data.frame-method}
 \title{Cluster and Sort Recurrent Cell Neighbors (RCN) for CyCIF or CyCIFStack Objects}
 \usage{
-tcnClust(frnn, ...)
+tcnClust(nn, ...)
 
 \S4method{tcnClust}{data.frame}(
-  frnn,
+  nn,
   g = 50,
   seed = 123,
   sort.by = "CD8T",
@@ -20,7 +20,7 @@ tcnClust(frnn, ...)
 )
 }
 \arguments{
-\item{frnn}{An object containing RCN information, typically obtained from 'computeCN'.}
+\item{nn}{An object containing RCN information, typically obtained from 'computeCN'.}
 
 \item{g}{The number of clusters to create.}
 
@@ -39,7 +39,7 @@ tcnClust(frnn, ...)
 \item{mc.cores}{The number of CPU cores to use for parallel processing.}
 }
 \value{
-An updated 'frnn' object with clustering and sorting information.
+An updated 'nn' object with clustering and sorting information.
 }
 \description{
 This function clusters and sorts the Recurrent Cell Neighbors (RCN) for CyCIF or CyCIFStack objects.
@@ -47,7 +47,7 @@ It clusters cells based on their RCN profiles, sorts clusters based on the speci
 and optionally extrapolates the clustering to the entire dataset.
 }
 \details{
-The \code{tcnClust} function uses the provided \code{frnn} object to perform clustering and classification of cells based on their neighborhood relationships. It allows you to specify the number of clusters (\code{g}), the cell type to sort clusters by (\code{sort.by}), and other clustering parameters.
+The \code{tcnClust} function uses the provided \code{nn} object to perform clustering and classification of cells based on their neighborhood relationships. It allows you to specify the number of clusters (\code{g}), the cell type to sort clusters by (\code{sort.by}), and other clustering parameters.
 The clustering process results in the classification of cells into distinct clusters, and the function provides information about these clusters, including the mean frequencies, counts, and more.
 By specifying different options for \code{sort.by}, \code{sort.type}, and \code{sort.smpls}, you can customize the sorting behavior of clusters based on cell types and data types.
 Additionally, you can choose to extrapolate clusters to the entire dataset using the \code{extrapolate} argument, which can be helpful for analyzing the overall dataset.

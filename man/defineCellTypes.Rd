@@ -9,7 +9,15 @@
 \usage{
 defineCellTypes(x, ...)
 
-\S4method{defineCellTypes}{data.frame}(x, ctype, cstate, p_thres = 0.5, mc.cores = 4, ...)
+\S4method{defineCellTypes}{data.frame}(
+  x,
+  ctype,
+  cstate,
+  p_thres = 0.5,
+  mc.cores = 4,
+  prioritized.celltypes = NULL,
+  ...
+)
 
 \S4method{defineCellTypes}{Cycif}(
   x,
@@ -19,6 +27,7 @@ defineCellTypes(x, ...)
   p_thres = 0.5,
   mc.cores = 4,
   overwrite = FALSE,
+  prioritized.celltypes = NULL,
   ...
 )
 
@@ -30,6 +39,7 @@ defineCellTypes(x, ...)
   p_thres = 0.5,
   mc.cores = 4,
   overwrite = FALSE,
+  prioritized.celltypes = NULL,
   ...
 )
 }

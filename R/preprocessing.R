@@ -193,7 +193,7 @@ setMethod("setWithinROIs", "Cycif",
               wr <- apply(passed.pos.rois,1,any) & apply(passed.neg.rois,1,all)
               return(wr)
             })
-            within.rois <- within.rois[,ncycle]
+            within.rois <- rowSums(within.rois)==ncycle
 
             x@within_rois <- within.rois
             return(x)
@@ -664,14 +664,19 @@ setMethod("normalize", "Cycif",
 
             smpl <- x@name
             raw <- x@raw
-            is.used <- cumUsedCells(x)
+            is.used <- x@within_rois
+            if(length(is.used)==0){
+              stop("used_cells slot is empty. Set importROIs() first.")
+            }
+            # is.used <- cumUsedCells(x)
 
             ## treatment is different between methods
             if(method=="log"){
               norm <- as.data.frame(
                 sapply(used.abs,function(ab){
                   cycle <- abs_list(x)$cycle[abs_list(x)$ab==ab]
-                  is.used.1 <- is.used[,cycle]
+                  # is.used.1 <- is.used[,cycle]
+                  is.used.1 <- is.used
 
                   r <- raw[[ab]]
                   n <- rep(NA,length(r))
@@ -701,7 +706,9 @@ setMethod("normalize", "Cycif",
                   n <- rep(NA,nrow(raw))
                   if(ab %in% used.abs){
                     cycle <- abs_list(x)$cycle[abs_list(x)$ab==ab]
-                    is.used.1 <- is.used[,cycle]
+                    # is.used.1 <- is.used[,cycle]
+                    is.used.1 <- is.used
+
                     r <- raw[[ab]]
                     th <- thres[ab]
                     n[is.used.1] <- transform(r[is.used.1],method="logTh",th=th,trim=trim,p_thres=p_thres)

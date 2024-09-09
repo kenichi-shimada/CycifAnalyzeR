@@ -61,7 +61,7 @@ To define tumor bed regions within CyCIF data, the following steps are performed
 \item Identifies cell types within the dataset, allowing for strict or non-strict matching.
 \item Separates tumor cells from non-tumor cells based on their cell types.
 \item Performs DBSCAN clustering on tumor cells to identify clusters of adjacent cells.
-\item Determines neighbors using frNN (Fast Regular Nearest Neighbors) only for tumor cells.
+\item Determines neighbors using NN (Fast Regular Nearest Neighbors) only for tumor cells.
 \item Calculates edge points for the tumor clusters using the concaveman algorithm.
 \item Determines whether cells are within the tumor bed regions based on edge point polygons.
 \item Returns a list containing various information about the tumor bed regions and assigned cells.

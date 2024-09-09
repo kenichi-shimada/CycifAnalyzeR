@@ -11,6 +11,38 @@
 
 #_ -------------------------------------------------------
 
+# fun: distAdjacentCells Cycif ----
+
+#' Calculate the Distance Between Adjacent Cells in CyCIF Data.
+#' @export
+setGeneric("distAdjacentCells", function(x,...) standardGeneric("distAdjacentCells"))
+
+#' @rdname distAdjacentCells
+#' @export
+setMethod("distAdjacentCells", "Cycif",
+  function(x){
+    majl <- x@segment_property$MajorAxisLength
+    m1sd <- mean(majl) + sd(majl)
+    dth <- m1sd * 2 # 35
+    return(dth)
+  })
+
+#' @rdname distAdjacentCells
+#' @export
+setMethod("distAdjacentCells", "CycifStack",
+  function(x){
+    dths <- cyApply(x,function(cy){
+      majl <- cy@segment_property$MajorAxisLength
+      m1sd <- mean(majl) + sd(majl)
+      dth <- m1sd * 2 # 35
+      return(dth)
+    },simplify=T)
+  dth <- mean(dths) # 34.86 px = 22.65 um
+  return(dth)
+  })
+
+#_ -------------------------------------------------------
+
 # fun: defineTumorBorder Cycif ----
 
 #' @title Define tumor bed regions within each Cycif dataset.
@@ -42,7 +74,7 @@
 #' 3. Identifies cell types within the dataset, allowing for strict or non-strict matching.
 #' 4. Separates tumor cells from non-tumor cells based on their cell types.
 #' 5. Performs DBSCAN clustering on tumor cells to identify clusters of adjacent cells.
-#' 6. Determines neighbors using frNN (Fast Regular Nearest Neighbors) only for tumor cells.
+#' 6. Determines neighbors using NN (Fast Regular Nearest Neighbors) only for tumor cells.
 #' 7. Calculates edge points for the tumor clusters using the concaveman algorithm.
 #' 8. Determines whether cells are within the tumor bed regions based on edge point polygons.
 #' 9. Returns a list containing various information about the tumor bed regions and assigned cells.
@@ -89,11 +121,11 @@ setMethod("defineTumorBorder", "Cycif",
     }
 
     ## dbscan clustering - only tumor cells
-    dbs1 <- dbscan(xy.tumor, eps=dth, minPts = min.pts, weights = NULL, borderPoints = TRUE)
+    dbs1 <- dbscan::dbscan(xy.tumor, eps=dth, minPts = min.pts, weights = NULL, borderPoints = TRUE)
     cls <- dbs1$cluster
 
     ## Find neighbors using frNN
-    frt <- frNN(xy.tumor,eps=dth)
+    frt <- dbscan::frNN(xy.tumor,eps=dth)
     fr.ids <- sapply(seq(frt$id),function(i){
       tmp <- frt$id[[i]]
       tmp <- tmp[tmp > i] ## this gaurantees unique pairs
@@ -272,7 +304,8 @@ setGeneric("dist2tumorBorder", function(x,...) standardGeneric("dist2tumorBorder
 #' @rdname dist2tumorBorder
 #' @export
 setMethod("dist2tumorBorder","Cycif",
-          function(x, n.cores = 7, dth, minPts = 3, concavity = 0.8, ...) {
+          function(x, n.cores = 7, dth, th, minPts = 3, concavity = 0.8, plot = FALSE,...) {
+    n <- names(x)
     cat("Processing ",n," ... \n")
 
     this.cts <- cell_types(x)$cell_types # 89174
@@ -281,16 +314,17 @@ setMethod("dist2tumorBorder","Cycif",
     xy <- xys(x)
     ymax <- max(xy$Y_centroid)
     xy$Y_centroid <- ymax - xy$Y_centroid
-    xy.sp <- sp::SpatialPoints(xy)
+    # xy.sp <- sp::SpatialPoints(xy)
+    xy.sf <- st_as_sf(xy, coords = c("X_centroid", "Y_centroid"), crs = NA)
 
     wr <- x@within_rois
-    xy1 <- xy[wr,]
-    xy.sp1 <- xy.sp[wr,]
-
+    xy.sf1 <- xy.sf[wr,]
     this.cts1 <- this.cts[wr]
     is.tumor <- this.cts1 == "Tumor"
 
-    xy2 <- xy1[is.tumor,]
+    xy.sf2 <- xy.sf1[is.tumor,]
+    xy2 <- st_coordinates(xy.sf2)
+
     dbs1 <- dbscan::dbscan(xy2, eps=dth, minPts = minPts, weights = NULL, borderPoints = TRUE) # min 2 cells together
     cls3 <- dbs1$cluster
     nls3 <- unique(cls3) # unique cluster labels
@@ -303,82 +337,413 @@ setMethod("dist2tumorBorder","Cycif",
     cat(" Computing borders ... \n")
 
     borders <- parallel::mclapply(seq(nls3),function(i){
-      xyt <- xy2[cls3==nls3[i],]
-      conc <- as.data.frame(concaveman::concaveman(as.matrix(xyt), concavity = concavity, length_threshold = dth))
-      names(conc) <- c("X","Y")
+      xyt <- xy.sf2[cls3==nls3[i],]
+      conc <- concaveman::concaveman(xyt, concavity = concavity, length_threshold = dth)
       return(conc)
     },mc.cores=n.cores)
     names(borders) <- nls3
 
-    # Identify overlapping clusters and merge their points
-    overlaps <- sapply(borders,function(cluster_i){
-      sapply(borders,function(cluster_j){
-        any(is_point_inside_polygon(cluster_j, cluster_i))
-      })
-    })
-    diag(overlaps) <- 0
+    ## rewrite the above using sf_within or sf_intersects. Note borders are a list of POLYGON type of sf objects
 
-    # update clusters
-    ol <- as.data.frame(which(overlaps==1,arr.ind=T))
-    names(ol) <- c("child","parent")
-    ol1 <- ol
+    cat(" Find out overlaps of borders ... \n")
 
-    is.ol <- !seq(max(nls3)) %in% ol1[,1]
-    borders <- borders[is.ol]
-    nls3 <- names(borders)
+    b <- do.call(rbind,borders)
+    int <- st_intersects(b,sparse=FALSE)
+    diag(int) <- FALSE
+    int[lower.tri(int)] <- FALSE
+    if(any(int)){
+      ol.idx <- which(int,arr.ind=TRUE)[rev(seq(sum(int))),]
 
-    # xy.sp1, (is.in.1), nls3, borders1
-    cat(" Computing is.in.1 ... \n")
+      used.borders <- rep(1,length(borders))
+      for(i in seq(nrow(ol.idx))){
+        borders[[ol.idx[i,1]]] <-
+                 st_union(borders[[ol.idx[i,1]]],borders[[ol.idx[i,2]]])
+        used.borders[ol.idx[i,2]] <- 0
+      }
+      borders.1 <- borders[as.logical(used.borders)]
+    }else{
+      borders.1 <- borders
+    }
 
-    is.in <- parallel::mclapply(nls3,function(i){
-      is.in <- sp::point.in.polygon(xy1$X,xy1$Y,
-                                    borders[[i]]$X,
-                                    borders[[i]]$Y)==1
-      return(is.in)
-    },mc.cores=n.cores)
-    is.in.1 <- rowSums(do.call(cbind,is.in))>0
+    b1 <- do.call(rbind,borders.1)
+    b2 <- st_boundary(b1)
 
-    ## distance from each cell to tumor_border
-    cat(" Computing sp.polys ... \n")
+    cat(" Compute the distance bewteen each point and border of polygons ... \n")
 
-    lst.polys <- lapply(as.character(nls3),
-                        function(x)sp::Polygons(list(sp::Polygon(borders[[x]])),ID=x))
-    sp.polys <- sp::SpatialPolygons(lst.polys)
+    ## bounding box for each border and point
+    bb <- st_make_grid(b1,cellsize=1000)
+    if(0){
+      plot(bb)
+      plot(b1,add=T,col=2)
+    }
 
-    # sp.polys => sp.points
-    cat(" Computing sp.points ... \n")
+    is.in.b <- st_intersects(b1,bb,sparse=FALSE)
 
-    vertices <- lapply(sp.polys@polygons, function(p) p@Polygons[[1]]@coords)
-    combined_vertices <- do.call(rbind, vertices)
-    sp.points <- sp::SpatialPoints(combined_vertices)
+    ## min bb index for each polygon (tumor region)
+    min.bb.idx <- apply(is.in.b,1,function(i)min(which(i)))
 
-    # distance from polygon to each point
-    cat(" Computing gDistance ... \n")
+    ## list of polygon indices for each bb
+    bb.idx <- tapply(seq(min.bb.idx),min.bb.idx,identity)
 
-    gds <- parallel::mclapply(seq(xy.sp1),function(i)
-      if(is.in.1[i]){
-        -rgeos::gDistance(xy.sp1[i],sp.points) # inside polygon gives 0
-      }else{
-        rgeos::gDistance(xy.sp1[i],sp.polys)
-      },mc.cores=n.cores)
+    ## names of used bounding boxes
+    used.bb.idx <- names(bb.idx)
 
-    gds <- unlist(gds)
+    ## nearest polygon for each point
+    near.feature <- st_nearest_feature(xy.sf1,b1)
 
-    return(list(dist=gds,sp.polys=sp.polys))
+    ## list of points per polygon
+    near.idx <- tapply(seq(near.feature),near.feature,identity)
+
+    ## distance to the nearest polygon
+    sgn.d <- rep(NA,length(near.feature))
+    for(bbi in used.bb.idx){
+      # cat(bbi,"\n")
+      border.i <- bb.idx[[bbi]]
+      point.i <- unlist(near.idx[border.i])
+      if(0){
+        ## example - "cy29", bbi=15
+        plot(xy.sf1[point.i,][[1]],col=uniq.cols[as.character(d1[point.i])],pch=20)
+        plot(b1[border.i,],border=1,add=T,lwd=4)
+      }
+      d.i1 <- st_distance(b1[border.i,],xy.sf1[point.i,])
+      tmp.sgn.d <- round(apply(d.i1,2,min))
+      if(any(tmp.sgn.d==0)){
+        is0 <- which(tmp.sgn.d==0)
+        d.i2 <- st_distance(b2[border.i,],xy.sf1[point.i[is0],])
+        tmp.sgn.d[is0] <- -round(apply(d.i2,2,min))
+      }
+      sgn.d[point.i] <- tmp.sgn.d
+    }
+
+    if(0){
+      ## tolerance for distance (upper bound)
+      tor <- round(dth*3)
+
+      d1 <- sgn.d
+      d1[d1 > tor] <- tor
+      d1[d1 < -tor] <- -tor
+
+      uniq.cols <- colorRampPalette(brewer.pal(11,"Spectral"))(tor*2+1)
+      names(uniq.cols) <- seq(-tor,tor)
+      plot(xy.sf1[[1]],col=uniq.cols[as.character(d1)],pch=".")
+      plot(b2,border=1,add=T)
+      plot(bb,add=T)
+    }
+
+    if(plot){
+      if(missing(th)){
+        th <- round(dth * 3)
+      }
+      sgn.d1 <- sgn.d
+      sgn.d1[sgn.d1 > th] <- th
+      sgn.d1[sgn.d1 < -th] <- -th
+
+      cols <- colorRampPalette((brewer.pal(11,"Spectral")))(th * 2 + 1)
+      names(cols) <- seq(-th,th)
+
+      plot(xy.sf1[[1]],pch=".",col=cols[as.character(round(sgn.d1))])
+      plot(b1,add=T)
+    }
+
+    return(list(dist=sgn.d,points=near.idx,borders=b1))
   }
 )
 
-# Function to check if a point is inside a polygon using 'point.in.polygon()'
-# not exported
+#_ -------------------------------------------------------
+# fun: defineTumorStroma Cycif ----
 
-is_point_inside_polygon <- function(point, polygon) {
-  sp::point.in.polygon(point$X, point$Y, polygon$X, polygon$Y)
-}
+#' Define tumor bed regions within each Cycif dataset.
+#'
+#' This function identifies tumor bed regions within each Cycif dataset and assigns cells to these regions based on their spatial coordinates and cell types.
+#'
+#' @param x A CyCIF object.
+#' @param strict Logical, specifying whether to perform strict cell type calling (see \code{defineCellTypes}).
+#' @param dth Numeric, the distance threshold for identifying adjacent cells.
+#' @param n.cores Integer, the number of CPU cores to use for parallel processing.
+#' @param n.cells.per.seg Integer, the minimum number of cells per segment.
+#' @param n.cells.per.tumor.core Integer, the minimum number of cells per tumor region.
+#' @param concavity a relative measure of concavity. 1 results in a relatively detailed shape, Infinity results in a convex hull. You can use values lower than 1, but they can produce pretty crazy shapes (\code{concaveman}).
+#' @param plot Logical, indicating whether to display plots.
+#'
+#' @return A list containing information about tumor bed regions, including distance threshold, cell coordinates, regions within tumor bed, edge points, cell types, clusters, and neighbors.
+#'
+#' @importFrom concaveman concaveman
+#' @importFrom sf st_as_sf st_make_grid st_nearest_feature st_distance st_intersects st_union st_boundary
+#' @importFrom dbscan dbscan frNN
+#' @importFrom parallel mclapply
+#' @importFrom RColorBrewer brewer.pal
+#'
+#' @details
+#' The `dist2tumorBorder` function calculates the distance of each cell in the CyCIF dataset to the nearest tumor border. It performs the following steps:
+#'
+#' 1. It extracts the coordinates of cells from the CyCIF data, converting them into an sf object.
+#' 2. It first identifies all the cells within ROIs and compute the boundary for each tissue segment. Note that a segment containing fewer than `n.cells.per.seg` cells is ignored.
+#' 3. For each segment, it identifies tumor cells and their clusters using DBSCAN clustering based on the specified distance threshold (`dth`).
+#' 4. It computes the tumor border polygons by using the DBSCAN and concaveman algorithm on each tumor cell cluster.
+#' 5. It determines if each non-tumor cell is inside or outside of the tumor border polygons using the `st_distance` function. For the cells inside any polygons are assigned to the tumor bed, and their distance to the nearest border is calculated (expressed as negative value)
+#' 6. The function returns a list containing the calculated distances and the tumor border polygons.
+#'
+#'
+#' @seealso
+#' \code{\link{concaveman}}, \code{\link{dbscan}}, \code{\link{frNN}}, \code{\link{st_distance}}, \code{\link{st_intersects}}, \code{\link{st_union}}, \code{\link{st_boundary}}
+#'
+#' @rdname defineTumorStroma
+#' @export
+setGeneric("defineTumorStroma", function(x,...) standardGeneric("defineTumorStroma"))
+
+#' @rdname defineTumorStroma
+#' @export
+setMethod("defineTumorStroma","Cycif",
+  function(x, n.cores = 7, n.cells.per.seg = 100,  n.cells.per.tumor.core = 10,
+           dth, concavity = 0.8, plot = FALSE,...) {
+    this.cts <- cell_types(x)$cell_types # 89174
+
+    ## define connected blocks
+    xy <- xys(x)
+    ymax <- max(xy$Y_centroid)
+    xy$Y_centroid <- ymax - xy$Y_centroid
+    # xy.sp <- sp::SpatialPoints(xy)
+    xy.sf <- st_as_sf(xy, coords = c("X_centroid", "Y_centroid"), crs = NA)
+
+    wr <- x@within_rois
+    xy.sf1 <- xy.sf[wr,]
+    this.cts1 <- this.cts[wr]
+    xy1 <- st_coordinates(xy.sf1)
+
+    cat("Identifying tissue segments ",n," ... ")
+    dbs2 <- dbscan::dbscan(xy1, eps=dth*5, minPts = 3, weights = NULL, borderPoints = TRUE) # min 2 cells together
+    cls2 <- dbs2$cluster
+    nls2 <- unique(cls2) # unique cluster labels
+    nls2 <- sort(nls2[nls2!=0])
+    names(nls2) <- nls2
+    n.cls2 <- table(cls2)
+    used.cls2 <- names(which(n.cls2 > n.cells.per.seg))
+    used.cls2 <- used.cls2[used.cls2 != "0"]
+    idx2 <- cls2 %in% used.cls2
+    # idx2 <- cls2 > 0
+
+    cls2.1 <- cls2
+    cls2.1[!idx2] <- 0
+    cls2.1[idx2] <- as.numeric(factor(cls2.1[idx2]))
+    nls2.1 <- unique(cls2.1)
+    nls2.1 <- nls2.1[nls2.1!=0]
+
+    cat(max(nls2.1)," segments identified\n")
+    cat(" Computing borders for each segment ... \n")
+
+    borders2 <- parallel::mclapply(seq(nls2.1),function(i){
+      xyt <- xy.sf1[cls2.1==nls2.1[i],]
+      conc <- concaveman::concaveman(xyt, concavity = concavity, length_threshold = dth*5)
+      return(conc)
+    },mc.cores=n.cores) # this gives an error when called within function -then run concaveman in console first
+    if(class(borders2)=="try-error"){
+      stop("Error in concaveman::concaveman")
+    }
+
+    names(borders2) <- nls2.1
+
+    ## rewrite the above using sf_within or sf_intersects. Note borders2 are a list of POLYGON type of sf objects
+
+    cat(" Find out overlaps of the segment borders ... \n")
+
+    b2 <- do.call(rbind,borders2)
+    int <- st_intersects(b2,sparse=FALSE)
+    diag(int) <- FALSE
+    int[lower.tri(int)] <- FALSE
+    if(any(int)){
+      ol.idx <- which(int,arr.ind=TRUE)[rev(seq(sum(int))),]
+
+      used.borders2 <- rep(1,length(borders2))
+      for(i in seq(nrow(ol.idx))){
+        borders2[[ol.idx[i,1]]] <-
+          st_union(borders2[[ol.idx[i,1]]],borders2[[ol.idx[i,2]]])
+        used.borders2[ol.idx[i,2]] <- 0
+      }
+      borders2.1 <- borders2[as.logical(used.borders2)]
+    }else{
+      borders2.1 <- borders2
+    }
+
+    if(0){
+      b2.1 <- do.call(rbind,borders2.1)
+      plot(xy.sf1[[1]],col=cls2.1+1,pch=".")
+      plot(b2.1,border=1,add=T)
+    }
+
+    ## define tumor regions
+    cat("Identifying borders for tumor regions for each segment ... \n")
+
+    ## following
+    lst.segs <- list()
+    for (seg.i in nls2.1){
+      cat("Segment",seg.i,":\n")
+      # subsetting cells for each segment
+      this.seg <- cls2.1==nls2.1[seg.i]
+
+      xy.sf2 <- xy.sf1[this.seg,]
+      this.cts2 <- this.cts1[this.seg]
+      this.cts2[is.na(this.cts2)] <- "all_other"
+
+      is.tumor <- !is.na(this.cts2) & this.cts2 == "Cancer"
+
+      if(sum(is.tumor)==0){
+        cat("No tumor region found for seg",seg.i,"\n")
+        lst.segs[[as.character(seg.i)]] <-
+          list(this.seg = this.seg,
+               dist = rep(NA,nrow(xy.sf2)),
+               closest.border.idx = NA,
+               borders=NA)
+        next
+      }
+
+      xy.sf3 <- xy.sf2[is.tumor,]
+      xy3 <- st_coordinates(xy.sf3)
+
+      dbs1 <- dbscan::dbscan(xy3, eps=dth, minPts = 3, weights = NULL, borderPoints = TRUE) # min 2 cells together
+      cls3 <- dbs1$cluster
+      nls3 <- unique(cls3) # unique cluster labels
+      nls3 <- sort(nls3[nls3!=0])
+      names(nls3) <- nls3
+
+      n.cls3 <- table(cls3)
+      tum.reg.cls3 <- names(which(n.cls3 > n.cells.per.tumor.core)) ## tumor region
+      tum.reg.cls3 <- tum.reg.cls3[tum.reg.cls3 != "0"] ## tumor bud
+      tum.bud.cls3 <- as.character(nls3)[!nls3 %in% tum.reg.cls3]
+      idx3 <- cls3 %in% tum.reg.cls3
+
+      ## tumor regions (excluding tumor buds)
+      cls3.1 <- cls3
+      cls3.1[!idx3] <- 0
+      cls3.1[idx3] <- as.numeric(factor(cls3.1[idx3]))
+      nls3.1 <- unique(cls3.1)
+      nls3.1 <- nls3.1[nls3.1!=0]
+
+      cat(" Computing borders ... \n")
+
+      borders3 <- parallel::mclapply(seq(nls3.1),function(i){
+        xyt <- xy.sf3[cls3.1==nls3.1[i],]
+        conc <- concaveman::concaveman(xyt, concavity = concavity, length_threshold = dth)
+        return(conc)
+      },mc.cores=n.cores)
+      names(borders3) <- nls3.1
+
+      if(length(borders3)==0){
+        cat("No tumor region found for seg",seg.i,"\n")
+        lst.segs[[as.character(seg.i)]] <-
+          list(this.seg = this.seg,
+               dist = rep(NA,nrow(xy.sf2)),
+               closest.border.idx = NA,
+               borders=NA)
+        next
+      }
+
+      ## rewrite the above using sf_within or sf_intersects. Note borders are a list of POLYGON type of sf objects
+
+      cat(" Find out overlaps of borders ... \n")
+
+      b3 <- do.call(rbind,borders3)
+      int3 <- st_intersects(b3,sparse=FALSE)
+      diag(int3) <- FALSE
+      int3[lower.tri(int3)] <- FALSE
+      if(any(int3)){
+        ol.idx <- which(int3,arr.ind=TRUE)[rev(seq(sum(int3))),]
+
+        used.borders3 <- rep(1,length(borders3))
+        for(i in seq(nrow(ol.idx))){
+          borders3[[ol.idx[i,1]]] <-
+            st_union(borders3[[ol.idx[i,1]]],borders3[[ol.idx[i,2]]])
+          used.borders3[ol.idx[i,2]] <- 0
+        }
+        borders3.1 <- borders3[as.logical(used.borders3)]
+      }else{
+        borders3.1 <- borders3
+      }
+
+      b3.1 <- do.call(rbind,borders3.1)
+      b3.2 <- st_boundary(b3.1)
+
+      cat(" Compute the distance bewteen each point and border of polygons ... \n")
+
+      ## bounding box for each border and point
+      bb3 <- st_make_grid(b3.1,cellsize=1000)
+      if(0){
+        plot(bb3)
+        plot(b3.1,add=T,col=2)
+      }
+
+      is.in.b3 <- st_intersects(b3.1,bb3,sparse=FALSE)
+
+      min.bb.idx <- apply(is.in.b3,1,function(i)min(which(i))) ## min bb index for each polygon (tumor region)
+      bb.idx <- tapply(seq(min.bb.idx),min.bb.idx,identity) ## list of polygon indices for each bb
+      used.bb.idx <- names(bb.idx) ## names of used bounding boxes
+      near.feature <- st_nearest_feature(xy.sf2,b3.1) ## nearest polygon for each point
+      near.idx <- tapply(seq(near.feature),near.feature,identity) ## list of points per polygon
+
+      sgn.d <- rep(NA,length(near.feature)) ## distance to the nearest polygon
+      for(bbi in used.bb.idx){
+        # cat(bbi,"\n")
+        border.i <- bb.idx[[bbi]]
+        point.i <- unlist(near.idx[border.i])
+        d.i1 <- st_distance(b3.1[border.i,],xy.sf2[point.i,])
+        tmp.sgn.d <- round(apply(d.i1,2,min))
+        if(any(tmp.sgn.d==0)){
+          is0 <- which(tmp.sgn.d==0)
+          d.i2 <- st_distance(b3.2[border.i,],xy.sf2[point.i[is0],])
+          tmp.sgn.d[is0] <- -round(apply(d.i2,2,min))
+        }
+        sgn.d[point.i] <- tmp.sgn.d
+      }
+
+      lst.segs[[as.character(seg.i)]] <-
+        list(this.seg = this.seg,
+             dist = sgn.d,
+             closest.border.idx = near.feature,
+             borders=b3.1)
+
+    }
+
+    closest.border.idxs <- dists <- rep(NA,nrow(xy.sf1))
+    borders.all <- list()
+    for(seg.i in names(lst.segs)){
+      this.borders <- lst.segs[[seg.i]]$borders
+      if(!is(this.borders,"sf") && is.na(this.borders)){
+        next
+      }
+      this.seg <- lst.segs[[seg.i]]$this.seg
+      dists[this.seg] <- lst.segs[[seg.i]]$dist
+      closest.border.idxs[this.seg] <- paste0(seg.i,".",lst.segs[[seg.i]]$closest.border.idx)
+      borders.all[[seg.i]] <- this.borders
+    }
+
+    lst <- list(dist=data.frame(seg=cls2.1,dist=dists,points=closest.border.idxs),borders=borders.all)
+
+    if(0){
+      ## tolerance for distance (upper bound)
+      tor <- round(dth*3)
+
+      d1 <- lst$dist$dist
+      d1[d1 > tor] <- tor
+      d1[d1 < -tor] <- -tor
+      d1[is.na(d1)] <- tor+1
+
+      uniq.cols <- c(colorRampPalette(brewer.pal(11,"Spectral"))(tor*2+1),"grey")
+      names(uniq.cols) <- seq(-tor,tor+1)
+      plot(xy.sf1[[1]],col=uniq.cols[as.character(d1)],pch=".")
+      plot(lst$borders[[1]],border=1,add=T)
+      # plot(bb3,add=T)
+    }
+
+    return(lst)
+  }
+)
+
+
+
 
 # Print the result
 #_ -------------------------------
 
-# fun: computeArea (for density) ----
+# fun: computeArea (for density) Cycif ----
 
 #' Compute the Area of Tumor Regions in CyCIF Data.
 #'
@@ -386,7 +751,7 @@ is_point_inside_polygon <- function(point, polygon) {
 #'
 #' @param x A CyCIF object.
 #' @param dth Numeric, the distance threshold used for tumor border detection.
-#' @param unit Character, the unit of the computed area. Default is "mm2" (square millimeters).
+#' @param unit Character, the unit of the computed area in the output. Default is "mm2" (square millimeters).
 #' @param plot Logical, whether to plot the tumor regions. Default is TRUE.
 #' @param strict Logical, whether to use strict cell type filtering. Default is FALSE.
 #' @param ct_name Character, the name of the cell type for tumor identification. Default is "default".
@@ -410,7 +775,7 @@ is_point_inside_polygon <- function(point, polygon) {
 #' @importFrom concaveman concaveman
 #' @importFrom sp point.in.polygon
 #' @importFrom dbscan dbscan
-#' @importFrom parallel mclapply
+#' @importFrom parallel mclapply detectCores
 #'
 #' @seealso \code{\link{defineTumorBorder}} for defining tumor regions, \code{\link{concaveman::concaveman}} for concave hull computation, \code{\link{dbscan::dbscan}} for DBSCAN clustering.
 #'
@@ -444,23 +809,41 @@ setMethod("computeArea", "Cycif",
     this.cts1 <- this.cts[wr]
 
     ## define clusters of tumor chunk using dbscan
-    dbs1 <- dbscan::dbscan(xy1, eps=dth, minPts = 3, weights = NULL, borderPoints = TRUE) # min 2 cells together
+    dbs1 <- dbscan::dbscan(xy1, eps=dth*5, minPts = 3, weights = NULL, borderPoints = TRUE) # min 2 cells together
     cls3 <- dbs1$cluster
 
     ## Merge overlapped clustersFind tumor borders
     nls3 <- unique(cls3) # unique cluster label
     nls3 <- sort(nls3[nls3!=0])
 
-    mcc <- min(15,length(nls3))
+    ncores <- parallel::detectCores(logical = TRUE)-1
+    mcc <- min(ncores,length(nls3))
+
+    ##
+    i=1
+    xyt <- xy1[cls3==nls3[i],]
+    conc <- as.data.frame(concaveman::concaveman(as.matrix(xyt), concavity = .8, length_threshold = dth))
+    names(conc) <- c("X","Y")
+    rm(i,xyt,conc)
+
     concs3 <- parallel::mclapply(seq(nls3),function(i){
+    # for(i in seq(nls3)){
       xyt <- xy1[cls3==nls3[i],]
       conc <- as.data.frame(concaveman::concaveman(as.matrix(xyt), concavity = .8, length_threshold = dth))
       names(conc) <- c("X","Y")
       return(conc)
+    # }
     },mc.cores=mcc)
 
     if(length(concs3)>1){
       # Identify overlapping clusters and merge their points
+      is_point_inside_polygon <- function(xyt1, xyt2){
+        if(!is.data.frame(xyt1) | !is.data.frame(xyt2)){
+          stop("xyt1 and xyt2 must be data frames")
+        }
+        is.inside <- sp::point.in.polygon(xyt2$X, xyt2$Y, xyt1$X, xyt1$Y)
+        return(is.inside)
+      }
       overlaps <- sapply(concs3,function(cluster_i){
         sapply(concs3,function(cluster_j){
           any(is_point_inside_polygon(cluster_j, cluster_i))
@@ -572,11 +955,12 @@ setMethod("computeArea", "Cycif",
 #' @seealso \code{\link{cyApply}}, \code{\link{dbscan::frNN}}
 #'
 #' @importFrom dbscan frNN
-#' @importFrom data.table := rbindlist
+#' @importFrom data.table := rbindlist setDT melt
 #' @importFrom magrittr %>%
 #' @importFrom parallel mclapply
 #' @importFrom RColorBrewer brewer.pal
 #' @importFrom tibble rowid_to_column
+#' @importFrom dplyr na_if
 #'
 #' @rdname computeCN
 #' @export
@@ -585,84 +969,103 @@ setGeneric("computeCN", function(x,...) standardGeneric("computeCN"))
 #' @rdname computeCN
 #' @export
 setMethod("computeCN", "Cycif",
-          function(x,r,unit=c("pixel","um"),
-                     cts.in.rcn,
-                     n.sampling,
-                     seed=123){ # only for Cycif, and CycifStack
-    if(missing(r)){
-      stop("radius (r) should be specified")
-    }else if(unit[1]=="um"){
-      r <- r/0.65
-      unit <- "pixel"
+  function(x,r_um=20,k=20,
+           type=c("knn","frnn"),
+           used.cts,
+           n.sampling=1000,
+           seed=123){ # only for Cycif, and CycifStack
+    ## find cells within rois - roi is a circle with a fixed radius (r_um)
+    if(missing(type)){
+      type <- "frnn"
+    }else if(!type %in% c("knn","frnn")){
+      stop("type must be either 'knn' or 'frnn'")
+    }
+
+    if(type=="frnn"){
+      cat("compute frnn\n")
+      r <- r_um/0.65 # unit converted to pixel
+    }else{
+      cat("compute knn\n")
     }
 
     smpl <- names(x)
-
-    xy <- xys(x) # this is data.table
-    ymax <- max(xy$Y_centroid)
-    xy$Y_centroid <- ymax - xy$Y_centroid
-
     cts <- cell_types(x)
 
-    ## ---- select cells that are within_rois ----
-    wr <- x@within_rois
-    xy1 <- xy[wr,]
+    ## coordinates: x => xy
+    xy <- xys(x)
+    ymax <- max(xy$Y_centroid)
+    xy$Y_centroid <- ymax - xy$Y_centroid
+    # xy.sf <- st_as_sf(xy, coords = c("X_centroid", "Y_centroid"), crs = NA)
 
-    ## ---- cell types to consider (cts.in.rcn) - "OutOfROI" is removed for this subset of cells ----
-    cts1 <- cts[wr,]
-
-    if(missing(cts.in.rcn)){
-      lev.cts <- levels(cts1$cell_types)
+    wr <- within_rois(x)
+    ## ---- cell types to consider (used.cts) - "OutOfROI" is removed for this subset of cells ----
+    if(missing(used.cts)){
+      lev.cts <- levels(cts$cell_types)
       lev.cts <- lev.cts[lev.cts != "outOfROI"]
-      cts.in.rcn <- lev.cts
+      used.cts <- lev.cts
     }
 
+    is.used <- cts$cell_types %in% used.cts
 
     # ---- expression matrix per cell type per CellNeighborhood ----
-    ## expression matrix for cells within ROIs
-    df1 <- exprs(x,type="log")[wr,]
+    xy1 <- xy[is.used,]
+    cts1 <- cts[is.used,]
+    df1 <- exprs(x,type="log")[is.used,]
 
     ## convert xy1, cts1, df1 to data.table
-    setDT(xy1)
-    setDT(cts1)
-    setDT(df1)
+    data.table::setDT(xy1)
+    data.table::setDT(cts1)
+    data.table::setDT(df1)
+
+    ## ---- compute frNN for all cells within ROIs and convert them to frNN object.  ----
+    if(type=="frnn"){
+      nn <- dbscan::frNN(xy1,eps=r,bucketSize=10)
+      nn.ids <- nn$id <- lapply(seq_along(nn$id), function(i) c(i, nn$id[[i]]))
+    }else if(type=="knn"){
+      nn <- dbscan::kNN(xy1,k=k,bucketSize=10)
+      nnids <- cbind(seq(nrow(nn$id)),nn$id)
+      colnames(nnids) <- 0:k
+      nn.ids <- nn$id <- apply(nnids,1,function(x)x,simplify=FALSE)
+      nn$dist <- apply(nn$dist,1,function(x)c(0,x),simplify=FALSE)
+    }
 
     # Add a row number column to xy1 and cts1 for joining
     xy1[, rn := .I]
     cts1[, rn := .I]
     df1[, rn := .I]
 
-    # Join xy1, cts1, and df1 by row number
-    combined_df <- xy1[cts1, on = "rn"][df1, on = "rn"]
-
     ## find out which cell types express which cell state markers
-    csts <- x@cell_types$default@cell_state_def[cts.in.rcn,] %>%
-      tibble::rownames_to_column("cell_types")
-
+    csts <- x@cell_types$default@cell_state_def
+    if(colnames(csts)[1] != "cell_types"){
+      # stop("The first column of the cell state marker definition table must be 'cell_types'")
+      csts <- csts %>% rownames_to_column("cell_types")
+    }
+    csts <- csts %>% filter(cell_types %in% used.cts)
     protein_columns <- names(csts)
     protein_columns <- protein_columns[protein_columns != "cell_types"]
 
     # Convert csts to data.table and melt it to long format
-    csts_dt <- melt(setDT(csts), id.vars = "cell_types", variable.name = "ab", value.name = "expression")
+    csts_dt <- data.table::melt(data.table::setDT(csts), id.vars = "cell_types", variable.name = "ab", value.name = "expression")
 
     # Filter for cell types that do not express each antibody (i.e., expression is NA)
     csts_dt <- csts_dt[is.na(expression)]
 
+    # Join xy1, cts1, and df1 by row number
+    combined_df <- xy1[cts1, on = "rn"][df1, on = "rn"]
+
     # Loop through each antibody and set expression to NA for cell types that do not express it
-    for (ab in unique(csts_dt$ab)) {
-      non_expressing_cts <- csts_dt[ab == ab, cell_types]
-      combined_df[.(non_expressing_cts), (ab) := NA, on = .(cell_types)]
+    if(0){ ## decided not to turn them as NAs as I want to compute expression per CN, irrespective of cell type composition.
+      for (ab1 in as.character(unique(csts_dt$ab))) {
+        non_expressing_cts <- csts_dt[ab == ab1, cell_types]
+        combined_df[.(non_expressing_cts), (ab1) := NA, on = .(cell_types)]
+      }
     }
+    # tapply(combined_df$PD1,combined_df$cell_types,mean,na.rm=T) # sanity check
 
-    ## ---- compute frNN for all cells within ROIs and convert them to frNN object.  ----
-    frnn <- dbscan::frNN(xy1,eps=r,bucketSize=10)
-    frnn.ids <- frnn$id <- lapply(seq_along(frnn$id), function(i) c(i, frnn$id[[i]]))
-    frnn$dist <- lapply(seq_along(frnn$dist), function(i) c(0, frnn$dist[[i]]))
-
-    # Create a neighborhood data table from frnn
-    nmat <- data.table(
-      cell_id = rep(seq_along(frnn$id), lengths(frnn$id)),
-      neighbor_id = unlist(frnn$id, use.names = FALSE)
+    # Create a neighborhood data table from nn
+    nmat <- data.table::data.table(
+      cell_id = rep(seq_along(nn$id), lengths(nn$id)),
+      neighbor_id = unlist(nn$id, use.names = FALSE)
     )
 
     # Join with combined_df to get cell type and expression data for each neighbor
@@ -676,23 +1079,27 @@ setMethod("computeCN", "Cycif",
     exp_per_ct_cn <- neighborhood[, lapply(.SD, mean, na.rm = TRUE), by = .(cell_id, cell_types), .SDcols = protein_columns]
     exp_per_cn <- neighborhood[, lapply(.SD, mean, na.rm = TRUE), by = .(cell_id), .SDcols = protein_columns]
 
-    # exp_per_ct_cn and exp_per_cn are data.table with average protein expression per neighborhood, per cell type or not
+    if(type=="knn"){
+      nn$eps <- -1
+    }else if (type=="frnn"){
+      nn$k <- -1
+    }
 
-    ##  ---- convert frnn to frNN object (not necessary?)  ----
-    frnn <- new("frNN",
-                dist = frnn$dist,
-                id = frnn.ids,
-                eps = frnn$eps,
-                sort = frnn$sort)
+    ##  ---- convert nn to nn object (not necessary?)  ----
+    nn1 <- new("NN",
+               type = type,
+               dist = nn$dist,
+               id = nn$id,
+               k = nn$k,
+               eps = nn$eps,
+               sort = nn$sort)
 
     ##  ---- within positive ROIs + has neighbors ----
-    n.frnn <- lengths(frnn@id) # number of neighbors - the same as sum(wr)
-    n0 <- which(n.frnn==0) # no neighbors
-    has.neighbors <- n.frnn > 0
+    n.nn <- lengths(nn1@id) # number of neighbors - the same as sum(wr)
 
-    selected.ids1 <- which(n.frnn>0 &
-                           sapply(frnn.ids,function(ids){
-                             any(cts1$cell_types[ids] %in% cts.in.rcn)
+    selected.ids1 <- which(n.nn>0 &
+                           sapply(nn.ids,function(ids){
+                             any(cts1$cell_types[ids] %in% used.cts)
                            })) # cell indices are after ROI filter
 
     n.this <- length(selected.ids1)
@@ -705,33 +1112,39 @@ setMethod("computeCN", "Cycif",
     selected.ids2 <- sample(selected.ids1,n.cts)
 
     ## selected ids among available focused celltypes (eg tumor cells)
-    is.selected <- seq(frnn.ids) %in% selected.ids2
+    is.selected <- seq(nn.ids) %in% selected.ids2
 
     ## cell type count and frequency in each RCN
-    rcn.freq <- t(sapply(frnn@id,function(ids){
+    rcn.freq <- t(sapply(nn1@id,function(ids){
       ct <- cts1$cell_types[ids]
       tab <- table(ct)
       ntab <- tab/sum(tab)
       return(ntab)
     }))
 
-    rcn.count <- t(sapply(frnn@id,function(ids){
+    rcn.count <- t(sapply(nn1@id,function(ids){
       ct <- cts1$cell_types[ids]
       tab <- table(ct)
       return(tab)
     }))
 
+    if(type=="knn"){
+      r <- sapply(nn$dist,function(x)x[k+1])
+    }
+    rcn.dens <- round(rcn.count/(pi*r^2),2)
+
     cn <- new("CellNeighborhood",
               within.rois=wr, # logical, within ROIs
-              cts.in.rcn=cts.in.rcn, # character, cell types to consider
+              used.cts=used.cts, # character, cell types to consider
               n.cells.selected=n.cts, # integer, number of cells selected
               is.selected = is.selected,
               smpls = smpl,
-              frnn=frnn,
-              n.neighbors = n.frnn,
+              nn=nn1,
+              n.neighbors = n.nn,
               exp.per.ct.cn=exp_per_ct_cn,
               exp.per.cn=exp_per_cn,
               rcn.count=rcn.count,
+              rcn.dens=rcn.dens,
               rcn.freq=rcn.freq)
     return(cn)
 })
@@ -739,16 +1152,16 @@ setMethod("computeCN", "Cycif",
 #' @rdname computeCN
 #' @export
 setMethod("computeCN", "CycifStack",
-  function(x,r,unit=c("pixel","um"),
-           cts.in.rcn,
+  function(x,r_um = 20,
+           used.cts,
            n.sampling,
            seed=123){ # only for Cycif, and CycifStack
 
     cat("Get neighbors ...\n")
-    frnn1 <- cyApply(x,function(cy){
+    nn1 <- cyApply(x,function(cy){
       cat(names(cy),"\n")
       computeCN(x=cy,r=r,unit=c("pixel","um"),
-        cts.in.rcn=cts.in.rcn,
+        used.cts=used.cts,
         n.sampling=n.sampling,
         seed=seed)
     })
@@ -756,40 +1169,40 @@ setMethod("computeCN", "CycifStack",
     cat("Restructure data ...\n")
 
     ## within.rois
-    within.rois <- unlist(lapply(frnn1,function(fr)fr@within.rois)) # same as nCells() for each sample
+    within.rois <- unlist(lapply(nn1,function(fr)fr@within.rois)) # same as nCells() for each sample
 
     ## n.cells.selected
-    n.cells.selected <- sapply(frnn1,function(fr)fr@n.cells.selected)
+    n.cells.selected <- sapply(nn1,function(fr)fr@n.cells.selected)
 
     # is.selected
-    is.selected <- unlist(sapply(frnn1, function(fr)fr@is.selected))
+    is.selected <- unlist(sapply(nn1, function(fr)fr@is.selected))
 
     if(sum(is.selected) != sum(n.cells.selected)){
       stop("is.selected and n.cells.selected are not consistent")
     }
 
-    ## cts.in.rcn
-    cts.in.rcn <- frnn1[[1]]@cts.in.rcn
+    ## used.cts
+    used.cts <- nn1[[1]]@used.cts
 
     ## smpls
-    n.smpls <- sapply(frnn1,function(fr)sum(fr@within.rois))
+    n.smpls <- sapply(nn1,function(fr)sum(fr@within.rois))
     smpls <- rep(names(n.smpls),n.smpls)
 
-    ## frnn
-    lst.frnn <- lapply(frnn1,function(fr)fr@frnn)
+    ## nn
+    lst.nn <- lapply(nn1,function(fr)fr@nn)
 
-    ### frnn@dists
-    frnn.dists <- do.call(c,lapply(lst.frnn,function(fr)fr@dist))
+    ### nn@dists
+    nn.dists <- do.call(c,lapply(lst.nn,function(fr)fr@dist))
 
-    ### frnn@id - combine indices so they can specify selected cells in the entire dataset
-    n.frnns <- sapply(lst.frnn,function(frnn)length(frnn@id)) # 1325874, all cells, excluding outOfROIs
-    n.frnns.pre <- c(0,cumsum(n.frnns)[-length(n.frnns)])
-    names(n.frnns.pre) <- names(x)
+    ### nn@id - combine indices so they can specify selected cells in the entire dataset
+    n.nns <- sapply(lst.nn,function(nn)length(nn@id)) # 1325874, all cells, excluding outOfROIs
+    n.nns.pre <- c(0,cumsum(n.nns)[-length(n.nns)])
+    names(n.nns.pre) <- names(x)
 
-    ## frnn.ids, frnn.ids1, frnn.tum.ids - list of neighboring cells ids for tumors used for the frnn analysis
-    frnn.ids <- lapply(names(x),function(nm){
-      x <- lst.frnn[[nm]]
-      n.prior <- n.frnns.pre[nm]
+    ## nn.ids, nn.ids1, nn.tum.ids - list of neighboring cells ids for tumors used for the nn analysis
+    nn.ids <- lapply(names(x),function(nm){
+      x <- lst.nn[[nm]]
+      n.prior <- n.nns.pre[nm]
       this.ids <- x@id
       new.ids <- lapply(this.ids,function(id){
         new.id <- id + n.prior
@@ -797,34 +1210,36 @@ setMethod("computeCN", "CycifStack",
       })
       return(new.ids)
     })
-    frnn.ids1 <- do.call(c,frnn.ids) ## 1325874, now all data are combined - and the indices are after excluding outOfROIs
+    nn.ids1 <- do.call(c,nn.ids) ## 1325874, now all data are combined - and the indices are after excluding outOfROIs
 
-    ### frnn@eps
-    ### frnn@sort
-    eps <- unique(sapply(lst.frnn,function(frnn)frnn@eps))
-    sort <- unique(sapply(lst.frnn,function(frnn)frnn@sort))
+    ### nn@eps
+    ### nn@sort
+    eps <- unique(sapply(lst.nn,function(nn)nn@eps))
+    sort <- unique(sapply(lst.nn,function(nn)nn@sort))
 
-    ### assemble frnn
-    frnn <- new("frNN",
-                  dist=frnn.dists,
-                  id=frnn.ids1,
-                  eps=eps,
-                  sort=sort)
+    ### assemble nn
+    nn1 <- new("NN",
+               type = type,
+               dist = nn$dist,
+               id = nn$id,
+               k = nn$k,
+               eps = nn$eps,
+               sort = nn$sort)
 
     # n.neighbors
-    n.neighbors <- lengths(frnn@id)
+    n.neighbors <- lengths(nn@id)
 
     # exp.per.ct.cn
-    exp.per.ct.cn <- data.table::rbindlist(lapply(frnn1,function(frnn)frnn@exp.per.ct.cn))
+    exp.per.ct.cn <- data.table::rbindlist(lapply(nn1,function(nn)nn@exp.per.ct.cn))
 
     # exp.per.cn
-    exp.per.cn <- data.table::rbindlist(lapply(frnn1,function(frnn)frnn@exp.per.cn))
+    exp.per.cn <- data.table::rbindlist(lapply(nn1,function(nn)nn@exp.per.cn))
 
     ## rcn.count
-    rcn.count <- as.matrix(data.table::rbindlist(lapply(frnn1,function(fr)as.data.frame(fr@rcn.count))))
+    rcn.count <- as.matrix(data.table::rbindlist(lapply(nn1,function(fr)as.data.frame(fr@rcn.count))))
 
     ## rcn.freq
-    rcn.freq <- as.matrix(data.table::rbindlist(lapply(frnn1,function(fr)as.data.frame(fr@rcn.freq))))
+    rcn.freq <- as.matrix(data.table::rbindlist(lapply(nn1,function(fr)as.data.frame(fr@rcn.freq))))
 
     ## is.selected
     mclustda <- list()
@@ -834,9 +1249,9 @@ setMethod("computeCN", "CycifStack",
               within.rois=within.rois,
               n.cells.selected=n.cells.selected,
               is.selected=is.selected,
-              cts.in.rcn=cts.in.rcn,
+              used.cts=used.cts,
               smpls=smpls,
-              frnn=frnn,
+              nn=nn,
               exp.per.ct.cn=exp.per.ct.cn,
               exp.per.cn=exp.per.cn,
               rcn.count=rcn.count,
@@ -851,9 +1266,9 @@ setMethod("computeCN", "CycifStack",
 
 # fun: setDist ----
 
-#' set distance to tumorBorder for frNN objects
+#' set distance to tumorBorder for NN objects
 #'
-#' @param x A frNN object.
+#' @param x A NN object.
 #' @param value A numeric vector specifying the distance to tumor border for each cell.
 #'
 #' @export
@@ -877,7 +1292,7 @@ setMethod("setDist", "CellNeighborhood",
 #' It clusters cells based on their RCN profiles, sorts clusters based on the specified cell type,
 #' and optionally extrapolates the clustering to the entire dataset.
 #'
-#' @param frnn An object containing RCN information, typically obtained from 'computeCN'.
+#' @param nn An object containing RCN information, typically obtained from 'computeCN'.
 #' @param g The number of clusters to create.
 #' @param seed The random seed for reproducibility.
 #' @param sort.by The cell type to sort clusters by (e.g., "CD8T").
@@ -887,10 +1302,10 @@ setMethod("setDist", "CellNeighborhood",
 #' @param extrapolate Whether to extrapolate clusters to the entire dataset (TRUE) or not (FALSE).
 #' @param mc.cores The number of CPU cores to use for parallel processing.
 #'
-#' @return An updated 'frnn' object with clustering and sorting information.
+#' @return An updated 'nn' object with clustering and sorting information.
 #'
 #' @details
-#' The `tcnClust` function uses the provided `frnn` object to perform clustering and classification of cells based on their neighborhood relationships. It allows you to specify the number of clusters (`g`), the cell type to sort clusters by (`sort.by`), and other clustering parameters.
+#' The `tcnClust` function uses the provided `nn` object to perform clustering and classification of cells based on their neighborhood relationships. It allows you to specify the number of clusters (`g`), the cell type to sort clusters by (`sort.by`), and other clustering parameters.
 #' The clustering process results in the classification of cells into distinct clusters, and the function provides information about these clusters, including the mean frequencies, counts, and more.
 #' By specifying different options for `sort.by`, `sort.type`, and `sort.smpls`, you can customize the sorting behavior of clusters based on cell types and data types.
 #' Additionally, you can choose to extrapolate clusters to the entire dataset using the `extrapolate` argument, which can be helpful for analyzing the overall dataset.
@@ -899,16 +1314,16 @@ setMethod("setDist", "CellNeighborhood",
 #'
 #' @importFrom mclust Mclust
 #' @importFrom parallel mclapply
-#' @importFrom dbscan frNN
+#' @importFrom dbscan  frNN kNN
 #' @importFrom data.table as.data.table rbindlist
 #' @importFrom parallel mclapply
 #' @export
-setGeneric("tcnClust", function(frnn,...) standardGeneric("tcnClust"))
+setGeneric("tcnClust", function(nn,...) standardGeneric("tcnClust"))
 
 #' @rdname tcnClust
 #' @export
 setMethod("tcnClust","data.frame",
-  function(frnn,
+  function(nn,
            g=50,
            seed=123,
            sort.by="CD8T",
@@ -917,15 +1332,15 @@ setMethod("tcnClust","data.frame",
            data.type=c("ct_exp","ct"),
            extrapolate=FALSE,
            mc.cores=1){
-  mclustda <- frnn@mclustda
+  mclustda <- nn@mclustda
 
-  exps <- as.matrix(frnn@exp)[,-1]
+  exps <- as.matrix(nn@exp)[,-1]
   exps.imp <- imputeData(exps)
 
   this.cts <- cts.in.rcn
 
-  mat.count.all <- frnn$rcn.count[,this.cts]
-  mat.freq.all <- t(apply(frnn$rcn.freq[,this.cts],1,function(x)x/sum(x)))
+  mat.count.all <- nn$rcn.count[,this.cts]
+  mat.freq.all <- t(apply(nn$rcn.freq[,this.cts],1,function(x)x/sum(x)))
 
   is.selected <- mclustda$sele$is.used
 
@@ -969,7 +1384,7 @@ setMethod("tcnClust","data.frame",
     mc.idx <- sort(rep(seq(mc.cores),length=nrow(mat.freq.all1)))
 
     mem.all <- parallel::mclapply(seq(mc.cores),function(i){
-      predict(mc1,newdata=mat.freq.all1[mc.idx==i,frnn$cts.in.rcn])$classification
+      predict(mc1,newdata=mat.freq.all1[mc.idx==i,nn$cts.in.rcn])$classification
     },mc.cores=mc.cores)
     mem.all <- do.call(c,mem.all)
 
@@ -1038,9 +1453,9 @@ setMethod("tcnClust","data.frame",
   ##
   mclustda$g <- g1
 
-  frnn$mclustda <- mclustda
+  nn$mclustda <- mclustda
 
-  return(frnn)
+  return(nn)
 })
 
 
@@ -1064,13 +1479,12 @@ setMethod("tcnClust","data.frame",
 #' @param extrapolate Whether to extrapolate clusters to the entire dataset (TRUE) or not (FALSE).
 #' @param mc.cores The number of CPU cores to use for parallel processing.
 #'
-#' @return An updated 'frnn' object with clustering and sorting information.
+#' @return An updated 'nn' object with clustering and sorting information.
 #'
 #' @seealso \code{\link{computeCN}}
 #'
 #' @importFrom mclust Mclust
 #' @importFrom parallel mclapply
-#' @importFrom dbscan frNN
 #' @importFrom data.table as.data.table rbindlist
 #' @importFrom parallel mclapply
 #' @export
@@ -1248,7 +1662,7 @@ setMethod("rcnClust","CellNeighborhood",
 #' extrapolate the clustering results to the entire dataset if needed.
 #'
 #' @param x A data frame containing expression data, typically from a CyCIF or similar dataset.
-#' @param frnn An object containing RCN information, typically obtained from 'computeCN'.
+#' @param nn An object containing RCN information, typically obtained from 'computeCN'.
 #' @param cts.in.center A character vector specifying the cell typesaround which RCN was computed (e.g., "Tumor").
 #' @param cts.in.rcn A character vector specifying the cell types to include in the RCN analysis.
 #' @param per.ct A logical value indicating whether to compute mean expression profiles per RCN cluster (TRUE) or for the entire dataset (FALSE).
@@ -1258,7 +1672,7 @@ setMethod("rcnClust","CellNeighborhood",
 #'
 #' @details
 #' The 'meanExpRCN' function calculates the mean expression profiles for the specified cell types or features within RCN clusters. The function works as follows:
-#' - It takes a data frame 'x' containing expression data and an object 'frnn' containing RCN information obtained from the 'computeCN' function.
+#' - It takes a data frame 'x' containing expression data and an object 'nn' containing RCN information obtained from the 'computeCN' function.
 #' - You can specify the 'cts.in.center' argument to select specific cell types to focus on during the analysis.
 #' - The 'cts.in.rcn' argument allows you to specify the cell types to include in the RCN analysis.
 #' - If 'per.ct' is set to TRUE, the function computes mean expression profiles per RCN cluster; otherwise, it computes mean expression profiles for the entire dataset.
@@ -1272,6 +1686,9 @@ setMethod("rcnClust","CellNeighborhood",
 #' @importFrom data.table rbindlist
 #' @importFrom tibble rowid_to_column
 #' @importFrom dplyr %>% arrange left_join summarize_at mutate_at mutate group_by summarize
+#' @importFrom tidyr spread
+#' @importFrom ggplot2 ggplot aes geom_point geom_line sym syms
+#'
 #' @export
 setGeneric("meanExpRCN", function(x,...) standardGeneric("meanExpRCN"))
 
@@ -1279,35 +1696,35 @@ setGeneric("meanExpRCN", function(x,...) standardGeneric("meanExpRCN"))
 #' @export
 setMethod("meanExpRCN","data.frame",
           function(x,
-                   frnn,
+                   nn,
                    cts.in.center="Tumor",
                    cts.in.rcn=levels(cell_types(x)$cell_types)[1:10],
                    per.ct=TRUE,
                    extrapolate=TRUE){
 
-    g <-   frnn$mclustda$g
+    g <-   nn$mclustda$g
 
     lin.abs <- names(x@cell_types$default@cell_lineage_def[-(1:2)])
     cst.abs <- names(x@cell_types$default@cell_state_def)
     all.abs <- unique(c(lin.abs,cst.abs))
 
     if(extrapolate){
-      mclustda <- frnn$mclustda$all
+      mclustda <- nn$mclustda$all
     }else{
-      mclustda <- frnn$mclustda$sele
+      mclustda <- nn$mclustda$sele
     }
 
     # clusts <- factor(mclustda$mem)
     clusts <- factor(paste0("RCN",mclustda$mem),labels=paste0("RCN",seq(g)))
     df1 <- cell_types(x) %>%
-      filter(frnn$within.rois) %>%
+      filter(nn$within.rois) %>%
       tibble::rowid_to_column("idx") %>% ## idx is numbered within 'within.rois'
       dplyr::left_join(
         data.frame(tcn = clusts) %>%
           mutate(idx=which(mclustda$is.used)),by="idx") %>%
       dplyr::arrange(idx) %>%
       dplyr::left_join(exprs(x,type="log") %>%
-                  filter(frnn$within.rois) %>%
+                  filter(nn$within.rois) %>%
                   tibble::rowid_to_column("idx"),by="idx") %>%
       rename(idx.all="idx")## 1325874, within ROIs
 
@@ -1316,13 +1733,13 @@ setMethod("meanExpRCN","data.frame",
       filter(idx.nonna.tum) %>%
       tibble::rowid_to_column("idx.tum") # 471910
 
-    ## lst.frnn: convert ids in each sample to ids in all samples
-    frnn.ids <- frnn$frnn$id[!is.na(df1$tcn)] # 1325311: 563 don't have proper RCNs.
-    frnn.tum.ids <- frnn$frnn$id[idx.nonna.tum] # 471910
+    ## lst.nn: convert ids in each sample to ids in all samples
+    nn.ids <- nn$nn$id[!is.na(df1$tcn)] # 1325311: 563 don't have proper RCNs.
+    nn.tum.ids <- nn$nn$id[idx.nonna.tum] # 471910
 
     ## all unique ids per tcn cluster
     if(per.ct){
-      lst.mean.exp <- tapply(frnn.tum.ids,df.tum$tcn,function(this.ids){
+      lst.mean.exp <- tapply(nn.tum.ids,df.tum$tcn,function(this.ids){
         this.ids1 <- unique(sort(unlist(this.ids)))
         df.tmp <- df1[this.ids1,] %>%
           group_by(cell_types) %>%
@@ -1342,7 +1759,7 @@ setMethod("meanExpRCN","data.frame",
       names(mes) <- all.abs
       return(mes)
     }else{
-      lst.mean.exp <- tapply(frnn.tum.ids,df.tum$tcn,function(this.ids){
+      lst.mean.exp <- tapply(nn.tum.ids,df.tum$tcn,function(this.ids){
         this.ids1 <- unique(sort(unlist(this.ids)))
         df.tmp <- df1[this.ids1,] %>%
           group_by() %>%

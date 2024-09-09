@@ -13,13 +13,13 @@ for a Cycif or CycifStack object, providing information about the cell neighborh
 \describe{
 \item{\code{within.rois}}{A logical vector indicating whether each cell is within a region of interest (ROI).}
 
-\item{\code{cts.in.rcn}}{A character vector of cell types considered in the neighborhood analysis.}
+\item{\code{used.cts}}{A character vector of cell types considered in the neighborhood analysis.}
 
 \item{\code{n.cells.selected}}{An integer indicating the number of cells selected for the analysis.}
 
 \item{\code{smpls}}{A character vector containing sample names.}
 
-\item{\code{frnn}}{A frNN object containing information about cell neighbors.}
+\item{\code{nn}}{A frNN object containing information about cell neighbors.}
 
 \item{\code{n.neighbors}}{An integer indicating the number of neighbors (including self).}
 
@@ -30,6 +30,8 @@ for a Cycif or CycifStack object, providing information about the cell neighborh
 \item{\code{is.selected}}{A logical vector indicating whether each cell is selected.}
 
 \item{\code{rcn.count}}{A data.frame containing the counts of cell types in the neighborhood.}
+
+\item{\code{rcn.dens}}{A data.frame containing the density of cell types in the neighborhood.}
 
 \item{\code{rcn.freq}}{A data.frame containing the frequency of cell types in the neighborhood.}
 

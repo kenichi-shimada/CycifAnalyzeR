@@ -7,7 +7,16 @@
 \usage{
 dist2tumorBorder(x, ...)
 
-\S4method{dist2tumorBorder}{Cycif}(x, n.cores = 7, dth, minPts = 3, concavity = 0.8, ...)
+\S4method{dist2tumorBorder}{Cycif}(
+  x,
+  n.cores = 7,
+  dth,
+  th,
+  minPts = 3,
+  concavity = 0.8,
+  plot = FALSE,
+  ...
+)
 }
 \arguments{
 \item{x}{A CyCIF object.}

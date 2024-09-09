@@ -8,25 +8,33 @@
 \usage{
 computeCN(x, ...)
 
-\S4method{computeCN}{Cycif}(x, r, unit = c("pixel", "um"), cts.in.rcn, n.sampling, seed = 123)
+\S4method{computeCN}{Cycif}(
+  x,
+  r_um = 20,
+  k = 20,
+  type = c("knn", "frnn"),
+  used.cts,
+  n.sampling = 1000,
+  seed = 123
+)
 
-\S4method{computeCN}{CycifStack}(x, r, unit = c("pixel", "um"), cts.in.rcn, n.sampling, seed = 123)
+\S4method{computeCN}{CycifStack}(x, r_um = 20, used.cts, n.sampling, seed = 123)
 }
 \arguments{
 \item{x}{A Cycif or CycifStack object.}
+
+\item{n.sampling}{The number of cells to randomly sample for RCN analysis.}
+
+\item{seed}{The random seed for reproducibility.}
 
 \item{r}{The radius within which neighboring cells are considered (in 'unit').}
 
 \item{unit}{The unit of measurement for the radius ('pixel' or 'um'). If 'um' is specified,
 the radius 'r' will be converted to pixels based on the assumed resolution (0.65 um per pixel).}
 
-\item{cts.in.rcn}{A character vector specifying the cell types to consider when computing RCN values. If not is specified, all avaialble cts are used.}
-
-\item{n.sampling}{The number of cells to randomly sample for RCN analysis.}
-
-\item{seed}{The random seed for reproducibility.}
-
 \item{cts.in.center}{A character vector specifying the cell types around which RCN is computed. If not is specified, all available cts are used.}
+
+\item{cts.in.rcn}{A character vector specifying the cell types to consider when computing RCN values. If not is specified, all avaialble cts are used.}
 }
 \value{
 A CellNeighborhood object containing the following components:

@@ -511,8 +511,8 @@ CellTypeGraph <- function(ctype,
                           with.hierarchy=FALSE,...){
   if(is(ctype,"Cycif") | is(ctype,"CycifStack")){
     ctype <- x@cell_types[[cname]]@cell_lineage_def
-  }else if(is(cytpe,"data.frame")){
-    if(all(c("Parent","Child") %in% names(ctype))){
+  }else if(is(ctype,"data.frame")){
+    if(!all(c("Parent","Child") %in% names(ctype))){
       stop("If 'ctype' argument is a data.frame, it should contain two columns named 'Parent' and 'Child'.")
     }
   }
@@ -569,6 +569,7 @@ CellTypeGraph <- function(ctype,
 #' @param x A CycifStack object.
 #' @param ct_name The name of the cell type definition to use. Default is "default."
 #' @param simple Logical, if TRUE, return a simple table of cell type frequencies. If FALSE, return a hierarchical structure of cell type frequencies. Default is TRUE.
+#' @param count Logical, if TRUE, return the count of cells per cell type. If FALSE, return the frequency of cells per cell type.
 #'
 #' @return If `simple` is TRUE (default), a matrix with row names representing samples and column names representing cell types (that are leaf nodes in the cell type definition tree), with the number of cells per cell type. If `simple` is FALSE, a list of 'non-leaf' cell type frequency matrices is also returned in the matrix.
 #'
@@ -584,15 +585,20 @@ setGeneric("cellTypeFrequency", function(x,...) standardGeneric("cellTypeFrequen
 
 #' @export
 setMethod("cellTypeFrequency", "CycifStack",
-  function(x,ct_name="default",simple=TRUE){
+  function(x,ct_name="default",simple=TRUE,count=FALSE){
     tab <- table(cell_types(x,ct_name=ct_name))
     mat <- matrix(tab,nrow=nrow(tab),dimnames=list(sample=rownames(tab),cell_types=colnames(tab)))
     cts1 <- colnames(mat)
     cts1 <- cts1[cts1 != "outOfROI"]
-    nsh <- apply(mat[,cts1],1,function(x){
-      x <- x
-      x/sum(x)
-    })
+    if(!count){
+      nsh <- apply(mat[,cts1],1,function(x){
+        x <- x
+        x/sum(x)
+      })
+    }else{
+      nsh <- t(mat[,cts1])
+    }
+
     if(any(rownames(nsh)=="unknown")){
       stop("'unknown' as a cell type is discontinued; run defineCellTypes() again to update the cell types")
     }
@@ -613,6 +619,9 @@ setMethod("cellTypeFrequency", "CycifStack",
       nsh1 <- t(sapply(list.hie1,function(cts){
         colSums(nsh[cts,,drop=F])
       })) # `all` shouldn't be included
+      if(count){
+        return(nsh1)
+      }
 
       ##
       uniq.cts <- c("all",ctype$Child)
@@ -621,6 +630,7 @@ setMethod("cellTypeFrequency", "CycifStack",
       ctgraph$Child <- factor(ctgraph$Child,levels=uniq.cts)
       g <- igraph::graph_from_data_frame(ctgraph)
       vts <- igraph::V(g)$name
+
 
       list.hie2 <- lapply(names(list.hie),function(ct){
         cts <- vts[find_descendants(g,ct)]
@@ -703,8 +713,10 @@ setMethod("defineCellTypes", "data.frame",
                    ctype,
                    cstate,
                    p_thres=0.5,
-                   mc.cores=4,...){
-  # return a character vector containing 'cell_types'
+                   mc.cores=4,
+                   prioritized.celltypes=NULL,
+                   ...){
+# return a character vector containing 'cell_types'
   if (!is(x,"data.frame")){
     stop("input should be a logTh_normalized expression (a data frame)")
   }
@@ -715,11 +727,83 @@ setMethod("defineCellTypes", "data.frame",
   ctlevs <- CellTypeGraph(ctype,plot=F)
 
   cell.types <- rep("all",nrow(x))
-  is.strict <- rep(TRUE,nrow(x))
+
+  is.strict <- rep(TRUE,nrow(x))  # return a character vector containing 'cell_types'
+
+  ### Prioritize Cell Types ###
+  if (!is.null(prioritized.celltypes)) {
+    stop(class(prioritized.celltypes))
+    if(class(prioritized.celltypes) != "list"){
+      stop("prioritized.celltypes should be a named list, whose names are cell types and values are lineage markers")
+    }else if(!all(unlist(prioritized.celltypes) %in% names(x))){
+      stop("prioritized.celltypes should contain only the markers that are in the expression data")
+    }else if(!all(names(prioritized.celltypes) %in% unlist(ctlevs))){
+      stop("prioritized.celltypes should contain only the cell types that are in the cell type definition")
+    }
+
+    ctlevs <- lapply(ctlevs,function(cts0){
+      cts0[!cts0 %in% names(prioritized.celltypes)]
+    })
+
+    prioritized.prob <- parallel::mclapply(prioritized.celltypes, function(tmp) {
+      if(length(unlist(tmp))==0){
+        return(rep(NA,nrow(x)))
+      }
+
+      abs.and <- tmp$AND
+      abs.or <- tmp$OR
+      abs.not <- tmp$NOT
+
+      suppressWarnings({
+        if(length(abs.and)>0 & length(abs.or)>0){
+          a <- apply(x[abs.and],1,min,na.rm=F)
+          a[a==Inf] <- NA
+          b <- apply(x[abs.or],1,max,na.rm=F)
+          b[b==-Inf] <- NA
+          pos.out <- pmin(a,b)
+        }else if(length(abs.and)>0){
+          pos.out <- apply(x[abs.and],1,min,na.rm=F)
+          pos.out[pos.out==Inf] <- NA
+        }else if(length(abs.or)>0){
+          pos.out <- apply(x[abs.or],1,max,na.rm=F)
+          pos.out[pos.out==-Inf] <- NA
+        }else{
+          # pos.out <- rep(p_thres,nrow(x)) # changed from 1 to p_thres
+          pos.out <- rep(NA,nrow(x))
+        }
+        this.ct <- pos.out
+        if(length(abs.not)>0){
+          neg.out <- apply(x[abs.not],1,max,na.rm=T)
+          neg.out[neg.out==-Inf] <- NA
+          this.ct[which(neg.out > p_thres)] <- 0
+          this.ct[is.na(neg.out)] <- NA
+        }
+      })
+      return(this.ct)
+    }, mc.cores=min(mc.cores, length(prioritized.celltypes)))
+
+    prioritized.prob <- do.call(cbind, prioritized.prob)
+    colnames(prioritized.prob) <- names(prioritized.celltypes)
+
+    # is.used <- !apply(prioritized.prob,2,function(x)all(is.na(x)))
+    # prioritized.prob <- prioritized.prob[,is.used,drop=F]
+
+    cell.types0 <- apply(prioritized.prob,1,function(pr){
+      ind <- which(pr > p_thres)
+      if(length(ind)>0){
+        return(names(pr[ind[1]]))
+      }else{
+        min(NA)
+      }
+    })
+  } else{
+    cell.types0 <- rep(NA,nrow(x))
+  }
+
+  ### End Prioritize Cell Types ###
 
   cat("ct_level=")
   for(l in seq(length(ctlevs)-1)){
-  # for(l in 1){
     cat(l,"...",sep="")
     pas <- ctlevs[[l]]
     chs1 <- chs <- ctlevs[[l+1]]
@@ -740,13 +824,13 @@ setMethod("defineCellTypes", "data.frame",
       abs.not <- names(which(tmp=="NOT"))
       suppressWarnings({
         if(length(abs.and)>0 & length(abs.or)>0){
-          a <- apply(x[abs.and],1,min,na.rm=T)
+          a <- apply(x[abs.and],1,min,na.rm=F)
           a[a==Inf] <- NA
           b <- apply(x[abs.or],1,max,na.rm=T)
           b[b==-Inf] <- NA
           pos.out <- pmin(a,b)
         }else if(length(abs.and)>0){
-          pos.out <- apply(x[abs.and],1,min,na.rm=T)
+          pos.out <- apply(x[abs.and],1,min,na.rm=F)
           pos.out[pos.out==Inf] <- NA
         }else if(length(abs.or)>0){
           pos.out <- apply(x[abs.or],1,max,na.rm=T)
@@ -759,7 +843,7 @@ setMethod("defineCellTypes", "data.frame",
         if(length(abs.not)>0){
           neg.out <- apply(x[abs.not],1,max,na.rm=T)
           neg.out[neg.out==-Inf] <- NA
-          this.ct[which(neg.out > p_thres)] <- 0
+          this.ct[which(!is.na(this.ct) & neg.out > p_thres)] <- 0
           this.ct[is.na(neg.out)] <- NA
         }
       })
@@ -788,18 +872,23 @@ setMethod("defineCellTypes", "data.frame",
             return("all_other")
           }
         }
-        ind <- which(pr==max(pr,na.rm=T))
+        suppressWarnings({
+          ind <- which(pr==max(pr,na.rm=T))
+        })
+
         if(length(ind)>1){
           if(length(ind)==2 & length(i.other)==1 & any(ind==i.other)){
             ind <- ind[ind != i.other]
-          }else if(pr[ind[1]] >= p_thres){
+          }else{
             ind <- ind[1] # return("inc")
-          # }else{
-          #   return("unknown")
           }
         }
-        if(pr[ind] >= p_thres){
-          return(this.chs[ind])
+        if(length(ind)!=1){
+          return(pa)
+        }else{
+          if(pr[ind] >= p_thres){
+            return(this.chs[ind])
+          }
         }
       })
       this.strict <- rowSums(prs1 > p_thres,na.rm=F) < 2
@@ -823,7 +912,17 @@ setMethod("defineCellTypes", "data.frame",
       uniq.cts <- unlist(replace(uniq.cts,which(uniq.cts==pa1),list(ch1)))
     }
   }
+  if(!is.null(prioritized.celltypes)){
+    uniq.cts <- c(names(prioritized.celltypes),uniq.cts)
+  }
+
+  leaves.cts <- ctype$Child[!ctype$Child %in% ctype$Parent]
+  uniq.cts <- uniq.cts[uniq.cts %in% leaves.cts]
   # cts <- factor(cell.types,levels=c(uniq.cts,"unknown"))
+
+  ## checking the prioritized.celltypes
+  # table(cell.types,cell.types0))
+  cell.types[!is.na(cell.types0)] <- cell.types0[!is.na(cell.types0)]
   cts <- factor(cell.types,levels=uniq.cts)
   # stop(cts)
   return(data.frame(cell_types=cts,is_strict=is.strict))
@@ -838,7 +937,9 @@ setMethod("defineCellTypes", "Cycif",
                    ct_name="default",
                    p_thres=0.5,
                    mc.cores=4,
-                   overwrite=FALSE,...){
+                   overwrite=FALSE,
+                   prioritized.celltypes=NULL,
+                   ...){
 
             if(missing(ct_name)){
               ct_name <- "default"
@@ -871,7 +972,9 @@ setMethod("defineCellTypes", "Cycif",
                                    ctype=ctype,
                                    cstate=cstate,
                                    mc.cores=mc.cores,
-                                   p_thres=p_thres)
+                                   p_thres=p_thres,
+                                   prioritized.celltypes=prioritized.celltypes)
+
 
             cts <- data.frame(
               cell_types = rep("outOfROI",nc),
@@ -900,7 +1003,9 @@ setMethod("defineCellTypes", "CycifStack",
            ct_name="default",
            p_thres=0.5,
            mc.cores=4,
-           overwrite=FALSE,...){
+           overwrite=FALSE,
+           prioritized.celltypes=NULL,
+           ...){
     if(missing(ct_name)){
       ct_name <- "default"
     }
@@ -930,7 +1035,9 @@ setMethod("defineCellTypes", "CycifStack",
                             cstate=cstate,
                             p_thres=p_thres,
                             mc.cores=mc.cores,
-                            overwrite=overwrite)
+                            overwrite=overwrite,
+                            prioritized.celltypes=prioritized.celltypes)
+
       x[[nm]] <- cy
       cat("done\n")
     }

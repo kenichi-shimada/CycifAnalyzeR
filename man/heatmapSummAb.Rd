@@ -10,12 +10,14 @@ heatmapSummAb(x, ...)
 \S4method{heatmapSummAb}{CycifStack}(
   x,
   norm_type = c("log", "logTh"),
+  summBy = c("ab", "heatmap"),
   ab,
   sum_type = c("freq", "mean", "median", "x percentile"),
   ct_name = "default",
   uniq_cts,
   uniq.smpls,
   strict = FALSE,
+  p_thres = 0.5,
   scale = "none",
   ...
 )

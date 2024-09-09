@@ -22,7 +22,7 @@ computeArea(x, ...)
 
 \item{dth}{Numeric, the distance threshold used for tumor border detection.}
 
-\item{unit}{Character, the unit of the computed area. Default is "mm2" (square millimeters).}
+\item{unit}{Character, the unit of the computed area in the output. Default is "mm2" (square millimeters).}
 
 \item{plot}{Logical, whether to plot the tumor regions. Default is TRUE.}
 
