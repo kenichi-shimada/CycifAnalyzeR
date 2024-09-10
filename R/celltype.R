@@ -145,6 +145,7 @@ setMethod("setGates", "CycifStack", function(x,gates.df,run_normalize=TRUE,p_thr
   }
 
   x <- cyApply(x,function(cy){
+    cat(names(cy),"..\n")
     nm <- names(cy)
     cy <- setGates(cy,gates.df,run_normalize=run_normalize,p_thres=p_thres,trim=trim)
     return(cy)

@@ -153,6 +153,7 @@ setMethod("slidePlot", "Cycif",
             }
 
             ## values to highlight color
+            ## plot_type == "dna" ----
             if(plot_type=="dna"){
               if(missing(ab) || !ab %in% paste0("DNA",seq(nCycles(x)))){
                 stop(paste0("If DNA stain, `ab' should be one of DNA1, ..., DNA", nCycles(x),")"))
@@ -185,6 +186,7 @@ setMethod("slidePlot", "Cycif",
               df <- xy %>% cbind(mat)
 
             }else if(plot_type=="exp"){
+              ## plot_type == "exp" -----
               if(missing(ab) || !ab %in% abs_list(x)$ab){
                 stop(ab, " is not specified or available in the sample ", names(x))
               }
@@ -206,6 +208,7 @@ setMethod("slidePlot", "Cycif",
               df <- xy %>% cbind(mat)
 
             }else if(plot_type=="cell_type"){
+              ## plot_type == "cell_type" -----
               if(!missing(ab)){
                 stop("ab shouldn't be specified when plot_type='cell_type'")
               }
@@ -227,6 +230,7 @@ setMethod("slidePlot", "Cycif",
               df <- xy %>% cbind(mat)
 
             }else if(plot_type=="custom"){
+              ## plot_type == "custom" -----
 
               if(missing(custom_labs)){
                 stop("when plot_type='custom', the argument 'custom_labs' should be specified.")
@@ -249,10 +253,10 @@ setMethod("slidePlot", "Cycif",
               stop("'plot_type' should be one of dna,exp,cell_type,custom")
             }
 
-            ## guide_legend
+            ## guide_legend ----
             if(is(df$ab,"numeric")){
               my_guides <- function(txt)guides(color=guide_colorbar(title=txt))
-              cols <- function(uc)ggplot2::scale_color_distiller(palette="Specral",direction=-1)
+              cols <- function(uc)ggplot2::scale_color_distiller(palette="Spectral",direction=-1)
             }else{
               my_guides <- function(txt)guides(color=guide_legend(title=txt,ncol=1,override.aes = list(size = 2)))
               cols <- function(uc)ggplot2::scale_color_manual(labels=names(uc),values=uc)
@@ -310,7 +314,7 @@ setMethod("slidePlot", "Cycif",
                 mutate(is.used2=used2)
             }
 
-            ##
+            ## core plot function ----
             p <- ggplot(df %>% filter(is.used1) ,aes(x=X_centroid,y=Y_centroid,col=ab))
             if(show.na){
               p <- p +
@@ -321,10 +325,12 @@ setMethod("slidePlot", "Cycif",
 
             uniq.abs.tab <- table(df$ab)
             uniq.abs <- names(uniq.abs.tab[uniq.abs.tab >0])
-            if(!all(uniq.abs %in% names(uniq.cols))){
-              stop("uniq.cols should have names that correspond to the labels")
-            }else{
-              uniq.cols <- uniq.cols[uniq.abs]
+            if( plot_type!= "dna"){
+              if(all(uniq.abs %in% names(uniq.cols))){
+                stop("uniq.cols should have names that correspond to the labels")
+              }else{
+                uniq.cols <- uniq.cols[uniq.abs]
+              }
             }
 
             p <- p + cols(uniq.cols)

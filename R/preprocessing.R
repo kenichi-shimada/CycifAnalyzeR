@@ -322,9 +322,9 @@ setMethod("dnaFilter", "Cycif",
             ncells <- min(ncells,nr)
             idx <- sample(nrow(mat),ncells)
             mat1 <- mat[idx,]
-            x1 <- x
-            x1@dna <- mat1
-            x1@xy_coords <- x1@xy_coords[idx,]
+
+            x@dna <- mat1
+            x@xy_coords <- x@xy_coords[idx,]
 
             smpl <- x@name
             n <- n1 <- 1000
@@ -345,7 +345,7 @@ setMethod("dnaFilter", "Cycif",
               names(dna.ths1) <- names(dna.ths2) <- dna.list
             }
 
-            if(missing(dna.thres)){
+              if(missing(dna.thres)){
               for(i in seq(length(dna.list))){
                 channel <- dna.list[i]
                 m <- mat1[[channel]]
@@ -361,7 +361,7 @@ setMethod("dnaFilter", "Cycif",
                 }
 
                 l <- layout(matrix(c(2,1),nrow=2),heights=c(2,3))
-                slidePlot(x1,plot_type="dna",ab=channel,mar=c(3,3,0,3),ttl="",use_rois=FALSE)
+                slidePlot(x,plot_type="dna",ab=channel,mar=c(3,3,0,3),ttl="",use_rois=FALSE)
                 hst <- hist_fun(x=m,ths=c(dna.ths1[i],dna.ths2[i]),brks1=brks,ttl1=ttl)
 
                 smoothened <- hst$smoothened
@@ -467,7 +467,7 @@ setMethod("dnaFilter", "Cycif",
                       # stop(paste(table(cexs),collapse=","))
 
                       ## update
-                      slidePlot(x1,#ncells=ncells,
+                      slidePlot(x,#ncells=ncells,
                                 plot_type="custom",
                                 custom_labs=in.rng,
                                 uniq.cols=c("grey80",4,2),
@@ -478,7 +478,7 @@ setMethod("dnaFilter", "Cycif",
                       # stop("after slideplot")
                       hist_fun(x=m,ths=c(lo,hi),brks1=brks,ttl1=ttl)
                     }else if(ans=="4"){
-                      slidePlot(x1,plot_type="dna",ab=channel,mar=c(3,3,0,3),ttl="")
+                      slidePlot(x,plot_type="dna",ab=channel,mar=c(3,3,0,3),ttl="")
                       hist_fun(x=m,ths=c(lo,hi),brks1=brks,ttl1=ttl)
                     }
                   }
@@ -496,7 +496,7 @@ setMethod("dnaFilter", "Cycif",
             mat2 <- cbind(log1p(mat[[1]]),as.data.frame(lapply(mat,function(x)log1p(x/mat[[1]])))[-1])
             names(mat2) <- names(mat)
             used.cells <- sapply(names(mat2),function(channel){
-              ind <- (mat2[[channel]] > dna.ths1[channel]) + (mat2[[channel]] > dna.ths2[channel])
+              ind <- (mat2[[channel]] >= dna.ths1[channel]) + (mat2[[channel]] > dna.ths2[channel])
               return(ind)
             })
 
