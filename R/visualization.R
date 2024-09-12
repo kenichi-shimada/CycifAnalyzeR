@@ -325,13 +325,15 @@ setMethod("slidePlot", "Cycif",
 
             uniq.abs.tab <- table(df$ab)
             uniq.abs <- names(uniq.abs.tab[uniq.abs.tab >0])
+
             if( plot_type!= "dna"){
-              if(all(uniq.abs %in% names(uniq.cols))){
+              if(!all(uniq.abs %in% names(uniq.cols))){
                 stop("uniq.cols should have names that correspond to the labels")
               }else{
                 uniq.cols <- uniq.cols[uniq.abs]
               }
             }
+
 
             p <- p + cols(uniq.cols)
 
@@ -353,7 +355,9 @@ setMethod("slidePlot", "Cycif",
                 mutate(dir = factor(dir,levels=c("positive","negative"))) %>%
                 mutate(idx = factor(idx))
 
-              p <- p + geom_polygon(data=polys1,aes(x=x,y=y,group=idx,color=dir),fill=NA)
+              p <- p +
+                geom_polygon(data=polys1 %>% filter(dir == "positive"),aes(x=x,y=y,group=idx),color="red",fill=NA) +
+                geom_polygon(data=polys1 %>% filter(dir == "negative"),aes(x=x,y=y,group=idx),color="blue",fill=NA)
 
             }
 
