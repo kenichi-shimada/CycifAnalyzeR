@@ -733,7 +733,7 @@ setMethod("defineCellTypes", "data.frame",
 
   ### Prioritize Cell Types ###
   if (!is.null(prioritized.celltypes)) {
-    stop(class(prioritized.celltypes))
+#    stop(class(prioritized.celltypes))
     if(class(prioritized.celltypes) != "list"){
       stop("prioritized.celltypes should be a named list, whose names are cell types and values are lineage markers")
     }else if(!all(unlist(prioritized.celltypes) %in% names(x))){
