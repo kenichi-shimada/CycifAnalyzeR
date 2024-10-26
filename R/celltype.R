@@ -561,7 +561,7 @@ CellTypeGraph <- function(ctype,
 }
 
 #_ -------------------------------------------------------
-# fun: cellTypeFrequency Cycif, CycifStack ----
+# fun: cellTypeFrequency CycifStack ----
 
 #' @title Calculate Cell Type Frequency
 #'
@@ -586,7 +586,7 @@ setGeneric("cellTypeFrequency", function(x,...) standardGeneric("cellTypeFrequen
 
 #' @export
 setMethod("cellTypeFrequency", "CycifStack",
-  function(x,ct_name="default",simple=TRUE,count=FALSE){
+  function(x,ct_name="default",simple=TRUE,count=FALSE,cts.hierarchy){
     tab <- table(cell_types(x,ct_name=ct_name))
     mat <- matrix(tab,nrow=nrow(tab),dimnames=list(sample=rownames(tab),cell_types=colnames(tab)))
     cts1 <- colnames(mat)
@@ -611,10 +611,13 @@ setMethod("cellTypeFrequency", "CycifStack",
       leaves <- ctype$Child[!ctype$Child %in% ctype$Parent]
       names(leaves) <- leaves
 
-      ct.graph <- CellTypeGraph(ctype,plot=F,main='Cell type definition',with.hierarchy=TRUE)
-      cts.hie <- ct.graph$hierarchy
+      if(missing(cts.hierarchy)){
+        ct.graph <- CellTypeGraph(ctype,plot=F,main='Cell type definition',with.hierarchy=TRUE)
+        cts.hierarchy <- ct.graph$hierarchy
+      }
 
-      list.hie <- tapply(cts.hie$descendant,cts.hie$ancestor,identity)
+
+      list.hie <- tapply(cts.hierarchy$descendant,cts.hierarchy$ancestor,identity)
       list.hie1 <- c(list.hie,as.list(leaves))
 
       nsh1 <- t(sapply(list.hie1,function(cts){
