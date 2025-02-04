@@ -13,6 +13,7 @@ computeArea(x, ...)
   unit = c("mm2"),
   plot = TRUE,
   strict = FALSE,
+  concavity = 0.8,
   ct_name = "default",
   fn
 )

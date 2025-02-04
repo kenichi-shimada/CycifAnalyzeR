@@ -42,5 +42,5 @@ For other \code{roi_type} values, \code{coords} may contain different informatio
 }
 }
 \seealso{
-\code{\link{setWithinROIs}} \code{\link{roiFilter}}
+\code{\link{setWithinROIs}} \code{\link{rbcFilter}}
 }

@@ -495,6 +495,7 @@ setGeneric("defineTumorStroma", function(x,...) standardGeneric("defineTumorStro
 #' @export
 setMethod("defineTumorStroma","Cycif",
   function(x, n.cores = 7, n.cells.per.seg = 100,  n.cells.per.tumor.core = 10,
+           cancer.cts = c("Cancer"),
            dth, concavity = 0.8, plot = FALSE,...) {
     this.cts <- cell_types(x)$cell_types # 89174
 
@@ -539,7 +540,6 @@ setMethod("defineTumorStroma","Cycif",
     if(class(borders2)=="try-error"){
       stop("Error in concaveman::concaveman")
     }
-
     names(borders2) <- nls2.1
 
     ## rewrite the above using sf_within or sf_intersects. Note borders2 are a list of POLYGON type of sf objects
@@ -564,7 +564,7 @@ setMethod("defineTumorStroma","Cycif",
       borders2.1 <- borders2
     }
 
-    if(0){
+    if(0){ # debug
       b2.1 <- do.call(rbind,borders2.1)
       plot(xy.sf1[[1]],col=cls2.1+1,pch=".")
       plot(b2.1,border=1,add=T)
@@ -584,7 +584,7 @@ setMethod("defineTumorStroma","Cycif",
       this.cts2 <- this.cts1[this.seg]
       this.cts2[is.na(this.cts2)] <- "all_other"
 
-      is.tumor <- !is.na(this.cts2) & this.cts2 == "Cancer"
+      is.tumor <- !is.na(this.cts2) & this.cts2 %in% cancer.cts
 
       if(sum(is.tumor)==0){
         cat("No tumor region found for seg",seg.i,"\n")
@@ -786,7 +786,7 @@ setGeneric("computeArea", function(x,...) standardGeneric("computeArea"))
 #' @rdname computeArea
 #' @export
 setMethod("computeArea", "Cycif",
-          function(x,dth,unit=c("mm2"),plot=TRUE,strict=FALSE,
+          function(x,dth,unit=c("mm2"),plot=TRUE,strict=FALSE,concavity=.8,
                          ct_name="default",fn){
 
     ## coordinates
@@ -822,14 +822,14 @@ setMethod("computeArea", "Cycif",
     ##
     i=1
     xyt <- xy1[cls3==nls3[i],]
-    conc <- as.data.frame(concaveman::concaveman(as.matrix(xyt), concavity = .8, length_threshold = dth))
+    conc <- as.data.frame(concaveman::concaveman(as.matrix(xyt), concavity = concavity, length_threshold = dth))
     names(conc) <- c("X","Y")
     rm(i,xyt,conc)
 
     concs3 <- parallel::mclapply(seq(nls3),function(i){
     # for(i in seq(nls3)){
       xyt <- xy1[cls3==nls3[i],]
-      conc <- as.data.frame(concaveman::concaveman(as.matrix(xyt), concavity = .8, length_threshold = dth))
+      conc <- as.data.frame(concaveman::concaveman(as.matrix(xyt), concavity = concavity, length_threshold = dth))
       names(conc) <- c("X","Y")
       return(conc)
     # }
@@ -872,37 +872,48 @@ setMethod("computeArea", "Cycif",
       cls3.updated <- cls3
       cls3.updated[idx] <- nls3.updated[cls3[idx]]
       nls3.updated <- unique(nls3.updated)
-
-      concs3.updated <- parallel::mclapply(seq(nls3.updated),function(i){
-        xyt <- xy1[cls3.updated==nls3.updated[i],]
-        conc <- as.data.frame(concaveman::concaveman(as.matrix(xyt), concavity = .8, length_threshold = dth))
-        names(conc) <- c("X","Y")
-        return(conc)
-      },mc.cores=7)
-      names(concs3.updated) <- nls3.updated
     }else{
       cls3.updated <- cls3
       nls3.updated <- nls3
-      concs3.updated <- parallel::mclapply(seq(nls3.updated),function(i){
-        xyt <- xy1[cls3.updated==nls3.updated[i],]
-        conc <- as.data.frame(concaveman::concaveman(as.matrix(xyt), concavity = .8, length_threshold = dth))
-        names(conc) <- c("X","Y")
-        return(conc)
-      },mc.cores=7)
-      names(concs3.updated) <- nls3.updated
     }
 
-    if(plot){
-      png(fn,width=700,height=700)
+    concs3.updated <- parallel::mclapply(seq(nls3.updated),function(i){
+      xyt <- xy1[cls3.updated==nls3.updated[i],]
+      conc <- as.data.frame(concaveman::concaveman(as.matrix(xyt), concavity = concavity, length_threshold = dth))
+      names(conc) <- c("X","Y")
+      return(conc)
+    },mc.cores=7)
+    names(concs3.updated) <- nls3.updated
 
+    satisfied <- FALSE
+    while(!satisfied){
       par(mar=c(5,5,3,3))
       sp::plot(xy.sp1,col=cls3.updated+1,pch=c(2,20)[(cls3.updated!=0)+1],
            # asp=1,xlim=range(l1$x),ylim=range(l1$y),
            cex=.5,
            main="tumors, clustered (dbscan)")
       sapply(concs3.updated,function(conc)lines(conc))
-      dev.off()
-    }
+      cat("zoom in? [Y/N]")
+      cat("click bottom-left and top-right corner.")
+      x1 <- locator(2)
+      x2 <- list(x=c(x1$x[c(1,2,2,1)]),y=c(x1$y[c(1,1,2,2)]))
+      sp::plot(xy.sp1,col=cls3.updated+1,pch=c(2,20)[(cls3.updated!=0)+1],
+               xlim=range(x1$x),ylim=range(x1$y),
+               cex=.5,
+               main="tumors, clustered (dbscan)")
+      is.in.x1 <- sapply(concs3.updated,
+                   function(cx)any(sp::point.in.polygon(cx$X,cx$Y,x2$x, x2$y)==1))
+      c3 <- concs3.updated[is.in.x1]
+      sapply(concs3.updated,function(conc)lines(conc))
+
+    ## redefine now to compute area from dbscan-selected clusters
+    ## bottom-line - it's dangerous to connect dots that are larger than dth
+    ## if it's difficult to do without concaveman, let's draw a shape manually
+    ## and remove them from the selected concaveman border.
+    ## also add a parameter, asking if the area for the entire tumor or
+    ## subset of tumors (core) is considered.
+
+    # a <- locator(10,type="p")
 
     ## compute area
     areas <- sapply(concs3.updated,function(coords){
@@ -912,7 +923,8 @@ setMethod("computeArea", "Cycif",
 
     sum.area <- sum(areas) * (0.65 * (10^-3))^2 # unit: mm^2
     return(sum.area)
-  }
+    }
+          }
 )
 
 #_ -------------------------------
@@ -1131,7 +1143,7 @@ setMethod("computeCN", "Cycif",
     if(type=="knn"){
       r <- sapply(nn$dist,function(x)x[k+1])
     }
-    rcn.dens <- round(rcn.count/(pi*r^2),2)
+    rcn.dens <- rcn.count/(pi*r^2)
 
     cn <- new("CellNeighborhood",
               within.rois=wr, # logical, within ROIs

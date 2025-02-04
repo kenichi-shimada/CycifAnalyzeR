@@ -199,7 +199,7 @@ setMethod("slidePlot", "Cycif",
               }
 
               ## use ggplot now
-              mat <- exprs(x,type="log_normalized") %>%
+              mat <- exprs(x,type="log") %>%
                 dplyr::mutate(ab=trim_fun(!!sym(ab),trim_th=trim_th)) %>%
                 mutate(is.na = (is.na(!!sym(ab)) | !x@within_rois)) %>%
                 select(ab, is.na)
@@ -255,6 +255,7 @@ setMethod("slidePlot", "Cycif",
 
             ## guide_legend ----
             if(is(df$ab,"numeric")){
+              # stop("numeric")
               my_guides <- function(txt)guides(color=guide_colorbar(title=txt))
               cols <- function(uc)ggplot2::scale_color_distiller(palette="Spectral",direction=-1)
             }else{
@@ -315,7 +316,7 @@ setMethod("slidePlot", "Cycif",
             }
 
             ## core plot function ----
-            p <- ggplot(df %>% filter(is.used1) ,aes(x=X_centroid,y=Y_centroid,col=ab))
+            p <- ggplot(df %>% filter(is.used1) ,aes(x=X_centroid,y=Y_centroid,color=ab))
             if(show.na){
               p <- p +
                 geom_point(data=df %>% filter(is.used2),aes(x=X_centroid,y=Y_centroid),col="grey90",size=.1)
@@ -326,7 +327,7 @@ setMethod("slidePlot", "Cycif",
             uniq.abs.tab <- table(df$ab)
             uniq.abs <- names(uniq.abs.tab[uniq.abs.tab >0])
 
-            if( plot_type!= "dna"){
+            if( !plot_type %in% c("dna","exp")){
               if(!all(uniq.abs %in% names(uniq.cols))){
                 stop("uniq.cols should have names that correspond to the labels")
               }else{

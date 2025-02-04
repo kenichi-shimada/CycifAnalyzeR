@@ -27,7 +27,7 @@
 #' @importFrom dplyr filter mutate select
 #'
 #' @seealso
-#' \code{\link{setWithinROIs}} \code{\link{roiFilter}}
+#' \code{\link{setWithinROIs}} \code{\link{rbcFilter}}
 #'
 #' @rdname importROIs
 #' @export
@@ -272,6 +272,71 @@ setMethod("roiFilter", "Cycif",
             return(x)
           }
 )
+
+# fun: rbcFilter Cycif ----
+
+#' @title remove cells that are positive for autofluorescence (AF). AF488 is used by default and set x@within_rois = FALSE when the values are higher than the gate.
+#'
+#' @description This function modifies within_rois in Cycif object. this should run after importROIs().
+#'
+#' @param x A Cycif object.
+#' @param ch A character value specifying the name of the channel.
+#' @param gate A numerical value specifying the gate for the AF channel.
+#'
+#' @return A Cycif object with the defined ROIs.
+#'
+#' @importFrom graphics locator
+#'
+#' @export
+#' @details This function provides an interactive way to define ROIs within a Cycif object. ROIs can be classified as either "positive" or "negative" based on their intended use. Users can set these ROIs by selecting points on the plot. For positive ROIs, cells within the polygonal boundaries are considered within the ROI. For negative ROIs, cells outside the polygonal boundaries are considered within the ROI. Users can set multiple ROIs of each type by following the prompts.
+#'
+#' @seealso \code{\link{importROIs}}, \code{\link{setWithinROIs}}
+#'
+
+setGeneric("rbcFilter", function(x,...) standardGeneric("rbcFilter"))
+
+#' @export
+#' @rdname rbcFilter
+setMethod("rbcFilter", "Cycif",
+          function(x,ch="AF488",gate){
+            if(!ch %in% x@abs_list$ab){
+              stop(paste0(ch, " should be one of the channel names described in `x@abs_list$ab`"))
+            }
+
+            if(!is.numeric(gate) | length(gate) > 1){
+              stop("`gate` should be a single numeric log1p transformed value")
+            }else if(gate > 12){
+              stop("`gate` should be log1p transformed")
+            }
+
+            ex <- exprs(x,type="log")[[ch]]
+            is.higher <- !is.na(ex) & ex > gate
+            x@within_rois[is.higher] <- FALSE
+            return(x)
+          }
+)
+
+#' @export
+#' @rdname rbcFilter
+setMethod("rbcFilter", "CycifStack",
+          function(x,ch="AF488",gates){
+            if(!ch %in% x@abs_list$ab){
+              stop(paste0(ch, " should be one of the channel names described in `x@abs_list$ab`"))
+            }
+
+            if(!is.numeric(gates) |
+               any(names(gates) != names(x))){
+              stop("`gates` should be a named numeric vector whose names are identical to names(x)")
+            }
+            x <- cyApply(x,function(cy){
+              n <- names(cy)
+              g <- gates[n]
+              rbcFilter(cy,ch=ch,gate=g)
+            })
+            return(x)
+          }
+)
+
 
 #_ -------------------------------------------------------
 # fun: dnaFilter Cycif ----
@@ -805,7 +870,7 @@ transform <- function(r,method=c("log","logTh","Th","invlog"),th,p_thres=0.5,tri
   return(r1)
 }
 
-# not exported
+#' @export
 trim_fun <- function(x,trim_th = 1e-3){
   qts <- stats::quantile(x,c(trim_th,1-trim_th),na.rm=T)
   x[x < qts[1]] <- qts[1]

@@ -12,6 +12,7 @@ defineTumorStroma(x, ...)
   n.cores = 7,
   n.cells.per.seg = 100,
   n.cells.per.tumor.core = 10,
+  cancer.cts = c("Cancer"),
   dth,
   concavity = 0.8,
   plot = FALSE,
