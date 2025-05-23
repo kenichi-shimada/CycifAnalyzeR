@@ -737,6 +737,16 @@ setMethod("normalize", "Cycif",
 
             ## treatment is different between methods
             if(method=="log"){
+              for(ab in used.abs){
+                cycle <- abs_list(x)$cycle[abs_list(x)$ab==ab]
+                # is.used.1 <- is.used[,cycle]
+                is.used.1 <- is.used
+
+                r <- raw[[ab]]
+                n <- rep(NA,length(r))
+
+                n[is.used.1] <- transform(r[is.used.1],method="log",trim=trim)
+              }
               norm <- as.data.frame(
                 sapply(used.abs,function(ab){
                   cycle <- abs_list(x)$cycle[abs_list(x)$ab==ab]

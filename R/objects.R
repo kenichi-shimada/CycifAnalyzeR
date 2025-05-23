@@ -229,7 +229,6 @@ setClass("NN",
 )
 
 # class: CellNeighborhood ----
-
 #' Class "CellNeighborhood" - Cell Neighborhood Object
 #'
 #' An object of class "CellNeighborhood" represents the results of the computeCN function

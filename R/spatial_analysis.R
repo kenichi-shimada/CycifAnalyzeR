@@ -88,7 +88,7 @@ setGeneric("defineTumorBorder", function(x,...) standardGeneric("defineTumorBord
 #' @rdname defineTumorBorder
 #' @export
 setMethod("defineTumorBorder", "Cycif",
-  function(x,strict=FALSE,dth,parallel=TRUE,min.pts=3,n.cores=1,ct_name="default",verbose=TRUE){
+  function(x,strict=FALSE,dth,parallel=TRUE,min.pts=3,n.cores=1,ct_name="default",verbose=TRUE,cancer.cts = "Tumor"){
     require(dbscan)
     require(RColorBrewer)
     require(concaveman)
@@ -110,7 +110,7 @@ setMethod("defineTumorBorder", "Cycif",
     this.cts[is.na(this.cts)] <- "NA"
 
     ## identify Tumor and non-Tumor cells within ROIs
-    is.tumor <- !is.na(this.cts) & this.cts == "Tumor"
+    is.tumor <- !is.na(this.cts) & this.cts %in% cancer.cts
     xy.tumor <- xy[is.tumor,]
 
     ### find optimal eps (dth) for adjacent cells - from all the cells (not only tumors)
@@ -175,7 +175,7 @@ setMethod("defineTumorBorder", "Cycif",
 #' @rdname defineTumorBorder
 #' @export
 setMethod("defineTumorBorder", "CycifStack",
-  function(x,strict=FALSE,dth,parallel=TRUE,min.pts=3,n.cores=1,ct_name="default",verbose=TRUE){
+  function(x,strict=FALSE,dth,parallel=TRUE,min.pts=3,n.cores=1,ct_name="default",verbose=TRUE,cancer.cts = "Tumor"){
     if(missing(dth)){
       dths <- cyApply(x,function(cy){
         majl <- cy@segment_property$MajorAxisLength
@@ -185,7 +185,7 @@ setMethod("defineTumorBorder", "CycifStack",
       },simplify=T)
       dth <- median(dths) # roughly around 35 ptx = 23 um
     }
-    lst <- cyApply(x,function(cy)defineTumorBorder(cy,strict=strict,dth=dth,parallel=parallel,min.pts=min.pts,n.cores=n.cores,ct_name=ct_name,verbose=verbose))
+    lst <- cyApply(x,function(cy)defineTumorBorder(cy,strict=strict,dth=dth,parallel=parallel,min.pts=min.pts,n.cores=n.cores,ct_name=ct_name,verbose=verbose,cancer.cts=cancer.cts))
     return(lst)
   }
 )
@@ -495,9 +495,9 @@ setGeneric("defineTumorStroma", function(x,...) standardGeneric("defineTumorStro
 #' @export
 setMethod("defineTumorStroma","Cycif",
   function(x, n.cores = 7, n.cells.per.seg = 100,  n.cells.per.tumor.core = 10,
-           cancer.cts = c("Cancer"),
+           cancer.cts = c("Cancer"),ct_name="default",
            dth, concavity = 0.8, plot = FALSE,...) {
-    this.cts <- cell_types(x)$cell_types # 89174
+    this.cts <- cell_types(x,ct_name=ct_name)$cell_types # 89174
 
     ## define connected blocks
     xy <- xys(x)
@@ -509,9 +509,9 @@ setMethod("defineTumorStroma","Cycif",
     wr <- x@within_rois
     xy.sf1 <- xy.sf[wr,]
     this.cts1 <- this.cts[wr]
-    xy1 <- st_coordinates(xy.sf1)
+    xy1 <- sf::st_coordinates(xy.sf1)
 
-    cat("Identifying tissue segments ",n," ... ")
+    cat("Identifying tissue segments  ... \n")
     dbs2 <- dbscan::dbscan(xy1, eps=dth*5, minPts = 3, weights = NULL, borderPoints = TRUE) # min 2 cells together
     cls2 <- dbs2$cluster
     nls2 <- unique(cls2) # unique cluster labels
@@ -532,7 +532,15 @@ setMethod("defineTumorStroma","Cycif",
     cat(max(nls2.1)," segments identified\n")
     cat(" Computing borders for each segment ... \n")
 
+    # i=1
+    # xyt <- xy.sf1[cls2.1==nls2.1[i],]
+    # conc <- concaveman::concaveman(xyt, concavity = concavity, length_threshold = dth*5)
+    # remove(xyt,conc)
+
     borders2 <- parallel::mclapply(seq(nls2.1),function(i){
+      requireNamespace("sf", quietly = TRUE)
+      requireNamespace("concaveman", quietly = TRUE)
+
       xyt <- xy.sf1[cls2.1==nls2.1[i],]
       conc <- concaveman::concaveman(xyt, concavity = concavity, length_threshold = dth*5)
       return(conc)
@@ -582,7 +590,7 @@ setMethod("defineTumorStroma","Cycif",
 
       xy.sf2 <- xy.sf1[this.seg,]
       this.cts2 <- this.cts1[this.seg]
-      this.cts2[is.na(this.cts2)] <- "all_other"
+      this.cts2[is.na(this.cts2)] <- "outOfROI"
 
       is.tumor <- !is.na(this.cts2) & this.cts2 %in% cancer.cts
 
@@ -597,7 +605,7 @@ setMethod("defineTumorStroma","Cycif",
       }
 
       xy.sf3 <- xy.sf2[is.tumor,]
-      xy3 <- st_coordinates(xy.sf3)
+      xy3 <- sf::st_coordinates(xy.sf3)
 
       dbs1 <- dbscan::dbscan(xy3, eps=dth, minPts = 3, weights = NULL, borderPoints = TRUE) # min 2 cells together
       cls3 <- dbs1$cluster
@@ -819,7 +827,7 @@ setMethod("computeArea", "Cycif",
     ncores <- parallel::detectCores(logical = TRUE)-1
     mcc <- min(ncores,length(nls3))
 
-    ##
+    ## need to run this becaus concaveman gives an error when run for the 1st time
     i=1
     xyt <- xy1[cls3==nls3[i],]
     conc <- as.data.frame(concaveman::concaveman(as.matrix(xyt), concavity = concavity, length_threshold = dth))
@@ -827,13 +835,13 @@ setMethod("computeArea", "Cycif",
     rm(i,xyt,conc)
 
     concs3 <- parallel::mclapply(seq(nls3),function(i){
-    # for(i in seq(nls3)){
       xyt <- xy1[cls3==nls3[i],]
       conc <- as.data.frame(concaveman::concaveman(as.matrix(xyt), concavity = concavity, length_threshold = dth))
       names(conc) <- c("X","Y")
       return(conc)
     # }
     },mc.cores=mcc)
+    names(concs3) <- nls3
 
     if(length(concs3)>1){
       # Identify overlapping clusters and merge their points
@@ -885,47 +893,252 @@ setMethod("computeArea", "Cycif",
     },mc.cores=7)
     names(concs3.updated) <- nls3.updated
 
+    ## Interactive modifications
     satisfied <- FALSE
-    while(!satisfied){
-      par(mar=c(5,5,3,3))
-      sp::plot(xy.sp1,col=cls3.updated+1,pch=c(2,20)[(cls3.updated!=0)+1],
-           # asp=1,xlim=range(l1$x),ylim=range(l1$y),
-           cex=.5,
-           main="tumors, clustered (dbscan)")
-      sapply(concs3.updated,function(conc)lines(conc))
-      cat("zoom in? [Y/N]")
-      cat("click bottom-left and top-right corner.")
-      x1 <- locator(2)
-      x2 <- list(x=c(x1$x[c(1,2,2,1)]),y=c(x1$y[c(1,1,2,2)]))
-      sp::plot(xy.sp1,col=cls3.updated+1,pch=c(2,20)[(cls3.updated!=0)+1],
-               xlim=range(x1$x),ylim=range(x1$y),
-               cex=.5,
-               main="tumors, clustered (dbscan)")
-      is.in.x1 <- sapply(concs3.updated,
-                   function(cx)any(sp::point.in.polygon(cx$X,cx$Y,x2$x, x2$y)==1))
-      c3 <- concs3.updated[is.in.x1]
-      sapply(concs3.updated,function(conc)lines(conc))
+    while (!satisfied) {
+      ## Plot the current state
+      par(mar = c(5, 5, 3, 3))
+      sp::plot(xy.sp1, col = cls3 + 1, pch = c(2, 20)[(cls3 != 0) + 1], cex = .5, main = "Tumors, clustered (dbscan)")
+      sapply(concs3.updated, function(conc) lines(conc))
 
-    ## redefine now to compute area from dbscan-selected clusters
-    ## bottom-line - it's dangerous to connect dots that are larger than dth
-    ## if it's difficult to do without concaveman, let's draw a shape manually
-    ## and remove them from the selected concaveman border.
-    ## also add a parameter, asking if the area for the entire tumor or
-    ## subset of tumors (core) is considered.
+      ## Ask if user wants to zoom in
+      zoom_in <- readline("Zoom in? [Y/N]: ")
+      if (grepl("^[yY]", zoom_in)) {
+        cat("Click bottom-left and top-right corners for zooming.\n")
+        x1 <- locator(2)
+        x2 <- list(x = c(x1$x[c(1, 2, 2, 1)]), y = c(x1$y[c(1, 1, 2, 2)]))
 
-    # a <- locator(10,type="p")
+        ## Replot with zoomed-in area
+        sp::plot(xy.sp1, col = cls3 + 1, pch = c(2, 20)[(cls3 != 0) + 1],
+                 xlim = range(x1$x), ylim = range(x1$y), cex = .5,
+                 main = "Tumors, clustered (dbscan)")
 
-    ## compute area
-    areas <- sapply(concs3.updated,function(coords){
+        is.in.x1 <- sapply(concs3.updated, function(cx) any(sp::point.in.polygon(cx$X, cx$Y, x2$x, x2$y) == 1))
+        concs3.updated <- concs3.updated[is.in.x1]
+        sapply(concs3.updated, function(conc) lines(conc))
+      }
+
+      ## Ask if user wants to remove specific points
+      remove_points <- readline("Remove points based on drawn polygon? [Y/N]: ")
+      if (grepl("^[yY]", remove_points)) {
+        cat("Draw polygon to define points for removal. Click to complete.\n")
+        rem_poly <- locator(type = "p")
+        if (length(rem_poly$x) > 2) {
+          rem_x <- rem_poly$x
+          rem_y <- rem_poly$y
+          concs3.updated <- lapply(concs3.updated, function(coords) {
+            inside <- sp::point.in.polygon(coords$X, coords$Y, rem_x, rem_y) == 1
+            coords[!inside, ]  # Keep points that are not inside removal region
+          })
+        }
+      }
+
+      concs3.updated <- Filter(function(coords) nrow(coords) > 0, concs3.updated)
+
+      ## Initialize area status for each region
+      area_status <- setNames(rep("positive", length(concs3.updated)), names(concs3.updated))
+
+      ## Ask if user wants to remove blank spaces from drawn polygons
+      remove_blank <- readline("Remove blank spaces from drawn polygon? [Y/N]: ")
+      if (grepl("^[yY]", remove_blank)) {
+        cat("Draw a polygon to define blank space to remove.\n")
+        blank_poly <- locator(type = "p")
+
+        if (length(blank_poly$x) > 2) {
+          ## Create a valid polygon from user input
+          blank_x <- c(blank_poly$x, blank_poly$x[1])
+          blank_y <- c(blank_poly$y, blank_poly$y[1])
+          drawn_polygon_sf <- sf::st_make_valid(sf::st_polygon(list(cbind(blank_x, blank_y))))
+
+          ## Convert SpatialPoints to sf
+          xy.sp1_sf <- st_as_sf(xy.sp1, coords = c("X", "Y"), crs = NA)
+
+          ## Compute distances and select closest points
+          distances <- sf::st_distance(xy.sp1_sf, drawn_polygon_sf)
+          threshold <- quantile(distances, 0.2)
+          closest_points <- xy.sp1_sf[distances <= threshold, ]
+
+          ## Generate concave hull using alpha shape
+          if (nrow(closest_points) > 2) {
+            alpha_shape <- alphahull::ashape(sf::st_coordinates(closest_points)[,1],
+                                             sf::st_coordinates(closest_points)[,2],
+                                             alpha = 2)
+
+            ## Extract edges safely
+            if (nrow(alpha_shape$edges) > 0) {
+              boundary_points <- unique(cbind(alpha_shape$edges$x1, alpha_shape$edges$y1))
+              boundary_points <- rbind(boundary_points, boundary_points[1, ])  # Close polygon
+
+              ## Convert boundary points to sf polygon
+              enclosing_polygon_sf <- st_sfc(st_polygon(list(boundary_points)), crs = NA)
+
+              ## Subtract from tumor regions
+              concs3 <- lapply(names(concs3), function(region_name) {
+                coords <- concs3[[region_name]]
+                polygon_sf <- st_sfc(st_polygon(list(as.matrix(coords))), crs = NA)
+
+                ## Ensure polygons are valid
+                polygon_sf <- sf::st_make_valid(polygon_sf)
+                enclosing_polygon_sf <- sf::st_make_valid(enclosing_polygon_sf)
+
+                ## Perform subtraction if meaningful
+                if (sf::st_area(enclosing_polygon_sf) < sf::st_area(polygon_sf)) {
+                  new_coords <- sf::st_difference(polygon_sf, enclosing_polygon_sf)
+                  if (!sf::st_is_empty(new_coords)) {
+                    area_status[region_name] <- "negative"
+                    return(as.data.frame(sf::st_coordinates(new_coords)))
+                  }
+                }
+                return(coords)
+              })
+
+              ## Remove empty polygons
+              concs3 <- Filter(function(coords) nrow(coords) > 0, concs3)
+
+              ## Ask for user confirmation
+              satisfied <- grepl("^[yY]", readline("Are the current modifications satisfactory? [Y/N]: "))
+            } else {
+              print("No valid edges found. Adjust alpha or include more points.")
+            }
+          } else {
+            print("Not enough points to define a boundary. Try increasing the selection threshold.")
+          }
+        }
+      }
+      remove_blank <- readline("Remove blank spaces from drawn polygon? [Y/N]: ")
+      if (grepl("^[yY]", remove_blank)) {
+        cat("Draw a polygon to define blank space to remove.\n")
+        blank_poly <- locator(type = "p")
+
+        if (length(blank_poly$x) > 2) {
+          ## Close the polygon by repeating the first coordinate at the end
+          blank_x <- c(blank_poly$x, blank_poly$x[1])
+          blank_y <- c(blank_poly$y, blank_poly$y[1])
+          drawn_polygon_sf <- sf::st_polygon(list(cbind(blank_x, blank_y)))
+
+          ## Ensure the polygon is valid
+          if (!sf::st_is_valid(drawn_polygon_sf)) {
+            drawn_polygon_sf <- sf::st_make_valid(drawn_polygon_sf)
+          }
+
+          # Convert SpatialPoints to sf
+          xy.sp1_sf <- st_as_sf(xy.sp1, coords = c("X", "Y"), crs = NA)  # Cartesian CRS (no lat/lon)
+
+          # Compute distances
+          distances <- sf::st_distance(xy.sp1_sf, drawn_polygon_sf)
+
+          threshold <- quantile(distances, 0.2)  # Set a threshold dynamically
+          closest_points <- xy.sp1[distances <= threshold, ]  # Select only closest points
+
+          # Generate a concave hull using alpha shape
+          alpha_shape <- alphahull::ashape(closest_points$X_centroid,
+                                           closest_points$Y_centroid,
+                                           alpha = 2)  # Adjust alpha for tightness
+
+          # Extract edges safely
+          if (nrow(alpha_shape$edges) > 0) {
+            edges <- alpha_shape$edges  # Retrieve edges
+            edges_df <- data.frame(
+              x1 = edges[, "x1"],
+              y1 = edges[, "y1"],
+              x2 = edges[, "x2"],
+              y2 = edges[, "y2"]
+            )
+
+            # Plot edges
+            plot(closest_points$X_centroid, closest_points$Y_centroid, col = "blue", pch = 20, main = "Alpha Shape Edges")
+            # segments(edges_df$x1, edges_df$y1, edges_df$x2, edges_df$y2, col = "red", lwd = 2)
+            # draw polygon drawn_polygon_sf on top of the closest_points
+
+          } else {
+            print("No edges created! Adjust alpha or use more points.")
+          }
+          # Extract unique boundary points
+          boundary_points <- unique(cbind(edges$x1, edges$y1))  # Extract edge start points
+          boundary_points <- rbind(boundary_points, boundary_points[1, ])  # Close the polygon
+
+          # Convert to sf polygon
+          alpha_polygon <- st_polygon(list(boundary_points))
+          alpha_polygon_sf <- st_sfc(alpha_polygon, crs = NA)  # No CRS for Cartesian data
+
+          # Ensure interior points are excluded
+          boundary_points_sf <- sf::st_as_sf(as.data.frame(boundary_points), coords = c("X", "Y"))
+          inside <- sf::st_within(boundary_points_sf, drawn_polygon_sf, sparse = FALSE)
+
+          # Keep only the true edge points (not inside the drawn polygon)
+          final_boundary_points <- boundary_points_sf[!inside, ]
+          ## Convert all tumor cell coordinates to an sf object
+          all_coords <- as.data.frame(xy.sp1@coords)
+          colnames(all_coords) <- c("X", "Y")
+          all_coords_sf <- sf::st_as_sf(all_coords, coords = c("X", "Y"), crs = 4326)
+          all_coords_sf <- sf::st_transform(all_coords_sf, projected_crs)  ## Project to same CRS
+
+          ## Compute distances from each point to the drawn polygon
+          distances <- sf::st_distance(all_coords_sf, drawn_polygon_sf)
+
+          ## Select points that are **just outside** the drawn polygon
+          threshold_distance <- quantile(distances, 0.2)  # Get the 20th percentile of distance
+          near_points <- all_coords[as.numeric(distances) > 0 & as.numeric(distances) <= threshold_distance, ]
+
+          ## Compute the **alpha shape** instead of convex hull
+          if (nrow(near_points) > 2) {
+            alpha_shape <- alphahull::ashape(near_points$X, near_points$Y, alpha = 1)  # Alpha shape
+            alpha_polygon <- alphahull::ashape2poly(alpha_shape)  # Convert to polygon
+            enclosing_polygon <- as.data.frame(alpha_polygon@polygons[[1]]@Polygons[[1]]@coords)
+            names(enclosing_polygon) <- c("X", "Y")
+          } else {
+            enclosing_polygon <- near_points  # Fallback if not enough points
+          }
+
+          ## Convert to sf polygon
+          enclosing_polygon_sf <- sf::st_polygon(list(as.matrix(rbind(enclosing_polygon, enclosing_polygon[1, ]))))
+          enclosing_polygon_sf <- sf::st_sfc(enclosing_polygon_sf, crs = sf::st_crs(4326))
+
+          ## Subtract this enclosing polygon from tumor regions
+          concs3 <- lapply(names(concs3), function(region_name) {
+            coords <- concs3[[region_name]]
+            polygon_sf <- sf::st_polygon(list(as.matrix(coords)))
+            polygon_sf <- sf::st_sfc(polygon_sf, crs = sf::st_crs(4326))
+
+            ## Ensure polygons are valid before computing difference
+            if (!sf::st_is_valid(polygon_sf)) {
+              polygon_sf <- sf::st_make_valid(polygon_sf)
+            }
+            if (!sf::st_is_valid(enclosing_polygon_sf)) {
+              enclosing_polygon_sf <- sf::st_make_valid(enclosing_polygon_sf)
+            }
+
+            ## Subtract only if the enclosing polygon is meaningful
+            if (sf::st_area(enclosing_polygon_sf) < sf::st_area(polygon_sf)) {
+              new_coords <- sf::st_difference(polygon_sf, enclosing_polygon_sf)
+
+              if (!sf::st_is_empty(new_coords)) {
+                ## Mark region as "negative" (excluded from area)
+                area_status[region_name] <- "negative"
+                return(as.data.frame(sf::st_coordinates(new_coords)))
+              }
+            }
+            return(coords)
+          })
+
+          ## Remove any empty polygons after blank space removal
+          concs3 <- Filter(function(coords) nrow(coords) > 0, concs3)
+      ## Ask if user is satisfied with the modifications
+      satisfied <- grepl("^[yY]", readline("Are the current modifications satisfactory? [Y/N]: "))
+    }
+
+    ## Compute area
+    areas <- sapply(concs3, function(coords) {
       polygon <- sp::Polygon(coords)
       return(polygon@area)
     })
 
-    sum.area <- sum(areas) * (0.65 * (10^-3))^2 # unit: mm^2
+    ## Convert area to mm^2
+    sum.area <- sum(areas) * (0.65 * (10^-3))^2
     return(sum.area)
     }
-          }
-)
+  }
+})
 
 #_ -------------------------------
 
@@ -985,6 +1198,7 @@ setMethod("computeCN", "Cycif",
            type=c("knn","frnn"),
            used.cts,
            n.sampling=1000,
+           ct_name="default",
            seed=123){ # only for Cycif, and CycifStack
     ## find cells within rois - roi is a circle with a fixed radius (r_um)
     if(missing(type)){
@@ -1001,7 +1215,7 @@ setMethod("computeCN", "Cycif",
     }
 
     smpl <- names(x)
-    cts <- cell_types(x)
+    cts <- cell_types(x,ct_name=ct_name)
 
     ## coordinates: x => xy
     xy <- xys(x)
@@ -1047,7 +1261,7 @@ setMethod("computeCN", "Cycif",
     df1[, rn := .I]
 
     ## find out which cell types express which cell state markers
-    csts <- x@cell_types$default@cell_state_def
+    csts <- x@cell_types[[ct_name]]@cell_state_def
     if(colnames(csts)[1] != "cell_types"){
       # stop("The first column of the cell state marker definition table must be 'cell_types'")
       csts <- csts %>% rownames_to_column("cell_types")

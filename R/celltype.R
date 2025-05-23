@@ -748,6 +748,7 @@ setMethod("defineCellTypes", "data.frame",
     ctlevs <- lapply(ctlevs,function(cts0){
       cts0[!cts0 %in% names(prioritized.celltypes)]
     })
+    ctlevs <- ctlevs[sapply(ctlevs,length)>0]
 
     prioritized.prob <- parallel::mclapply(prioritized.celltypes, function(tmp) {
       if(length(unlist(tmp))==0){

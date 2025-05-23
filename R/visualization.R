@@ -140,7 +140,7 @@ setMethod("slidePlot", "Cycif",
 
             ## cell types - specified by `uniq.cts`
             if(ct_name %in% names(x@cell_types)){
-              cts <- cell_types(x,strict=strict)
+              cts <- cell_types(x,strict=strict,ct_name=ct_name)
 
               if(missing(uniq.cts)){
                 uniq.cts <- levels(cts$cell_types)

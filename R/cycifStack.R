@@ -37,6 +37,7 @@ CycifStack <- function(ft_filenames,
                        path=".",
                        mask_type=c("cellRing","cell"),
                        mcmicro=FALSE,
+                       n_cycles,
                        use_scimap=FALSE){
   stopifnot(all(file.exists(file.path(path,ft_filenames))))
   cat("Trying to load ",length(ft_filenames)," samples.\n",sep="")
@@ -72,6 +73,7 @@ CycifStack <- function(ft_filenames,
 
   n_cells <- 	sapply(samples,nCells)
   n_cycles <- sapply(samples,nCycles)
+
   max_cycles <- max(n_cycles)
 
   if(0){
@@ -126,7 +128,7 @@ setMethod("show", "CycifStack", function(object) {
                               return(tmp)
                             }))
 
-  max.cycles <- max(nCycles(object))
+  max.cycles <- max(df$nCycles)
   rownames(m) <- paste0("Ch",seq(n.ch))
   colnames(m) <- paste0("Cycle",seq(max.cycles))
   m <- data.frame(m)
@@ -164,10 +166,11 @@ setMethod("[",
               n_samples <- length(x@samples)
               nms <- 	names(x@samples) <- sapply(x@samples,names)
               n_cells <- 	sapply(x@samples,nCells)
-              n_cycles <- sapply(x@samples,nCycles)
+              n_cycles <- x@n_cycles
               max_cycles <- max(n_cycles)
 
-              idx <- which(n_cycles == max_cycles)[1]
+              # idx <- which(n_cycles == max_cycles)[1]
+              idx <- 1 # now everything has the same answer
               abs_list <- abs_list(x@samples[[idx]])
 
               x@names <- nms
@@ -212,27 +215,29 @@ setMethod("[[",
 setMethod("[<-",
           "CycifStack",
           function(x, i, value){
-            stopifnot(is(value,"Cycif"))
-            x@samples[[i]] <- value
-
-            n_samples <- length(x@samples)
-            nms <- 	names(x@samples) <- sapply(x@samples,names)
-            n_cells <- 	sapply(x@samples,nCells)
-            n_cycles <- sapply(x@samples,nCycles)
-            max_cycles <- max(n_cycles)
-
-            idx <- which(n_cycles == max_cycles)[1]
-            abs_list <- abs_list(x@samples[[idx]])
-
-            x@names <- nms
-            x@abs_list <- abs_list
-            x@n_samples <- x@n_samples
-            x@n_cycles <- n_cycles
-            x@max_cycles <- max_cycles
-            x@n_cells <- n_cells
-
-            # validObject(x)
-            return(x)
+            stop("Replacing multiple samples in a CycifStack object is not supported.",
+                 "Replace individual Cycif objects one by one using `[[<-`")
+            # stopifnot(is(value,"CycifStack"))
+            # x@samples[i] <- value
+            #
+            # n_samples <- length(x@samples)
+            # nms <- 	names(x@samples) <- sapply(x@samples,names)
+            # n_cells <- 	sapply(x@samples,nCells)
+            # n_cycles <- sapply(x@samples,nCycles)
+            # max_cycles <- max(n_cycles)
+            #
+            # idx <- which(n_cycles == max_cycles)[1]
+            # abs_list <- abs_list(x@samples[[idx]])
+            #
+            # x@names <- nms
+            # x@abs_list <- abs_list
+            # x@n_samples <- x@n_samples
+            # x@n_cycles <- n_cycles
+            # x@max_cycles <- max_cycles
+            # x@n_cells <- n_cells
+            #
+            # # validObject(x)
+            # return(x)
           }
 )
 
@@ -242,22 +247,22 @@ setMethod("[[<-",
           "CycifStack",
           function(x, i, value){
             stopifnot(is(value,"Cycif"))
+            n_cycles <- x@n_cycles
+            if(n_cycles != value@n_cycles){
+              stop("Number of cycles in the new sample does not match the existing samples.")
+            }
             x@samples[[i]] <- value
 
             n_samples <- length(x@samples)
             nms <- 	names(x@samples) <- sapply(x@samples,names)
             n_cells <- 	sapply(x@samples,nCells)
-            n_cycles <- sapply(x@samples,nCycles)
-            max_cycles <- max(n_cycles)
 
-            idx <- which(n_cycles == max_cycles)[1]
+            # idx <- which(n_cycles == max_cycles)[1]
+            idx <- 1
             abs_list <- abs_list(x@samples[[idx]])
 
             x@names <- nms
-            x@abs_list <- abs_list
-            x@n_samples <- x@n_samples
-            x@n_cycles <- n_cycles
-            x@max_cycles <- max_cycles
+            x@abs_list <- abs_list # this should be reconstructed from x@samples
             x@n_cells <- n_cells
 
             # validObject(x)

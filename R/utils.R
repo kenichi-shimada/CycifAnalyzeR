@@ -87,6 +87,7 @@ setGeneric("xys", function(x) standardGeneric("xys"))
 setMethod("xys", "Cycif", function(x) x@xy_coords)
 
 #_ -------------
+# segProp Cycif ----
 
 ## roxygen2 help file for segProp()
 #'
@@ -175,6 +176,7 @@ setGeneric("within_rois", function(x) standardGeneric("within_rois"))
 setMethod("within_rois", "Cycif", function(x) x@within_rois)
 
 #_ -------------
+# nCycles, nCycles<- Cycif,CycifStack ----
 
 #' @title Get or Set the number of cycles in a CycifStack object
 #'
@@ -212,11 +214,14 @@ setMethod("nCycles", "Cycif", function(x) x@n_cycles)
 #' @rdname nCycles
 #' @export
 setMethod("nCycles", "CycifStack", function(x){
+  n.cycles <- unique(cyApply(x,nCycles,simplify=T))
   if(!is.null(x@n_cycles)){
-    return(x@n_cycles)
-  }else{
-    return(cyApply(x,nCycles,simplify=T))
+    if(length(unique(n.cycles))!=1 | x@n_cycles != n.cycles){
+      return(n.cycles)
+      stop("The number of cycles in the samples are not consistent.")
+    }
   }
+  return(n.cycles)
 })
 
 #' @rdname nCycles
@@ -243,7 +248,7 @@ setMethod("nCycles<-", "Cycif", function(x,value){
   ## dna_thres
   x@n_cycles <- value
 
-  x@abs_list <- abs_list(x) %>% filter(cycle <= value)
+  x@abs_list <- abs_list(x) %>% slice(1:(3 * value))
   this.abs <- as.character(abs_list(x)$ab)
 
   x@raw <- x@raw[this.abs]
@@ -254,14 +259,14 @@ setMethod("nCycles<-", "Cycif", function(x,value){
     x@logTh_normalized <- x@logTh_normalized[this.abs]
   }
 
-  x@dna <- x@dna[paste0("DNA",seq(value))]
+  x@dna <- x@dna[seq(value)]
 
   if(nrow(x@used_cells)>0){
     x@used_cells <- x@used_cells[,seq(value)]
   }
 
   if(nrow(x@dna_thres)>0){
-    x@dna_thres <- x@dna_thres[paste0("DNA",seq(value)),]
+    x@dna_thres <- x@dna_thres[seq(value),]
   }
 
   if(length(x@rois)>0){
@@ -277,16 +282,20 @@ setMethod("nCycles<-", "Cycif", function(x,value){
 #' @export
 setMethod("nCycles<-", "CycifStack", function(x,value){
   if(!is.numeric(value) | length(value) != 1){
-    warning("CycifStack@n_cycles will not accept a vector but a scalar in the future update")
+    stop("CycifStack@n_cycles will only accept a numeric scalar value")
   }
 
   ## subsetting samples - trimming ones not reaching the cycle specified
   ncys <- cyApply(x,nCycles,simplify=T)
   is.used.smpls <- ncys >= value
-  x <- x[is.used.smpls]
+
+  if(any(!is.used.smpls)){
+    stop("Some samples do not reach the specified cycle value. Please check the samples.\n",
+         "You can use the 'nCycles' function to check the number of cycles in each sample.\n",
+         "Use 'cyApply(x,nCycles,simplify=T)' to get the number of cycles in each sample.")
+  }
 
   x <- cyApply(x,function(this){
-    smpl <- names(this)
     nCycles(this) <- value
     return(this)
   })
@@ -344,11 +353,22 @@ setMethod("length","CycifStack",function(x)x@n_samples)
 # names CycifStack ----
 
 #' @export
+setMethod("names", "CycifStack", function(x){
+  ori.names <- x@names
+  names(ori.names) <- c()
+  return(ori.names)
+})
+
+#_ -------
+# names<- CycifStack ----
+
+#' @export
 setMethod("names<-", "CycifStack", function(x,value){
   ori.names <- x@names
   for(i in seq(ori.names)){
     x@samples[[i]]@name <- as.character(value[i])
   }
+  names(x@samples) <- value
   x@names <- value
   # validObject(x)
   return(x)
@@ -592,6 +612,9 @@ setMethod("list2CycifStack", "list",function(x){
   nms <- 	names(xs) <- sapply(xs,names)
   n_cells <- 	sapply(xs,nCells)
   n_cycles <- sapply(xs,nCycles)
+  if(length(unique(n_cycles))==1){
+    n_cycles <- unique(n_cycles)
+  }
   max_cycles <- max(n_cycles)
 
   idx <- which(n_cycles == max_cycles)[1]
