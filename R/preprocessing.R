@@ -47,7 +47,7 @@ setMethod("importROIs", "Cycif",
               dplyr::mutate(Dir = sub("^(pos|neg)([0-9]+)$","\\1",Text)) %>%
               dplyr::mutate(Cycle = as.numeric(sub("^(pos|neg)([0-9]+)$","\\2",Text))) %>%
               dplyr::select(-Text)
-            max.y <- max(xys(x)$Y_centroid)
+            # max.y <- max(xys(x)$Y_centroid)
 
             ## Each ROI should have
             # direction: pos or neg
@@ -71,13 +71,13 @@ setMethod("importROIs", "Cycif",
                 coords <- data.frame(do.call(rbind,strsplit(unlist(strsplit(tmp$all_points," ")),",")))
                 df <- as.data.frame(apply(coords,2,as.numeric))
                 names(df) <- c("x","y")
-                df$y <- max.y - df$y
+                # df$y <- max.y - df$y
                 # if(plot){
                 #   polygon(df,lty=1,border=lcol)
                 # }
               }else if(roi.type=="Ellipse"){
                 df <- tmp[c("X","Y","RadiusX","RadiusY")]
-                df$Y <- max.y - df$Y
+                # df$Y <- max.y - df$Y
                 res <- 30
                 theta = seq(0, 2 * pi, length = res)
                 x = df$X - df$RadiusX * cos(theta)
@@ -91,7 +91,7 @@ setMethod("importROIs", "Cycif",
                 df <- tmp[c("X","Y","Width","Height")]
                 x <- df$X + df$Width * c(0,1,1,0,0)
                 y <- df$Y + df$Height * c(0,0,1,1,0)
-                df$Y <- max.y - df$Y
+                # df$Y <- max.y - df$Y
                 df <- as.data.frame(cbind(x=x,y=y))
                 roi.type <- "Polygon"
               }
@@ -185,7 +185,7 @@ setMethod("setWithinROIs", "Cycif",
                 neg.rois <- rois1[rts=="negative"]
                 passed.neg.rois <- as.matrix(sapply(neg.rois,function(nr){
                   xys2 <- nr$coords
-                  within.rois <- sp::point.in.polygon(coords$X,max(coords$Y)-coords$Y,xys2$x,xys2$y)==0
+                  within.rois <- sp::point.in.polygon(coords$X,coords$Y,xys2$x,xys2$y)==0
                 }))
               }else{
                 passed.neg.rois <- as.matrix(rep(TRUE,nCells(x)))

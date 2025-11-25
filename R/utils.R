@@ -248,7 +248,7 @@ setMethod("nCycles<-", "Cycif", function(x,value){
   ## dna_thres
   x@n_cycles <- value
 
-  x@abs_list <- abs_list(x) %>% slice(1:(3 * value))
+  x@abs_list <- abs_list(x) %>% filter(cycle <= value)
   this.abs <- as.character(abs_list(x)$ab)
 
   x@raw <- x@raw[this.abs]

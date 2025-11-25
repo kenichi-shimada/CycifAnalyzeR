@@ -134,9 +134,6 @@ setMethod("slidePlot", "Cycif",
 
             ## coordinates
             xy <- xys(x)
-            max.y <- max(xy$Y_centroid)
-            xy <- xy %>%
-              mutate(Y_centroid = max(Y_centroid) - Y_centroid)
 
             ## cell types - specified by `uniq.cts`
             if(ct_name %in% names(x@cell_types)){
@@ -248,7 +245,8 @@ setMethod("slidePlot", "Cycif",
               }
 
               df <- xy %>%
-                cbind(data.frame(ab=custom_labs,is.na=is.na(custom_labs)))
+                cbind(data.frame(ab=custom_labs,is.na=is.na(custom_labs))) %>%
+                arrange(rev(ab))
             }else{
               stop("'plot_type' should be one of dna,exp,cell_type,custom")
             }
@@ -342,7 +340,8 @@ setMethod("slidePlot", "Cycif",
               ggtitle(ttl) +
               coord_fixed() +
               theme_void() +
-              my_guides(txt=leg.ttl)
+              my_guides(txt=leg.ttl) +
+              scale_y_reverse()
 
             if(draw.roi){
               prs <- x@rois

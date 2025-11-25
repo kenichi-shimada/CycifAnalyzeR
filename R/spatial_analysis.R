@@ -1199,7 +1199,10 @@ setMethod("computeCN", "Cycif",
            used.cts,
            n.sampling=1000,
            ct_name="default",
-           seed=123){ # only for Cycif, and CycifStack
+           seed=123,
+           off_target = NULL, #list(Tumor_panCK = c("GrB","PD1"), Fibro = "gH2AX")
+           off_target_mode = c("na","zero")
+           ){ # only for Cycif, and CycifStack
     ## find cells within rois - roi is a circle with a fixed radius (r_um)
     if(missing(type)){
       type <- "frnn"
@@ -1279,13 +1282,51 @@ setMethod("computeCN", "Cycif",
     # Join xy1, cts1, and df1 by row number
     combined_df <- xy1[cts1, on = "rn"][df1, on = "rn"]
 
-    # Loop through each antibody and set expression to NA for cell types that do not express it
+    # [discontinued] Loop through each antibody and set expression to NA for cell types that do not express it
     if(0){ ## decided not to turn them as NAs as I want to compute expression per CN, irrespective of cell type composition.
       for (ab1 in as.character(unique(csts_dt$ab))) {
         non_expressing_cts <- csts_dt[ab == ab1, cell_types]
         combined_df[.(non_expressing_cts), (ab1) := NA, on = .(cell_types)]
       }
     }
+
+    ## ### NEW: Drop off-target signals BEFORE neighborhood aggregation
+    if (!is.null(off_target) && length(off_target) > 0) {
+      # Normalize names to character vectors
+      # Keep only valid (existing) cell types and protein columns
+      valid_cts <- unique(combined_df$cell_types)
+      valid_abs <- protein_columns
+
+      # Build a two-column data.table of (cell_types, ab) pairs to zero/NA-out
+      ot_pairs <- rbindlist(lapply(names(off_target), function(ct) {
+        if (!(ct %in% valid_cts)) return(NULL)
+        abs_here <- intersect(as.character(off_target[[ct]]), valid_abs)
+        if (length(abs_here) == 0) return(NULL)
+        data.table::data.table(cell_types = ct, ab = abs_here)
+      }), use.names = TRUE, fill = TRUE)
+
+      if (nrow(ot_pairs) > 0) {
+        # Efficiently set each specified antibody to NA (or 0) for rows of that cell type
+        # Use data.table::set for speed in a loop over antibodies (column-wise)
+        if (off_target_mode == "na") {
+          for (ab1 in unique(ot_pairs$ab)) {
+            ct_to_null <- ot_pairs[cell_types %in% valid_cts & ab == ab1, unique(cell_types)]
+            if (length(ct_to_null) == 0) next
+            idx <- combined_df$cell_types %in% ct_to_null
+            # set NA
+            set(combined_df, which(idx), ab1, NA_real_)
+          }
+        } else { # "zero"
+          for (ab1 in unique(ot_pairs$ab)) {
+            ct_to_zero <- ot_pairs[cell_types %in% valid_cts & ab == ab1, unique(cell_types)]
+            if (length(ct_to_zero) == 0) next
+            idx <- combined_df$cell_types %in% ct_to_zero
+            set(combined_df, which(idx), ab1, 0.0)
+          }
+        }
+      }
+    }
+
     # tapply(combined_df$PD1,combined_df$cell_types,mean,na.rm=T) # sanity check
 
     # Create a neighborhood data table from nn
@@ -1304,6 +1345,10 @@ setMethod("computeCN", "Cycif",
 
     exp_per_ct_cn <- neighborhood[, lapply(.SD, mean, na.rm = TRUE), by = .(cell_id, cell_types), .SDcols = protein_columns]
     exp_per_cn <- neighborhood[, lapply(.SD, mean, na.rm = TRUE), by = .(cell_id), .SDcols = protein_columns]
+
+    # For exp_per_cn: ensure sorted by cell_id
+    data.table::setorder(exp_per_cn, cell_id)
+
 
     if(type=="knn"){
       nn$eps <- -1
@@ -1353,6 +1398,10 @@ setMethod("computeCN", "Cycif",
       tab <- table(ct)
       return(tab)
     }))
+
+    # For rcn.count: make sure rownames are 1..N in the same order
+    rownames(rcn.freq) <- seq_len(nrow(rcn.freq))
+    rownames(rcn.count) <- seq_len(nrow(rcn.count))
 
     if(type=="knn"){
       r <- sapply(nn$dist,function(x)x[k+1])
