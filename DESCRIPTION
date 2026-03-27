@@ -39,6 +39,11 @@ Collate:
     'constructors-cycif-stack.R'
     'methods-show.R'
     'methods-subset.R'
+    'accessors-basic.R'
+    'accessors-dimensions.R'
+    'setters-core.R'
+    'coercion-list.R'
+    'coercion-stack.R'
     'cycif.R'
     'cycifStack.R'
     'celltype.R'
@@ -48,7 +53,6 @@ Collate:
     'dimensionality_reduction.R'
     'clustering.R'
     'spatial_analysis.R'
-    'utils.R'
 Suggests: 
     testthat (>= 3.0.0),
     sf (>= 1.0-14)
