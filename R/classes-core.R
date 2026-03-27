@@ -95,183 +95,6 @@ setClass("file_paths",
 )
 
 #_ -------------------------------------------------------
-
-# class: CellTypes ----
-
-#' @title CellTypes Class
-#'
-#' @description
-#' This class represents the cell types and their characteristics derived from CyCIF data.
-#'
-#' @section Slots:
-#' \describe{
-#'   \item{\code{cell_lineage_def}}{A data frame containing cell lineage definitions.}
-#'   \item{\code{cell_state_def}}{A data frame containing cell state definitions.}
-#'   \item{\code{markers}}{A data frame specifying markers associated with cell types.}
-#'   \item{\code{n_cycles}}{A numeric value indicating the number of cycles in the CyCIF data.}
-#'   \item{\code{sample_names}}{A character vector with sample names associated with the data.}
-#'   \item{\code{cell_types}}{A factor representing the generated cell types per individual cells.}
-#'   \item{\code{is_strict}}{A logical value indicating strictness in cell type calling.}
-#' }
-#'
-#' @details
-#' The \code{CellTypes} class stores information about cell lineage, cell state, markers, and sample-specific details from CyCIF data analysis.
-#'
-#' @seealso
-#' Other classes: \code{\link{Cycif}}, \code{\link{CycifStack}}
-#'
-#' @rdname CellTypes
-#' @export
-setClass("CellTypes",# switch this to 'CellTypes' class, remove the others
-         slots = c(
-           cell_lineage_def = "data.frame",
-           cell_state_def = "data.frame",
-           markers = "data.frame",
-           n_cycles = "numeric",
-           sample_names = "character",
-           cell_types = "factor", # generated from gates and lineage
-           is_strict = "logical"
-         )
-)
-# stop("CellTypes now has sample_names. defineCellTypes and cell_types() should change accordingly (should have the same # of cells with @cell_types)",
-#      "then change LDCoords and spatial info so we can make the computation tomorrow")
-
-#_ -------------------------------------------------------
-
-# class: LDCoords ----
-
-#' @title LDCoords Class
-#'
-#' @description This class represents the coordinates and clustering results from dimensionality reduction techniques for CyCIF data.
-#'
-#' @section Slots:
-#' \describe{
-#'   \item{\code{ld_type}}{A character vector specifying the dimensionality reduction technique used: 'PCA', 't-SNE', 'UMAP'.}
-#'   \item{\code{norm_type}}{A character vector specifying the normalization type: 'log', or 'logTh'}
-#'   \item{\code{smpls}}{A character vector containing sample names.}
-#'   \item{\code{used.abs}}{A character vector containing antibody names used for the analysis.}
-#'   \item{\code{used.cts}}{A character vector containing cell type names used for the analysis.}
-#'   \item{\code{n_cells_per_smpl}}{A numeric vector representing the max number of cells per sample selected.}
-#'   \item{\code{n_cells_total}}{A numeric value representing the total number of cells used for the analysis.}
-#'   \item{\code{ld_coords}}{A data frame containing the coordinates from dimensionality reduction.}
-#'   \item{\code{clusters}}{A factor vector containing cluster assignments.}
-#'   \item{\code{is_used}}{A logical vector indicating whether each cell is used. The length of the vector is the same as the length of the total cells. The sum of TRUE's is the same as \code{n_cells_total}. }
-#'   \item{\code{cts_params}}{A list containing cell type parameters.}
-#'   \item{\code{ld_params}}{A list containing dimensionality reduction parameters.}
-#'   \item{\code{ld_call}}{A call object representing the dimensionality reduction function call.}
-#'   \item{\code{clust_call}}{A call object representing the clustering function call.}
-#' }
-#'
-#' @details
-#' The \code{LDCoords} class represents the coordinates and clustering results from dimensionality reduction techniques applied to CyCIF data.
-#' It provides information about the samples, used abs, cell types, and various parameters of the cells used in the analysis so the plot can be color-coded accordingly.
-#'
-#' @rdname LDCoords
-#' @export
-setClass("LDCoords",
-   slots = c(
-     # [ld_type, nom_type]
-     ld_type = "character", # PCA, TSNE, UMAP
-     norm_type = "character",
-
-     # [used smpls, abs, celltypes]
-     smpls = "character",
-     used.abs = "character",
-     used.cts = "character",
-
-     # [n_cells]
-     n_cells_per_smpl = "numeric",
-     n_cells_total = "numeric",
-
-     # [ld_coords, clusters]
-     ld_coords = "data.frame",
-     clusters = "factor", # cluster should be contained within ld_coords
-
-     # [is_used, cts_params,ld_params]
-     is_used = "logical",
-     cts_params = "list",
-     ld_params = "list",
-
-     # [call]
-     ld_call = "call",
-     clust_call = "call"
-   )
-)
-
-
-#_ -------------------------------------------------------
-
-# class: NN ----
-
-#' Class "NN" - output of dbscan::frNN() or dbscan::kNN()
-#'
-#' @slot type A character vector specifying the type of nearest neighbors. Possible values are 'frnn' or 'knn'.
-#' @slot id A list of integer vector (length of the number of cell neighborhoods). Each vector contains the ids of the fixed radius nearest neighbors.
-#' @slot dist A list with distances (same structure as id)
-#' @slot k A numeric vector (scalar) containing the number of neighbors k that was used.
-#' @slot eps A numeric vector (scalar) containing neighborhood radius eps that was used.
-#' @slot sort A logical value indicating whether the distances are sorted.
-#'
-#' @seealso \code{\link{dbscan::frNN}} \code{\link{dbscan::kNN}}
-#'
-#' @rdname NN
-#'
-#' @export
-setClass("NN",
-         slots = c(
-           type = "character",
-           dist = "list",
-           id = "list",
-           k = "numeric",
-           eps = "numeric",
-           sort = "logical"
-         )
-)
-
-# class: CellNeighborhood ----
-#' Class "CellNeighborhood" - Cell Neighborhood Object
-#'
-#' An object of class "CellNeighborhood" represents the results of the computeCN function
-#' for a Cycif or CycifStack object, providing information about the cell neighborhood analysis.
-#'
-#' @slot within.rois A logical vector indicating whether each cell is within a region of interest (ROI).
-#' @slot used.cts A character vector of cell types considered in the neighborhood analysis.
-#' @slot n.cells.selected An integer indicating the number of cells selected for the analysis.
-#' @slot smpls A character vector containing sample names.
-#' @slot nn A frNN object containing information about cell neighbors.
-#' @slot n.neighbors An integer indicating the number of neighbors (including self).
-#' @slot exp.per.ct.cn A data.table containing expression data for each cell type in the neighborhood.
-#' @slot exp.per.cn A data.table containing expression data for each cell neighborhood.
-#' @slot is.selected A logical vector indicating whether each cell is selected.
-#' @slot rcn.count A data.frame containing the counts of cell types in the neighborhood.
-#' @slot rcn.dens A data.frame containing the density of cell types in the neighborhood.
-#' @slot rcn.freq A data.frame containing the frequency of cell types in the neighborhood.
-#' @slot dist2tumorBorder A numeric vector containing the distance of each cell to tumor border.
-#' @slot mclustda A list containing the results of the mclustDA function.
-#'
-#' @seealso \code{\link{computeCN}}
-#'
-#' @rdname CellNeighborhood
-#' @export
-setClass("CellNeighborhood",
-         slots = c(
-           within.rois = "logical",
-           n.cells.selected = "numeric",
-           is.selected = "logical",
-           used.cts = "character",
-           smpls = "character",
-           nn = "NN",
-           n.neighbors = "numeric",
-           exp.per.ct.cn = "data.table",
-           exp.per.cn = "data.table",
-           rcn.count = "matrix",
-           rcn.dens = "matrix",
-           rcn.freq = "matrix",
-           dist2tumorBorder = "numeric",
-           mclustda = "list"
-         ))
-
-#_ -------------------------------------------------------
 # class: Cycif ----
 
 #' Cycif Class
@@ -349,7 +172,6 @@ setClass("Cycif",
 
            # [ld_coords, clusters]
            ld_coords = "list", # list of ld_coords object
-           # clusters = "numeric", # numeric
 
            # # [cellneighborhood]
            cell_neighborhood = "CellNeighborhood",
@@ -406,10 +228,6 @@ setClass("CycifStack",
 
            # [abs_list] - should contain gates and dynamic ranges
            abs_list = "data.frame",
-
-           # [normalized] - should contain log_normalized and logTh_normalized
-           # log_normalized = "data.frame",
-           # logTh_normalized = "data.frame",
 
            # [cell types]
            cell_types = "list", # CellTypeCycifStack

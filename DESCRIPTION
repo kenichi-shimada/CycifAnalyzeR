@@ -32,7 +32,13 @@ Imports:
     RColorBrewer,
     Seurat
 Collate: 
-    'objects.R'
+    'classes-core.R'
+    'classes-celltypes.R'
+    'classes-spatial.R'
+    'constructors-cycif.R'
+    'constructors-cycif-stack.R'
+    'methods-show.R'
+    'methods-subset.R'
     'cycif.R'
     'cycifStack.R'
     'celltype.R'
