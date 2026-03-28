@@ -52,7 +52,12 @@ Collate:
     'preprocessing.R'
     'dimensionality_reduction.R'
     'clustering.R'
-    'spatial_analysis.R'
+    'spatial-helpers.R'
+    'spatial-distance.R'
+    'spatial-tumor-border.R'
+    'spatial-tumor-stroma.R'
+    'spatial-area.R'
+    'spatial-cell-neighborhood.R'
 Suggests: 
     testthat (>= 3.0.0),
     sf (>= 1.0-14)
