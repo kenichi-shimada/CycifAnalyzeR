@@ -31,9 +31,11 @@ setGeneric("plotUsedCellRatio",function(x,...) standardGeneric("plotUsedCellRati
 #' @export
 setMethod("plotUsedCellRatio", "Cycif", function(x,cumulative=TRUE,ncycle,mar=c(5,5,4,10),
                                                  main="# cells attached on slide",...){
-  x <- list2CycifStack(list(x))
-  ret <- plotUsedCellRatio(x,cumulative=cumulative,ncycle=ncycle,mar=mar,main=main,...)
-  return(invisible(ret))
+  .Defunct(msg=paste(
+    "plotUsedCellRatio() plots statUsedCells()'s per-cycle retention ratio, which is retired --",
+    "see ?statUsedCells. Under @used_cells set uniformly across cycles (e.g. ROI membership),",
+    "this would just be a flat line. Summarize x@used_cells directly per sample instead."
+  ))
 })
 
 #' @rdname plotUsedCellRatio
@@ -42,56 +44,11 @@ setMethod("plotUsedCellRatio", "CycifStack",
           function(x,cumulative=TRUE,ncycle,mar=c(5,5,4,10),
                    main="# cells attached on slide",smpl.cols,ncol=1,
                    leg.cex=0.8,use_rois=TRUE,...){
-  stopifnot(all(cyApply(x,function(x)is(x,"Cycif"),simplify=TRUE)))
-  stopifnot(all(unlist(cyApply(x,function(cy)nrow(cy@used_cells))>0)))
-
-  if(missing(ncycle)){
-    ncycle <- unique(nCycles(x))
-    if(length(ncycle)>1){
-      stop("there are more than one value in 'ncycle'; provide the argument explicitly")
-    }
-  }
-
-  used.ratio <- data.frame(sapply(names(x),function(n){
-    y <- x[[n]]
-    nc.ratio <- statUsedCells(y,use_rois=use_rois,cumulative=TRUE,ratio=TRUE)
-    if(length(nc.ratio) > ncycle){
-      nc.ratio <- nc.ratio[seq(ncycle)]
-    }
-    return(nc.ratio)
-  }))
-
-  smpls <- names(x)
-  if(missing(smpl.cols)){
-    smpl.cols <- colorRampPalette(brewer.pal(11,"Spectral"))(nSamples(x))
-  }
-
-  ##
-  par(mar=mar)
-  plot(c(1,ncycle),c(0,1),type="n",
-       xlab="# cycles",
-       ylab="Relative # cells on slide",
-       axes=F,main=main,...)
-  box()
-  axis(1,at=seq(ncycle),labels=seq(ncycle))
-  axis(2)
-
-  abline(h=seq(0.2,0.8,length=4),lty=1,col="grey90")
-  abline(h=0:1,lty=1,col="grey80")
-  abline(v=seq(ncycle),lty=1,col="grey90")
-
-  for(i in seq(used.ratio)){
-    ur <- used.ratio[[i]]
-    lines(seq(ur),ur,col=smpl.cols[i],lwd=2)
-    points(seq(ur),ur,col=smpl.cols[i],pch=20)
-    points(seq(ur),ur,col=1,pch=1)
-  }
-
-  par(xpd=T)
-  legend(par()$usr[2],par()$usr[4],smpls,lty=1,lwd=2,col=smpl.cols,ncol=ncol,cex=leg.cex)
-  par(xpd=F)
-
-  return(invisible(used.ratio))
+  .Defunct(msg=paste(
+    "plotUsedCellRatio() plots statUsedCells()'s per-cycle retention ratio, which is retired --",
+    "see ?statUsedCells. Under @used_cells set uniformly across cycles (e.g. ROI membership),",
+    "this would just be a flat line. Summarize x@used_cells directly per sample instead."
+  ))
 })
 
 #_ -------------------------------------------------------
@@ -129,48 +86,13 @@ setMethod("plotAvailCellOnSlide", "Cycif",
           function(x,upside.down=TRUE,ncycle,mfrow=c(3,3),mar=c(0,0,4,0),legend=TRUE,main=names(x),cex.title=1,
                    uniq.cols=c(lost="grey90",dropped="blue",available="black",bunched="red"),legend.cex=2,
                    xlab="",ylab="",...){
-            stopifnot(nrow(x@used_cells)>0)
-
-            u <- x@used_cells # not to be replaced with cumUsedCells
-            nchannels <- ncol(u)
-
-            nc.ratio <- round(statUsedCells(x)*100,1)
-
-            xy <- xys(x)
-            if(upside.down){
-              xy$Y_centroid <- max(xy$Y) - xy$Y
-            }
-
-            graphics::par(oma=c(2,2,8,2))
-            graphics::par(mfrow=mfrow)
-            v <- sapply(seq(nchannels),function(i){
-              if(i==1){
-                id <- rep(2,nrow(u))
-              }else{
-                id <- u[,i] + 1
-                is.avail <- rowSums(u[,seq(i-1),drop=F]==1)==i-1
-                id[!is.avail] <- 0
-              }
-
-              rs <- id + 1
-
-              main.txt <- paste0("cycle ",i-1," (",nc.ratio[i],"% available)")
-              graphics::par(mar=mar)
-              plot(xy,pch='.',col=uniq.cols[rs],main=main.txt,axes=F,asp=1,
-                   xlab=xlab,ylab=ylab,...)
-              graphics::box()
-            })
-            if(legend){
-              graphics::plot.new()
-              graphics::par(mar=c(1,1,1,1))
-              # graphics::box()
-              legend("topleft",c("available","dropped","bunched","lost previously"),
-                     fill=uniq.cols[c("available","dropped","bunched","lost")],
-                     cex=legend.cex)
-            }
-            if(!missing(main)){
-              graphics::mtext(main, side=3, line=2, cex=cex.title, outer=TRUE)
-            }
+            .Defunct(msg=paste(
+              "plotAvailCellOnSlide() draws one spatial panel per cycle (lost/dropped/available/",
+              "bunched), and labels each panel using statUsedCells(), which is retired -- see",
+              "?statUsedCells. Under @used_cells set uniformly across cycles (e.g. ROI membership),",
+              "every panel would be identical. Plot xys(x) colored by x@used_cells[,1] directly",
+              "for a single ROI-membership map instead."
+            ))
           })
 
 #_ -------------------------------------------------------

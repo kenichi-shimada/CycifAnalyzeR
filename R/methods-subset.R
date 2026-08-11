@@ -82,8 +82,8 @@ setMethod("[[<-",
           "CycifStack",
           function(x, i, value){
             stopifnot(is(value,"Cycif"))
-            n_cycles <- x@n_cycles
-            if(n_cycles != value@n_cycles){
+            n_cycles <- x@n_cycles # can be a per-sample vector before nCycles<- has normalized it
+            if(any(n_cycles != value@n_cycles)){
               stop("Number of cycles in the new sample does not match the existing samples.")
             }
             x@samples[[i]] <- value

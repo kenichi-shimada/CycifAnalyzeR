@@ -37,14 +37,7 @@ setMethod("nCycles", "Cycif", function(x) x@n_cycles)
 #' @rdname nCycles
 #' @export
 setMethod("nCycles", "CycifStack", function(x){
-  n.cycles <- unique(cyApply(x,nCycles,simplify=T))
-  if(!is.null(x@n_cycles)){
-    if(length(unique(n.cycles))!=1 | x@n_cycles != n.cycles){
-      return(n.cycles)
-      stop("The number of cycles in the samples are not consistent.")
-    }
-  }
-  return(n.cycles)
+  cyApply(x,nCycles,simplify=TRUE)
 })
 
 #_ -------------------------------------------------------

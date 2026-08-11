@@ -66,21 +66,15 @@ setGeneric("statUsedCells", function(x,...) standardGeneric("statUsedCells"))
 #' @export
 setMethod("statUsedCells", "Cycif",
           function(x,cumulative=TRUE,ratio=TRUE,use_rois=TRUE){
-            stopifnot(nrow(x@used_cells)>0)
-            if(cumulative){
-              mat <- cumUsedCells(x,use_rois=use_rois)
-            } else{
-              mat <- x@used_cells == 1 # 0 - dropped, 1 - alive, 2 - bunched
-            }
-            tab <- apply(mat,2,function(l){
-              f <- factor(l,levels=c("TRUE","FALSE"))
-              table(f)
-            })
-            if(ratio){
-              nc.true <- tab["TRUE",]
-              tab <- nc.true/nc.true[1]
-            }
-            return(tab)
+            .Defunct(msg=paste(
+              "statUsedCells() assumed dnaFilter()'s progressive per-cycle DNA-quality attrition,",
+              "which is retired (dnaFilter() required interactive locator()/readline() input and",
+              "is incompatible with non-interactive execution). Where @used_cells is now set",
+              "uniformly across cycles (e.g. via ROI membership -- see set_used_cells_from_rois()",
+              "in the hr_apm/TALAVE projects), a per-cycle retention ratio is meaningless: every",
+              "cycle returns the same value. Summarize x@used_cells directly instead, e.g.",
+              "table(x@used_cells) or mean(x@used_cells[,1])."
+            ))
           }
 )
 

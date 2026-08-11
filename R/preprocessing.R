@@ -159,39 +159,49 @@ setGeneric("setWithinROIs", function(x,...) standardGeneric("setWithinROIs"))
 setMethod("setWithinROIs", "Cycif",
           function(x){
             rois <- x@rois
-            ncycles <- sapply(rois,function(x)x$cycle)
+            roi.cycles <- sapply(rois,function(r)r$cycle)
+            roi.dirs <- sapply(rois,function(r)r$dir)
             coords <- xys(x)
             nc <- nCells(x)
             ncycle <- nCycles(x)
 
+            ## Point-in-polygon membership is a per-ROI property of the cells, independent of
+            ## cycle -- only *which ROIs count* changes per cycle (roi.cycles<=i, cumulative), not
+            ## which cells fall inside a given ROI's polygon. Previously this was recomputed from
+            ## scratch for every cycle (O(ncycle x n_rois) point.in.polygon calls, each already
+            ## vectorized over all cells); computing it once per ROI here and reusing across cycles
+            ## drops that to O(n_rois) calls total.
+            ## Y is flipped (max(coords$Y)-coords$Y) for every ROI, positive and negative alike, to
+            ## match the raw (unflipped) ROI polygon coordinates parsed at import time -- restores
+            ## the convention both branches used before commit bff7aca5 ("minor update") accidentally
+            ## dropped the flip from the negative branch only, desyncing negative ROIs from positive
+            ## ROIs and from the stored polygon coordinates.
+            membership <- sapply(rois,function(r){
+              xys2 <- r$coords
+              sp::point.in.polygon(coords$X,max(coords$Y)-coords$Y,xys2$x,xys2$y)==1
+            })
+            membership <- matrix(membership,nrow=nc) # sapply degenerates to a vector if length(rois)==1
+
             within.rois <- sapply(seq(ncycle),function(i){
-              is.used.rois <- ncycles <= i
+              is.used.rois <- roi.cycles <= i
               if(sum(is.used.rois)==0){
-                within.rois <- rep(TRUE,nc)
-                return(within.rois)
+                return(rep(TRUE,nc))
               }
-              rois1 <- rois[is.used.rois]
-              rts <- sapply(rois1,function(r)r$dir)
-              if(any(rts=="positive")){
-                pos.rois <- rois1[rts=="positive"]
-                passed.pos.rois <- as.matrix(sapply(pos.rois,function(pr){
-                  xys2 <- pr$coords
-                  within.rois <- sp::point.in.polygon(coords$X,max(coords$Y)-coords$Y,xys2$x,xys2$y)==1
-                }))
+              idx <- which(is.used.rois)
+              pos.idx <- idx[roi.dirs[idx]=="positive"]
+              neg.idx <- idx[roi.dirs[idx]=="negative"]
+
+              passed.pos.rois <- if(length(pos.idx)>0){
+                apply(membership[,pos.idx,drop=FALSE],1,any)
               }else{
-                passed.pos.rois <- as.matrix(rep(TRUE,nCells(x)))
+                rep(TRUE,nc)
               }
-              if(any(rts=="negative")){
-                neg.rois <- rois1[rts=="negative"]
-                passed.neg.rois <- as.matrix(sapply(neg.rois,function(nr){
-                  xys2 <- nr$coords
-                  within.rois <- sp::point.in.polygon(coords$X,coords$Y,xys2$x,xys2$y)==0
-                }))
+              passed.neg.rois <- if(length(neg.idx)>0){
+                apply(!membership[,neg.idx,drop=FALSE],1,all)
               }else{
-                passed.neg.rois <- as.matrix(rep(TRUE,nCells(x)))
+                rep(TRUE,nc)
               }
-              wr <- apply(passed.pos.rois,1,any) & apply(passed.neg.rois,1,all)
-              return(wr)
+              passed.pos.rois & passed.neg.rois
             })
             within.rois <- rowSums(within.rois)==ncycle
 
@@ -398,11 +408,15 @@ setMethod("dnaFilter", "Cycif",
             mat1 <- cbind(log1p(mat1[[1]]),as.data.frame(lapply(mat1,function(x)log1p(x/mat1[[1]])))[-1])
             names(mat1) <- dna.list
 
-            dna.thres <- x@dna_thres
+            ## Do NOT reassign `dna.thres` here -- it's also the function's own parameter name,
+            ## and reassigning it makes `missing(dna.thres)` unreliable below (R quirk: missing()
+            ## stops correctly reflecting whether the caller supplied an argument once the local
+            ## variable of the same name has been rebound). Use a distinct name instead.
+            existing.dna.thres <- x@dna_thres
 
-            if(nrow(dna.thres)>0){
-              dna.ths1 <- x@dna_thres$low
-              dna.ths2 <- x@dna_thres$high
+            if(nrow(existing.dna.thres)>0){
+              dna.ths1 <- existing.dna.thres$low
+              dna.ths2 <- existing.dna.thres$high
               names(dna.ths1) <- names(dna.ths2) <- dna.list
             }else{
               dna.ths1 <- sapply(mat1,min)

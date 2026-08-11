@@ -31,10 +31,10 @@ Imports:
     sp,
     RColorBrewer,
     Seurat
-Collate: 
+Collate:
+    'classes-spatial.R'
     'classes-core.R'
     'classes-celltypes.R'
-    'classes-spatial.R'
     'constructors-cycif.R'
     'constructors-cycif-stack.R'
     'methods-show.R'
