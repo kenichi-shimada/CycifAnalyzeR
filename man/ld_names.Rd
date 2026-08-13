@@ -14,6 +14,12 @@ ld_names(x, ...)
 }
 \arguments{
 \item{x}{A 'Cycif' or 'CycifStack' object containing UMAP embeddings or clustering results.}
+
+\item{...}{Additional arguments (unused).}
+
+\item{simplify}{Logical, if TRUE (default) print just each name; if FALSE, print the full \code{show()} of each LDCoords object.}
+
+\item{show}{Logical, whether to print the names (default TRUE); if FALSE, return them invisibly with no printing.}
 }
 \value{
 A character vector containing the names of UMAP embeddings or clustering results.

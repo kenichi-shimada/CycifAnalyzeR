@@ -20,7 +20,7 @@
 #' The \code{roi} class is used to store information about ROIs, including their direction, cycle, type, and associated coordinates.
 #'
 #' @seealso
-#' Other classes: \code{\link{Cycif}}, \code{\link{CycifStack}}, \code{\link{CellTypes}}
+#' Other classes: \code{\link{Cycif}}, \code{\link{CycifStack}}, \code{\linkS4class{CellTypes}}
 #'
 #' @examples
 #' # Creating an roi object
@@ -62,7 +62,7 @@ setClass("roi",
 #' The \code{file_paths} class is used to store information about the file paths for different steps of CyCIF data processing for a single sample.
 #'
 #' @seealso
-#' Other classes: \code{\link{Cycif}}, \code{\link{CycifStack}}, \code{\link{CellTypes}}
+#' Other classes: \code{\link{Cycif}}, \code{\link{CycifStack}}, \code{\linkS4class{CellTypes}}
 #'
 #' @examples
 #' # Creating a file_paths object
@@ -129,7 +129,7 @@ setClass("file_paths",
 #' The \code{Cycif} class represents CyCIF data and its associated metadata, including sample name, file paths, imaging cycles, cell coordinates, cell properties, and more. This class is used to store and manipulate CyCIF data within R.
 #'
 #' @seealso
-#' Other classes: \code{\link{CycifStack}}, \code{\link{CellTypes}}, \code{\link{LDCoords}}
+#' Other classes: \code{\link{CycifStack}}, \code{\linkS4class{CellTypes}}, \code{\linkS4class{LDCoords}}
 #'
 #' @rdname Cycif
 #' @export
@@ -207,7 +207,7 @@ setClass("Cycif",
 #' The \code{CycifStack} class represents a collection of CyCIF samples organized as a stack. It allows users to analyze and manipulate multiple samples simultaneously, making it useful for high-throughput analysis of CyCIF data.
 #'
 #' @seealso
-#' Other classes: \code{\link{Cycif}}, \code{\link{CellTypes}}, \code{\link{LDCoords}}
+#' Other classes: \code{\link{Cycif}}, \code{\linkS4class{CellTypes}}, \code{\linkS4class{LDCoords}}
 #'
 #' @rdname CycifStack
 #' @export

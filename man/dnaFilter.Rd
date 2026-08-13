@@ -12,6 +12,8 @@ dnaFilter(x, ...)
 \arguments{
 \item{x}{A Cycif object with DNA stains.}
 
+\item{...}{Additional arguments (unused).}
+
 \item{ncells}{Maximum number of cells to analyze. Default is 1e5.}
 
 \item{dna.thres}{A list containing two data frames with low and high thresholds for DNA channels, or NULL to use default thresholds.}

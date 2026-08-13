@@ -2,9 +2,12 @@
 % Please edit documentation in R/cycifStack.R
 \name{cyApply}
 \alias{cyApply}
+\alias{cyApply,CycifStack-method}
 \title{Apply-like loop function for a CycifStack object}
 \usage{
-cyApply(x,fun,simplify=FALSE,as.CycifStack=TRUE,...)
+cyApply(x, ...)
+
+\S4method{cyApply}{CycifStack}(x, fun, simplify = FALSE, as.CycifStack = TRUE, ...)
 }
 \arguments{
 \item{x}{A CycifStack object}

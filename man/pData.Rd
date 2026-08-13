@@ -18,10 +18,10 @@ pData(x, ...) <- value
 \arguments{
 \item{x}{A Cycif or CycifStack object.}
 
-\item{value}{For \verb{pData<-}, a data frame containing sample metadata.}
+\item{...}{Additional arguments (unused; for \verb{pData<-}).}
 
-\item{by}{(For \verb{pData<-}) The column name in the value data frame that contains sample names.
-This column name should be set as the 'id' for sample identification.}
+\item{value}{For \verb{pData<-}, a data frame containing sample metadata, with an
+\code{id} column matching \code{names(x)}.}
 }
 \description{
 These functions allow you to show or set sample metadata for a Cycif or CycifStack object.

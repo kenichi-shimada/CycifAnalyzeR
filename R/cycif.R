@@ -23,9 +23,7 @@
 #' @param use_rois Logical. If TRUE, compute available cells within pre-specified ROIs.
 #' Default is TRUE.
 #'
-#' @usage
-#' cumUsedCells(x, use_rois = TRUE)
-#' statUsedCells(x, cumulative = TRUE, ratio = TRUE, use_rois = TRUE)
+#' @param ... Additional arguments (unused).
 #'
 #' @return
 #' For cumUsedCells, a matrix with the cumulative number of used cells at each cycle is returned.
@@ -40,21 +38,10 @@ setGeneric("cumUsedCells", function(x,...) standardGeneric("cumUsedCells"))
 #' @export
 setMethod("cumUsedCells", "Cycif",
           function(x,use_rois=TRUE){
-            u <- x@used_cells
-
-            u <- sapply(seq(ncol(u)),function(i){
-              id <- rowSums(u[,seq(i),drop=F]==1)==i
-              return(id)
-            })
-
-            if(use_rois){
-              w <- x@within_rois
-              if(length(w)>0){
-                u <- u & w
-              }
-            }
-
-            return(u)
+            .Defunct(msg=paste(
+              "cumUsedCells() has had zero call sites anywhere across CycifAnalyzeR",
+              "or any downstream project repo (EP, TALAVE, HR-APM)."
+            ))
           }
 )
 

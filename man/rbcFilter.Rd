@@ -15,9 +15,13 @@ rbcFilter(x, ...)
 \arguments{
 \item{x}{A Cycif object.}
 
+\item{...}{Additional arguments (unused).}
+
 \item{ch}{A character value specifying the name of the channel.}
 
 \item{gate}{A numerical value specifying the gate for the AF channel.}
+
+\item{gates}{(CycifStack method) a named numeric vector of per-sample gates, names matching \code{names(x)}.}
 }
 \value{
 A Cycif object with the defined ROIs.

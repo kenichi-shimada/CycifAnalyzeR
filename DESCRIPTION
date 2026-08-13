@@ -18,7 +18,6 @@ Imports:
     magrittr,
     graphics,
     grDevices,
-    MASS,
     stats,
     tibble,
     dplyr,
@@ -30,8 +29,16 @@ Imports:
     dbscan,
     sp,
     RColorBrewer,
-    Seurat
+    Seurat,
+    RANN,
+    reticulate,
+    alphahull,
+    uwot,
+    heatmap3,
+    ggrepel,
+    sf (>= 1.0-14)
 Collate:
+    'imports.R'
     'classes-spatial.R'
     'classes-core.R'
     'classes-celltypes.R'
@@ -67,7 +74,8 @@ Collate:
     'spatial-tumor-stroma.R'
     'spatial-area.R'
     'spatial-cell-neighborhood.R'
-Suggests: 
-    testthat (>= 3.0.0),
-    sf (>= 1.0-14)
+    'cell-selection.R'
+    'cell-features-analysis.R'
+Suggests:
+    testthat (>= 3.0.0)
 Config/testthat/edition: 3

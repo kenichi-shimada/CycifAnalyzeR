@@ -5,6 +5,7 @@
 #' @param ctype A data frame containing information about parent-child relationships between cell types.
 #' The object should have at least two columns named Parent and Child, and each row contains the relationship between
 #' direct parent and child cell types.
+#' @param cname Which cell-typing to use when \code{ctype} is a Cycif/CycifStack object (default "default").
 #' @param plot Logical, indicating whether to plot the graph.
 #' @param transpose Logical, indicating whether to transpose the graph layout.
 #' @param with.hierarchy Logical, indicating whether to include the cell type hierarchy information in output.
@@ -94,6 +95,8 @@ CellTypeGraph <- function(ctype,
 #' @param ct_name The name of the cell type definition to use. Default is "default."
 #' @param simple Logical, if TRUE, return a simple table of cell type frequencies. If FALSE, return a hierarchical structure of cell type frequencies. Default is TRUE.
 #' @param count Logical, if TRUE, return the count of cells per cell type. If FALSE, return the frequency of cells per cell type.
+#' @param cts.hierarchy Optional pre-computed cell-type hierarchy (see \code{\link{CellTypeGraph}}); if missing, it is derived from \code{x}.
+#' @param ... Additional arguments (unused).
 #'
 #' @return If `simple` is TRUE (default), a matrix with row names representing samples and column names representing cell types (that are leaf nodes in the cell type definition tree), with the number of cells per cell type. If `simple` is FALSE, a list of 'non-leaf' cell type frequency matrices is also returned in the matrix.
 #'
@@ -107,6 +110,7 @@ CellTypeGraph <- function(ctype,
 
 setGeneric("cellTypeFrequency", function(x,...) standardGeneric("cellTypeFrequency"))
 
+#' @rdname cellTypeFrequency
 #' @export
 setMethod("cellTypeFrequency", "CycifStack",
   function(x,ct_name="default",simple=TRUE,count=FALSE,cts.hierarchy){

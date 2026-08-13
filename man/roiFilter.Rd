@@ -12,7 +12,9 @@ roiFilter(x, ...)
 \arguments{
 \item{x}{A Cycif object.}
 
-\item{roi_type}{A character string specifying the type of ROIs to set. It can be either "positive" or "negative."}
+\item{...}{Additional arguments (unused).}
+
+\item{rois}{A list of ROI definitions to set (see \code{\link{importROIs}}).}
 }
 \value{
 A Cycif object with the defined ROIs.

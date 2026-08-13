@@ -123,26 +123,8 @@ setMethod("plotAvailCellOnSlide", "Cycif",
 #' @importFrom stats loess predict
 #' @export
 hist_1d <- function(x,n=1000,ths,mar=c(3,4,4,2)+.1,brks1,ttl1){
-  omar <- par()$mar
-  par(mar=mar)
-
-  n.ab <- trim_fun(x,trim_th=1e-2)
-  min.i <- which.min(abs(brks1-min(n.ab)))
-  max.i <- which.min(abs(brks1-max(n.ab)))
-  # stop(list(min.i,max.i))
-  uniq.cols <- colorRampPalette(rev(brewer.pal(11,"Spectral")))(max.i-min.i+1)
-  # stop(length(uniq.cols))
-  cols <- c(rep(uniq.cols[1],min.i-1),uniq.cols,rep(rev(uniq.cols)[1],n-max.i+1))
-  a <- hist(x,breaks=brks1,main=ttl1,freq=FALSE,xlab="",col=cols,border=NA)
-
-  ## smoothening the trail of histogram
-  loessMod <- loess(a$density[seq(n)] ~ brks1[seq(n)], span=0.02)
-  smoothened <- predict(loessMod)
-  lines(smoothened, x=brks1[seq(n)], col=1,lwd=2)
-
-  # cat("Showing current dna_thres\n")
-  abline(v=ths[1],col=4,lty=2,lwd=2)
-  abline(v=ths[2],col=2,lty=2,lwd=2)
-  par(mar=omar)
-  invisible(list(a=a,smoothened=smoothened))
+  .Defunct(msg=paste(
+    "hist_1d() has had zero call sites anywhere across CycifAnalyzeR or any",
+    "downstream project repo (EP, TALAVE, HR-APM)."
+  ))
 }

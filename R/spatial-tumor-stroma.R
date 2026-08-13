@@ -78,10 +78,12 @@ setMethod("ratioTumorStroma", "CycifStack",
 #' This function identifies tumor bed regions within each Cycif dataset and assigns cells to these regions based on their spatial coordinates and cell types.
 #'
 #' @param x A CyCIF object.
-#' @param strict Logical, specifying whether to perform strict cell type calling (see \code{defineCellTypes}).
 #' @param dth Numeric, the distance threshold for identifying adjacent cells.
 #' @param n.cores Integer, the number of CPU cores to use for parallel processing.
 #' @param n.cells.per.seg Integer, the minimum number of cells per segment.
+#' @param cancer.cts Character vector of cell type(s) treated as tumor cells. Default "Cancer".
+#' @param ct_name Character, the name of the cell type column (used in \code{cell_types}).
+#' @param ... Additional arguments (unused).
 #' @param n.cells.per.tumor.core Integer, the minimum number of cells per tumor region.
 #' @param concavity a relative measure of concavity. 1 results in a relatively detailed shape, Infinity results in a convex hull. You can use values lower than 1, but they can produce pretty crazy shapes (\code{concaveman}).
 #' @param plot Logical, indicating whether to display plots.

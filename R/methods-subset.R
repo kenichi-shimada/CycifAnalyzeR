@@ -11,6 +11,7 @@
 #' @param value A Cycif object to be inserted or replaced.
 #'
 #' @rdname CycifStack_subset
+#' @aliases [,CycifStack-method
 #' @export
 setMethod("[",
           "CycifStack",
@@ -67,6 +68,7 @@ setMethod("[[",
 )
 
 #' @rdname CycifStack_subset
+#' @aliases [<-,CycifStack-method
 #' @export
 setMethod("[<-",
           "CycifStack",
@@ -77,6 +79,7 @@ setMethod("[<-",
 )
 
 #' @rdname CycifStack_subset
+#' @aliases [[<-,CycifStack,ANY,ANY-method
 #' @export
 setMethod("[[<-",
           "CycifStack",

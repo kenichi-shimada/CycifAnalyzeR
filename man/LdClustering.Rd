@@ -62,6 +62,8 @@ LdClustering(x, ...)
 
 \item{with.labels}{Logical scalar indicating whether to include labels.}
 
+\item{method}{Community-detection method passed to \code{Seurat::FindClusters}. Default "igraph".}
+
 \item{ld_name}{A character scalar indicating the name of the layout to use.}
 }
 \value{

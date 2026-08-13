@@ -9,6 +9,7 @@
 #'
 #' @param x A CycifStack object.
 #' @param value A numeric scalar indicating the desired number of cycles.
+#' @param ... Additional arguments (unused; for `nCycles<-`).
 #'
 #' @return
 #' The `nCycles` function returns a numeric vector containing the number of cells in each sample of the CycifStack object.
@@ -89,7 +90,14 @@ setMethod("length","CycifStack",function(x)x@n_samples)
 #'
 #' @export
 setGeneric("maxCycles", function(x)standardGeneric("maxCycles"))
-setMethod("maxCycles", "CycifStack", function(x) x@max_cycles)
+#' @rdname maxCycles
+#' @export
+setMethod("maxCycles", "CycifStack", function(x){
+  .Defunct(msg=paste(
+    "maxCycles() has had zero call sites anywhere across CycifAnalyzeR or any",
+    "downstream project repo (EP, TALAVE, HR-APM). Use x@max_cycles directly."
+  ))
+})
 
 #_ -------------------------------------------------------
 # nCells Cycif, CycifStack ----

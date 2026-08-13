@@ -26,39 +26,10 @@
 #'
 #' @export
 AbsSummary <- function(x,show.cycles.in.row=FALSE,...){
-  if(!is(x,"CycifStack")){
-    stop("input should be a CycifStack obj.")
-  }
-  uniq.abs <- as.character(x@abs_list$ab)
-  n1 <- data.frame(do.call(rbind,lapply(x@samples,function(y){
-    this.abs <- as.character(abs_list(y)$ab)
-    tested <- uniq.abs %in% this.abs
-    return(tested)
-  })))
-
-  idx <- rep(seq(ncol(n1)/3),each=3)
-  n2 <- n1 * idx[col(n1)]
-  n2[n2==0] <- NA
-  pcols <- grDevices::grey(c(.8,.6))[(seq(max(n2,na.rm=T)) %% 2) + 1]
-
-  if(show.cycles.in.row){
-    smpl.labs <- paste0(x@names,"\n(",x@n_cycles, " cycles)")
-  }else{
-    smpl.labs <- x@names
-  }
-  col.labs <- paste0("Cycle\n",seq(x@max_cycles))
-  graphics::image(seq(ncol(n2)),seq(nrow(n2)),t(n2[rev(seq(nrow(n2))),]),col=pcols,
-                  xlab="",ylab="",axes=F,...)
-  graphics::box()
-  graphics::abline(h=c(0,seq(nrow(n1)))+.5,lwd=.5)
-  graphics::abline(v=c(0,seq(ncol(n1)))+.5,lwd=.5)
-  graphics::axis(2,at=rev(seq(nrow(n1))),labels=smpl.labs,las=1)
-  graphics::axis(1,at=seq(ncol(n2)),labels=uniq.abs,las=2)
-  graphics::par(tcl=0)
-  graphics::axis(3,at=seq(x@max_cycles)*3-1,labels=col.labs)
-  graphics::par(tcl=-.5)
-
-  return(invisible(NULL))
+  .Defunct(msg=paste(
+    "AbsSummary() has had zero call sites anywhere across CycifAnalyzeR or any",
+    "downstream project repo (EP, TALAVE, HR-APM)."
+  ))
 }
 # fun: h3/heatmap3 matrix, data.frame ----
 
@@ -79,11 +50,39 @@ AbsSummary <- function(x,show.cycles.in.row=FALSE,...){
 #' @param showRowDendro Logical, indicating whether to show the row dendrogram (default is TRUE).
 #' @param col A color palette for the heatmap (default is a gradient from navy to firebrick3).
 #' @param legendfun A custom function to create the legend (default is NULL).
+#' @param method Clustering method passed to \code{hclustfun}. Default "complete".
+#' @param ColAxisColors,RowAxisColors Axis label colors, passed through to \code{heatmap3::heatmap3}.
+#' @param hclustfun Hierarchical clustering function. Default \code{stats::hclust}.
+#' @param reorderfun Dendrogram-reordering function. Default \code{function(d, w) stats::reorder(d, w)}.
+#' @param add.expr An expression to be evaluated after plotting, for adding extra graphical elements.
+#' @param symm Logical, whether the input matrix is symmetric. Default FALSE.
+#' @param revC Logical, whether to reverse the column order. Default \code{identical(Colv, "Rowv")}.
+#' @param scale One of "row", "column", or "none": how to scale the matrix before plotting.
+#' @param na.rm Logical, whether to remove NAs. Default TRUE.
+#' @param ColSideFun,ColSideAnn,ColSideWidth,ColSideCut Column-side annotation controls, passed through to \code{heatmap3::heatmap3}.
+#' @param colorCell,highlightCell Cell highlighting controls, passed through to \code{heatmap3::heatmap3}.
+#' @param file Output PDF filename when \code{topN} is used. Default "heatmap3.pdf".
+#' @param topN If set, restrict to the top N rows (by \code{filterFun}) and save to \code{file}.
+#' @param filterFun Row-filtering function used with \code{topN}. Default \code{stats::sd}.
+#' @param returnDistMatrix Logical, whether to return the computed distance matrix. Default FALSE.
+#' @param margins A numeric vector of length 2, plot margins.
+#' @param ColSideColors,RowSideColors Side-color annotation bars, passed through to \code{heatmap3::heatmap3}.
+#' @param cexRow,cexCol Row/column label font size.
+#' @param lasRow,lasCol Row/column label orientation.
+#' @param labRow,labCol Row/column labels.
+#' @param main,xlab,ylab Plot title and axis labels.
+#' @param na.color Color used for NA cells. Default "grey".
+#' @param keep.dendro Logical, whether to return the dendrogram. Default FALSE.
+#' @param verbose Logical, verbosity. Default \code{getOption("verbose")}.
+#' @param useRaster Logical, whether to use raster graphics for large matrices.
+#' @param ... Additional arguments passed to \code{heatmap3::heatmap3}.
 #'
 #' @details
 #' - The `h3` function creates a 3D heatmap plot to visualize a matrix of data, extending and customizing \code{heatmap3::heatmap3} function.
 #' - It allows customization of various aspects of the plot, including colors, labels, and dendrograms.
 #' - Additional functionalities like distance matrix calculations and custom legends are available.
+#'
+#' @importFrom heatmap3 heatmap3
 #'
 #' @export
 h3 <- function (x, Rowv = NULL, Colv = if (symm) "Rowv" else NULL,
@@ -530,13 +529,16 @@ h3 <- function (x, Rowv = NULL, Colv = if (symm) "Rowv" else NULL,
 #'
 #' @param x A `CycifStack` object containing protein expression data.
 #' @param norm_type Normalization type for the data, one of "log" or "logTh" (default is "log").
+#' @param summBy Whether to summarize "ab" (per antibody) or "heatmap". Default "ab".
 #' @param ab The name of the protein to be used for summarization.
 #' @param sum_type The type of summarization to be performed, one of "freq", "mean", "median", or "x percentile" (e.g., "95 percentile").
 #' @param ct_name The name of the cell type column (default is "default").
 #' @param uniq_cts Vector of unique cell types to include in the heatmap.
 #' @param uniq.smpls Vector of unique samples to include in the heatmap.
 #' @param strict Logical, indicating strict filtering of cell types (default is FALSE).
+#' @param p_thres Numeric threshold used when \code{sum_type="freq"}. Default 0.5.
 #' @param scale Scaling method for the heatmap, one of "none", "row", or "column" (default is "none").
+#' @param ... Additional arguments (unused).
 #'
 #' @details
 #' - The `heatmapSummAb` function creates a heatmap summarizing protein expression data for the specified protein.
@@ -559,106 +561,8 @@ setMethod("heatmapSummAb", "CycifStack",
                    strict=FALSE,
                    p_thres=0.5,
                    scale="none",...){
-    options(dplyr.summarise.inform = FALSE)
-
-    if(missing(sum_type)){
-      stop("'sum_type' should be specified")
-    }
-    if(missing(ab)){
-      stop("ab should be always specified")
-    }
-
-    # norm_type
-    if(sum_type=="freq"){
-      norm_type="logTh"
-    }else if(missing(norm_type)){
-      norm_type <- "log"
-    }
-
-    # sum_fun
-    if(grepl("percentile$",sum_type)){
-      pct <- strsplit(sum_type," ")[[1]]
-      p.ile <- as.numeric(pct[[1]])
-      sum_fun=function(y,...)quantile(y,p.ile/100,na.rm=T)
-    }else if(sum_type=="median"){
-      sum_fun=function(y,...)quantile(y,.5,na.rm=T)
-    }else if(sum_type=="mean"){
-      sum_fun=function(y,...)mean(y,na.rm=T)
-    }else if(sum_type=="freq"){
-      sum_fun=function(y,th){
-        if(length(y)==0){
-          return(NA)
-        }else{
-          return(sum(y > th, na.rm=T)/sum(!is.na(y)))
-        }
-      }
-    }
-
-    # balanceColor
-    if(sum_type=="freq" || norm_type=="log"){
-      balanceColor <- FALSE
-    }else if(norm_type=="logTh"){
-      balanceColor <- TRUE
-    }
-
-    ## cell types
-    cts <- cell_types(x,ct_name=ct_name,strict=strict)
-
-    df <- exprs(x,type=norm_type) %>%
-      cbind(cts) %>%
-      filter(cell_types != "outOfROI") %>%
-      rename(smpl = sample) %>%
-      rename(cell_type = cell_types)
-
-    if(missing(uniq.smpls)){
-      uniq.smpls <- levels(df$smpl)
-    }
-
-    if(missing(uniq_cts)){
-      uniq_cts <- levels(df$cell_type)
-    }
-
-    df <- df %>%
-      mutate(smpl = factor(smpl,levels=uniq.smpls)) %>%
-      filter(smpl %in% uniq.smpls) %>%
-      mutate(cell_type=factor(cell_type,levels=uniq_cts)) %>%
-      mutate(cell_type=factor(cell_type)) %>%
-      filter(!is.na(cell_type)) %>%
-      dplyr::rename(this_ab=!!sym(ab)) %>%
-      group_by(smpl,cell_type) %>%
-      dplyr::summarise(sum_ab=sum_fun(this_ab,th=p_thres))
-
-    ttl <- paste0(ab,",",sum_type,",",norm_type,",(scale:",scale,")")
-
-    m1 <- as.matrix(with(df, Matrix::sparseMatrix(as.integer(smpl), as.integer(cell_type), x=sum_ab)))
-
-    m1[apply(m1,1,function(x)any(is.nan(x))),] <- NA
-    if(sum_type!="freq"){
-      m1[m1==0] <- NA
-    }
-
-    rownames(m1) <- levels(df$smpl)
-    colnames(m1) <- levels(df$cell_type)
-    m1 <- m1[rev(seq(nrow(m1))),]
-
-    if(sum_type!="freq" && norm_type=="logTh"){
-      m1 <- m1 - 0.5 ## hardcode!!!!
-    }
-
-    ## cols
-    if(sum_type=="mean"){
-      cols <- viridis::viridis(1024)
-    }else if(sum_type == "freq"){
-      cols <- colorRampPalette(RColorBrewer::brewer.pal(9,"YlOrRd"))(1024)
-    }
-    h3(m1,
-       margins=c(10,5),
-       main=ttl,
-       cexRow=.7,
-       na.rm = T,
-       col = cols,
-       balanceColor=balanceColor,
-       scale=scale,...)
-
-    invisible(df)
+    .Defunct(msg=paste(
+      "heatmapSummAb() has had zero call sites anywhere across CycifAnalyzeR or",
+      "any downstream project repo (EP, TALAVE, HR-APM)."
+    ))
   })

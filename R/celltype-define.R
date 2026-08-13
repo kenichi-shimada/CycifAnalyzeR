@@ -16,11 +16,12 @@
 #' @param ctype A data frame defining cell lineage.
 #' @param cstate A data frame defining cell state.
 #' @param ctype.full Logical indicating whether to include the full lineage definition (default is FALSE).
+#' @param ... Additional arguments (unused).
 #'
 #' @return A CellTypes object containing cell lineage and state definitions.
 #'
 #' @seealso
-#' \code{\link{CellTypes}}
+#' \code{\linkS4class{CellTypes}}
 #'
 #' @rdname CellTypeSkeleton
 #' @export
@@ -136,6 +137,9 @@ setMethod("CellTypeSkeleton", "CycifStack",function(x,ctype,cstate,ctype.full=FA
 #' @param p_thres Numerical value between 0 and 1. A probability that corresponds to a threshold intensity. Default is 0.5.
 #' @param mc.cores Number of CPU cores to use for parallel processing. Default is 4.
 #' @param overwrite Logical, if TRUE, overwrite existing cell type definitions with the same name. Default is FALSE.
+#' @param prioritized.celltypes A named list of cell types to resolve before the normal lineage cascade
+#' (names = cell types, values = lineage markers); see \code{defineCellTypes(data.frame, ...)}'s implementation
+#' for the AND/OR/NOT marker-list format. Optional.
 #' @param ... Additional arguments (currently unused).
 #'
 #' @details

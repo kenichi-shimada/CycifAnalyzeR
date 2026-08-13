@@ -21,6 +21,8 @@
 #'   - `coords`: If `roi_type` is 'Polygon', `coords` is a data frame containing the coordinates of the ROI (x, y).
 #'     For other `roi_type` values, `coords` may contain different information based on the shape of the ROI.
 #'
+#' @param ... Additional arguments (unused).
+#'
 #' @return A Cycif object with imported ROIs.
 #'
 #' @importFrom magrittr %>%
@@ -143,6 +145,7 @@ setMethod("importROIs", "CycifStack",
 #' This should be used after importROIs functions are called so ROIs are set in each Cycif object.
 #'
 #' @param x A Cycif object.
+#' @param ... Additional arguments (unused).
 #'
 #' @return A Cycif object with cells marked as within or outside ROIs in within_rois slot
 #'
@@ -217,7 +220,8 @@ setMethod("setWithinROIs", "Cycif",
 #' @description This function allows interactive setting of regions of interest (ROIs) in a Cycif object. ROIs can be defined as either positive or negative based on their intended use.
 #'
 #' @param x A Cycif object.
-#' @param roi_type A character string specifying the type of ROIs to set. It can be either "positive" or "negative."
+#' @param rois A list of ROI definitions to set (see \code{\link{importROIs}}).
+#' @param ... Additional arguments (unused).
 #'
 #' @return A Cycif object with the defined ROIs.
 #'
@@ -234,52 +238,12 @@ setGeneric("roiFilter", function(x,...) standardGeneric("roiFilter"))
 #' @rdname roiFilter
 setMethod("roiFilter", "Cycif",
           function(x,rois){
-            mat <- x@raw
-            smpl <- x@name
-            # n <- n1 <- 1000
-
-            pos.rois <- x@rois
-            ## choose positive ROI
-            if(roi_type=="positive"){
-              cat("Set positive ROIs.\n")
-              ans <- "Y"
-              while(!grepl("^[nN]",ans)){
-                ns <- as.integer(readline(prompt="How many points?"))
-                cat(paste0("Select ",ns," points to set a polygon\n"))
-                xys1 <- locator(ns)
-                lines(xys1$x[c(seq(xys1$x),1)],xys1$y[c(seq(xys1$x),1)],col=2,lty=2,lwd=2)
-                check <- readline(prompt="satisfied with the ROI? (Y/N) [Y]")
-                if(grepl("^[nN]",check)){
-                  next
-                }
-                xys1$roi_type="positive"
-                pos.rois <- c(pos.rois,list(xys1))
-                cat("Do you want to set more positive ROIs?")
-                ans <- readline(prompt="(Y/N) [Y]")
-                x@rois <- pos.rois
-              }
-              return(x)
-            }else if(roi_type=="negative"){
-              cat("Set negative ROIs.\n")
-              ans <- "Y"
-              while(!grepl("^[nN]",ans)){
-                ns <- as.integer(readline(prompt="How many points?"))
-                cat(paste0("Select ",ns," points to set a polygon\n"))
-                xys1 <- locator(ns)
-                lines(xys1$x[c(seq(xys1$x),1)],xys1$y[c(seq(xys1$x),1)],col=4,lty=2,lwd=2)
-                check <- readline(prompt="satisfied with the ROI? (Y/N) [Y]")
-                if(grepl("^[nN]",check)){
-                  next
-                }
-                xys1$roi_type="negative"
-                pos.rois <- c(pos.rois,list(xys1))
-                cat("Do you want to set more negative ROIs?")
-                ans <- readline(prompt="(Y/N) [Y]")
-
-                x@rois <- pos.rois
-              }
-            }
-            return(x)
+            .Defunct(msg=paste(
+              "roiFilter() was already documented as '(discontinued)' and has had",
+              "zero call sites anywhere across CycifAnalyzeR or any downstream",
+              "project repo (EP, TALAVE, HR-APM). Use importROIs() + setWithinROIs()",
+              "instead."
+            ))
           }
 )
 
@@ -292,6 +256,8 @@ setMethod("roiFilter", "Cycif",
 #' @param x A Cycif object.
 #' @param ch A character value specifying the name of the channel.
 #' @param gate A numerical value specifying the gate for the AF channel.
+#' @param gates (CycifStack method) a named numeric vector of per-sample gates, names matching \code{names(x)}.
+#' @param ... Additional arguments (unused).
 #'
 #' @return A Cycif object with the defined ROIs.
 #'
@@ -383,6 +349,8 @@ setMethod("rbcFilter", "CycifStack",
 #' If `show.only` is set to `TRUE`, the function performs DNA filtering without user interaction and applies the specified thresholds.
 #'
 #' The `dna.thres` argument allows you to specify custom low and high thresholds for DNA channels. If `dna.thres` is NULL, the function uses default thresholds based on the data.
+#'
+#' @param ... Additional arguments (unused).
 #'
 setGeneric("dnaFilter", function(x,...) standardGeneric("dnaFilter"))
 
@@ -650,8 +618,7 @@ hist_fun <- function(x,n=1000,ths,mar=c(3,4,4,2)+.1,brks1,ttl1){
 
 #' @param type type. If "raw", a raw expression matrix is shown. If "log" or "logTh",
 #'   a log or logTh normalized expression matrix will be shown.
-#' @param silent logical. If FALSE, the method of normalization was shown in
-#'  the error prompt.
+#' @param ... Additional arguments (unused).
 #'
 #' @seealso \code{\link{normalize}} \code{\link{transform}}
 #' @export
@@ -715,7 +682,7 @@ setMethod("exprs", "CycifStack",function(x,type=c("raw","log","logTh")){
 #' @param method Either "log" or "logTh". "log" indicates that the raw values are transformed using log1p() function. "logTh" method further trims the outliers outside the \[trim, 1-trim\] quantiles, where trim is specified by the trim parameter. Outlier-trimmed, log1p-transformed raw values are further transformed such that the value indicated by the threshold, th (in the case of transform() function) or threshold(x) (in the case of normalize() function) will be set to p_thres. Values below or above the threshold are linearly transformed to values between 0 and p_thres, or values between p_thres and 1, respectively.
 #' @param trim A numeric scalar specifying the trim value for outlier trimming.
 #' @param p_thres A numeric scalar specifying the threshold value for linear transformation.
-#' @param th A numeric scholar. A user-provided threshold for a raw expression value for each protein for each sample.
+#' @param ... Additional arguments (unused).
 #'
 #' @details
 #' The `normalize` function is used to preprocess protein expression data in Cycif or CycifStack objects. It provides two main normalization methods: "log" for simple logarithmic transformation and "logTh" for more advanced normalization with optional thresholding and trimming.
@@ -894,6 +861,14 @@ transform <- function(r,method=c("log","logTh","Th","invlog"),th,p_thres=0.5,tri
   return(r1)
 }
 
+#' Winsorize a numeric vector at its extreme quantiles
+#'
+#' @param x A numeric vector.
+#' @param trim_th Tail probability trimmed at each end (default 0.001).
+#'
+#' @return `x`, with values below the `trim_th` quantile and above the
+#' `1 - trim_th` quantile clipped to those quantile values.
+#'
 #' @export
 trim_fun <- function(x,trim_th = 1e-3){
   qts <- stats::quantile(x,c(trim_th,1-trim_th),na.rm=T)

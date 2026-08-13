@@ -7,25 +7,30 @@
 #' @description This function allows you to get or set gates information in a Cycif or CycifStack object.
 #'
 #' @param x A Cycif or CycifStack object.
+#' @param gates.df (For `setGates`) a data.frame of gate definitions.
+#' @param run_normalize (For `setGates`) logical, whether to re-run \code{normalize()} after setting gates. Default TRUE.
+#' @param p_thres (For `setGates`) numeric threshold passed to \code{normalize()}. Default 0.5.
+#' @param trim (For `setGates`) numeric trim value passed to \code{normalize()}. Default 1e-3.
 #' @param ... Additional arguments specific to the get or set operation.
 #'
 #' @return If used as `getGates(x)`, it returns the gates information.
 #' If used as `setGates(x, ...)`, it sets the gates information and returns the modified object.
 #'
 #' @examples
+#' \dontrun{
+#' # Illustrative only -- requires a real Cycif/CycifStack object and gates_data.
 #' # Get gates information from a Cycif object
-#' ct_obj <- new("Cycif", ...)
 #' getGates(ct_obj)
 #'
 #' # Set gates information in a Cycif object
 #' setGates(ct_obj, gates_data)
 #'
 #' # Get gates information from a CycifStack object
-#' ct_stack_obj <- new("CycifStack", ...)
 #' getGates(ct_stack_obj)
 #'
 #' # Set gates information in a CycifStack object
 #' setGates(ct_stack_obj, gates_data)
+#' }
 #'
 #' @rdname getGates
 #' @importFrom dplyr left_join select

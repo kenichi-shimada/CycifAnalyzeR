@@ -15,6 +15,8 @@ ld_coords(x, ...)
 \arguments{
 \item{x}{A 'Cycif' or 'CycifStack' object containing UMAP embeddings or clustering results.}
 
+\item{...}{Additional arguments (unused).}
+
 \item{ld_name}{The name of the UMAP embedding or clustering result to retrieve.}
 }
 \value{

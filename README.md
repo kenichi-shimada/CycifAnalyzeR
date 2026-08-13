@@ -17,7 +17,7 @@ You can install the development version of CycifAnalyzeR from
 
 ``` r
 # install.packages("devtools")
-devtools::install_github("kenichi-shimada/CycifAnalyzeR")
+devtools::install_github("kenichi-shimada/CycifAnalyzeR", ref = "v3.0")
 ```
 
 Some software installation outside R is needed prior to running the
@@ -36,6 +36,22 @@ library(CycifAnalyzeR)
 ```
 
 A workflow script will be added shortly…
+
+## Object model
+
+`CycifStack` holds many `Cycif` objects (one per sample); both classes
+independently carry `CellTypes` and `CellNeighborhood`, populated by the
+same generic functions at either the per-sample or the stack level. The
+analysis layer runs a `CycifStack` through `computeSelection()` to get a
+`CellSelection`, then `subsetCells()` consumes both the `CycifStack` and
+the `CellSelection` to build a `CellFeatures` object, which `runUMAP()`
+and `clusterCells()` modify in place.
+
+<img src="man/figures/object-model.svg" alt="CycifAnalyzeR object model" width="100%" />
+
+## Exported functions by category
+
+<img src="man/figures/function-reference.svg" alt="CycifAnalyzeR exported functions by category" width="100%" />
 
 <!-- What is special about using `README.Rmd` instead of just `README.md`? You can include R chunks like so: -->
 <!-- ```{r cars} -->

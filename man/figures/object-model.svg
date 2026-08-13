@@ -1,0 +1,182 @@
+<svg viewBox="0 0 1280 1000" xmlns="http://www.w3.org/2000/svg" role="img" font-family="-apple-system,BlinkMacSystemFont,Segoe UI,sans-serif">
+  <title>CycifAnalyzeR object model, v4</title>
+  <desc>CycifStack contains many Cycif objects. Both independently hold CellTypes and CellNeighborhood, populated by the same generic functions. The analysis layer runs CycifStack through computeSelection to CellSelection, then subsetCells consumes both CycifStack and CellSelection to build CellFeatures, which runUMAP and clusterCells modify in place via self-loop arrows.</desc>
+  <defs>
+    <marker id="arrow" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+      <path d="M0,0 L10,5 L0,10 z" fill="var(--edge)"/>
+    </marker>
+    <marker id="arrow-fn" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="8" markerHeight="8" orient="auto-start-reverse">
+      <path d="M0,0 L10,5 L0,10 z" fill="var(--accent)"/>
+    </marker>
+    <marker id="diamond" viewBox="0 0 16 10" refX="15" refY="5" markerWidth="16" markerHeight="10" orient="auto-start-reverse">
+      <path d="M1,5 L8,1 L15,5 L8,9 z" fill="var(--surface)" stroke="var(--edge)" stroke-width="1"/>
+    </marker>
+  </defs>
+
+  <style>
+    :root {
+      --bg: #ffffff; --surface: #f8f9fb; --border: #d7dce3;
+      --text: #1f2430; --text-dim: #5b6472; --edge: #9aa3b2;
+      --accent: #3d63dd; --accent-bg: #eaf0ff; --accent-border: #b9cbfb;
+      --derived-bg: #fff4e8; --derived-border: #f0c896; --derived-text: #8a5a1e;
+      --nest-bg: #eef7ee; --nest-border: #b9dbb9; --nest-text: #2e6b2e;
+    }
+    @media (prefers-color-scheme: dark) {
+      :root {
+        --bg: #1b1e26; --surface: #262a35; --border: #3c4250;
+        --text: #e7e9ee; --text-dim: #a1a8b5; --edge: #767f8f;
+        --accent: #8fb0ff; --accent-bg: #26314f; --accent-border: #3e5183;
+        --derived-bg: #3a2d1c; --derived-border: #6b4a22; --derived-text: #e8b979;
+        --nest-bg: #223523; --nest-border: #3f6b40; --nest-text: #90cf90;
+      }
+    }
+    :root[data-theme="dark"] {
+      --bg: #1b1e26; --surface: #262a35; --border: #3c4250;
+      --text: #e7e9ee; --text-dim: #a1a8b5; --edge: #767f8f;
+      --accent: #8fb0ff; --accent-bg: #26314f; --accent-border: #3e5183;
+      --derived-bg: #3a2d1c; --derived-border: #6b4a22; --derived-text: #e8b979;
+      --nest-bg: #223523; --nest-border: #3f6b40; --nest-text: #90cf90;
+    }
+    :root[data-theme="light"] {
+      --bg: #ffffff; --surface: #f8f9fb; --border: #d7dce3;
+      --text: #1f2430; --text-dim: #5b6472; --edge: #9aa3b2;
+      --accent: #3d63dd; --accent-bg: #eaf0ff; --accent-border: #b9cbfb;
+      --derived-bg: #fff4e8; --derived-border: #f0c896; --derived-text: #8a5a1e;
+      --nest-bg: #eef7ee; --nest-border: #b9dbb9; --nest-text: #2e6b2e;
+    }
+    .box-core { fill: var(--accent-bg); stroke: var(--accent-border); stroke-width: 1.5; }
+    .box-nest { fill: var(--nest-bg); stroke: var(--nest-border); stroke-width: 1.5; }
+    .box-derived { fill: var(--derived-bg); stroke: var(--derived-border); stroke-width: 1.5; }
+    .title { fill: var(--text); font-size: 15px; font-weight: 600; }
+    .sub { fill: var(--text-dim); font-size: 11px; }
+    .slot { fill: var(--text-dim); font-size: 10.5px; font-family: ui-monospace, Menlo, monospace; }
+    .section { fill: var(--text-dim); font-size: 12.5px; font-weight: 700; letter-spacing: 0.04em; text-transform: uppercase; }
+    .edge { stroke: var(--edge); stroke-width: 1.5; fill: none; }
+    .edge-fn { stroke: var(--accent); stroke-width: 2; fill: none; }
+    .fnlabel { fill: var(--accent); font-size: 12px; font-weight: 600; font-family: ui-monospace, Menlo, monospace; }
+    .fnlabel-bg { fill: var(--bg); stroke: var(--accent-border); stroke-width: 1; }
+    .note { fill: var(--text-dim); font-size: 11px; font-style: italic; }
+  </style>
+
+  <rect x="0" y="0" width="1280" height="1000" fill="var(--bg)"/>
+
+  <!-- ============ SECTION 1 (unchanged from v3) ============ -->
+  <text x="24" y="30" class="section">1. Raw / provenance layer -- one Cycif per sample, stacked into a CycifStack</text>
+
+  <rect x="24" y="50" width="240" height="140" rx="10" class="box-core"/>
+  <text x="40" y="76" class="title">CycifStack</text>
+  <text x="40" y="92" class="sub">one imaging cohort</text>
+  <text x="40" y="112" class="slot">samples: list&lt;Cycif&gt;</text>
+  <text x="40" y="128" class="slot">n_samples, n_cells, n_cycles</text>
+  <text x="40" y="144" class="slot">abs_list, phenoData</text>
+  <text x="40" y="160" class="slot">cell_types, cell_neighborhood</text>
+
+  <line x1="264" y1="105" x2="356" y2="105" class="edge" marker-end="url(#diamond)"/>
+  <rect x="272" y="86" width="82" height="16" fill="var(--bg)"/>
+  <text x="276" y="98" class="sub">@samples: 1 -&gt; many</text>
+
+  <rect x="360" y="50" width="240" height="140" rx="10" class="box-core"/>
+  <text x="376" y="76" class="title">Cycif</text>
+  <text x="376" y="92" class="sub">one imaging sample</text>
+  <text x="376" y="112" class="slot">xy_coords, raw, log_norm</text>
+  <text x="376" y="128" class="slot">n_cells, n_cycles, abs_list</text>
+  <text x="376" y="144" class="slot">within_rois: logical</text>
+  <text x="376" y="160" class="slot">cell_types, cell_neighborhood</text>
+
+  <text x="640" y="76" class="note">CellTypes and CellNeighborhood are each held</text>
+  <text x="640" y="91" class="note">independently by BOTH classes below -- same</text>
+  <text x="640" y="106" class="note">generic function, dispatched by class, fills</text>
+  <text x="640" y="121" class="note">in either one's own copy (parallel, not nested).</text>
+
+  <path d="M144,190 C144,250 400,250 400,296" class="edge-fn" marker-end="url(#arrow-fn)"/>
+  <path d="M480,190 C480,230 400,230 400,296" class="edge-fn" marker-end="url(#arrow-fn)"/>
+  <rect x="222" y="235" width="286" height="22" class="fnlabel-bg" rx="4"/>
+  <text x="232" y="250" class="fnlabel">defineCellTypes(Cycif | CycifStack)</text>
+
+  <path d="M144,190 C144,278 800,278 800,296" class="edge-fn" marker-end="url(#arrow-fn)"/>
+  <path d="M480,190 C480,290 800,290 800,296" class="edge-fn" marker-end="url(#arrow-fn)"/>
+  <rect x="654" y="270" width="242" height="22" class="fnlabel-bg" rx="4"/>
+  <text x="664" y="285" class="fnlabel">computeCN(Cycif | CycifStack)</text>
+
+  <rect x="280" y="300" width="240" height="90" rx="10" class="box-nest"/>
+  <text x="296" y="326" class="title" font-size="14" fill="var(--nest-text)">CellTypes</text>
+  <text x="296" y="342" class="sub">own copy per Cycif AND per</text>
+  <text x="296" y="356" class="sub">CycifStack (pooled)</text>
+  <text x="296" y="376" class="slot">cell_types: factor, is_strict</text>
+
+  <rect x="680" y="300" width="260" height="90" rx="10" class="box-nest"/>
+  <text x="696" y="326" class="title" font-size="14" fill="var(--nest-text)">CellNeighborhood</text>
+  <text x="696" y="342" class="sub">own copy per Cycif AND per</text>
+  <text x="696" y="356" class="sub">CycifStack -- full population, no subsampling</text>
+  <text x="696" y="376" class="slot">is_used, neighbor_counts ...</text>
+
+  <text x="24" y="425" class="note">Accessors for these slots (nCells(), exprs(), cell_types(), cell_neighborhood(), ...) are listed in the companion function-reference figure.</text>
+
+  <!-- ============ SECTION 2 (rebuilt) ============ -->
+  <text x="24" y="470" class="section">2. Analysis layer -- CycifStack -&gt; one flat CellFeatures table, built by named functions</text>
+  <text x="24" y="487" class="note">every arrow: function(input class[es]) -&gt; output class -- always the exact classes the function accepts</text>
+
+  <!-- boxes: CycifStack, CellSelection, CellFeatures, all top-aligned at y=630 -->
+  <rect x="24" y="630" width="170" height="70" rx="10" class="box-core"/>
+  <text x="40" y="658" class="title" font-size="14">CycifStack</text>
+  <text x="40" y="676" class="sub">with CellTypes +</text>
+  <text x="40" y="690" class="sub">CellNeighborhood set</text>
+
+  <rect x="320" y="630" width="170" height="70" rx="10" class="box-derived"/>
+  <text x="336" y="658" class="title" font-size="14" fill="var(--derived-text)">CellSelection</text>
+  <text x="336" y="676" class="sub">which cells,</text>
+  <text x="336" y="690" class="sub">reproducibly</text>
+
+  <rect x="780" y="612" width="230" height="106" rx="10" class="box-derived"/>
+  <text x="796" y="640" class="title" font-size="14" fill="var(--derived-text)">CellFeatures</text>
+  <text x="796" y="658" class="sub">flat data.table, 1 row per cell</text>
+  <text x="796" y="674" class="sub">columns added in place by:</text>
+  <text x="796" y="690" class="sub">runUMAP(), clusterCells()</text>
+
+  <!-- computeSelection: CycifStack -> CellSelection, arcing through label band above both boxes -->
+  <path d="M170,630 C170,595 340,595 340,626" class="edge-fn" marker-end="url(#arrow-fn)"/>
+  <rect x="180" y="580" width="270" height="22" class="fnlabel-bg" rx="4"/>
+  <text x="188" y="595" class="fnlabel">computeSelection(CycifStack)</text>
+
+  <!-- subsetCells: CellSelection -> CellFeatures (direct arc), label above, clear of all boxes -->
+  <path d="M470,630 C560,590 700,590 784,628" class="edge-fn" marker-end="url(#arrow-fn)"/>
+  <!-- subsetCells: CycifStack -> CellFeatures (long low arc under CellSelection, converges on same target area) -->
+  <path d="M109,700 C109,760 750,780 784,700" class="edge-fn" fill="none" marker-end="url(#arrow-fn)"/>
+  <rect x="470" y="530" width="320" height="22" class="fnlabel-bg" rx="4"/>
+  <text x="478" y="545" class="fnlabel">subsetCells(CycifStack, CellSelection)</text>
+
+  <!-- self-loop: runUMAP, arcing above the box -->
+  <path d="M860,612 C840,555 970,555 970,610" class="edge-fn" fill="none" marker-end="url(#arrow-fn)"/>
+  <rect x="855" y="524" width="160" height="22" class="fnlabel-bg" rx="4"/>
+  <text x="863" y="539" class="fnlabel" font-size="11">runUMAP(x)</text>
+
+  <!-- self-loop: clusterCells, arcing below the box -->
+  <path d="M860,718 C840,782 970,782 970,720" class="edge-fn" fill="none" marker-end="url(#arrow-fn)"/>
+  <rect x="850" y="784" width="175" height="22" class="fnlabel-bg" rx="4"/>
+  <text x="858" y="799" class="fnlabel" font-size="11">clusterCells(x)</text>
+
+  <text x="1050" y="640" class="note">both take and</text>
+  <text x="1050" y="655" class="note">return the same</text>
+  <text x="1050" y="670" class="note">CellFeatures x,</text>
+  <text x="1050" y="685" class="note">just with new</text>
+  <text x="1050" y="700" class="note">columns added --</text>
+  <text x="1050" y="715" class="note">umap_x/umap_y,</text>
+  <text x="1050" y="730" class="note">cluster.</text>
+
+  <text x="24" y="840" class="note">clusterCells() wraps Seurat/Louvain-family clustering. Leiden clustering (e.g. in the EP notebook) is bespoke analysis code, not part of this package.</text>
+  <text x="24" y="857" class="note">CycifStack-level defineCellTypes()/computeCN() are literally a per-sample loop over the Cycif method, then concatenated -- not an independent stack-level computation.</text>
+
+  <!-- ============ Legend ============ -->
+  <rect x="24" y="880" width="1232" height="1" fill="var(--border)"/>
+  <text x="24" y="902" class="section">Legend</text>
+  <rect x="24" y="916" width="18" height="18" rx="4" class="box-core"/>
+  <text x="50" y="930" class="sub">raw/provenance object (Cycif, CycifStack)</text>
+  <rect x="24" y="942" width="18" height="18" rx="4" class="box-nest"/>
+  <text x="50" y="956" class="sub">nested class, held independently by both Cycif and CycifStack</text>
+  <rect x="480" y="916" width="18" height="18" rx="4" class="box-derived"/>
+  <text x="506" y="930" class="sub">analysis-layer object, always built by a function -- never constructed by hand</text>
+  <line x1="480" y1="948" x2="516" y2="948" class="edge" marker-end="url(#diamond)"/>
+  <text x="526" y="952" class="sub">"contains many" (list slot)</text>
+  <line x1="820" y1="948" x2="856" y2="948" class="edge-fn" marker-end="url(#arrow-fn)"/>
+  <text x="866" y="952" class="sub">function call: exact input class(es) in, output class returned</text>
+</svg>

@@ -12,13 +12,13 @@ normalize(x, ...)
 \arguments{
 \item{x}{A Cycif or CycifStack object.}
 
+\item{...}{Additional arguments (unused).}
+
 \item{method}{Either "log" or "logTh". "log" indicates that the raw values are transformed using log1p() function. "logTh" method further trims the outliers outside the [trim, 1-trim] quantiles, where trim is specified by the trim parameter. Outlier-trimmed, log1p-transformed raw values are further transformed such that the value indicated by the threshold, th (in the case of transform() function) or threshold(x) (in the case of normalize() function) will be set to p_thres. Values below or above the threshold are linearly transformed to values between 0 and p_thres, or values between p_thres and 1, respectively.}
 
 \item{trim}{A numeric scalar specifying the trim value for outlier trimming.}
 
 \item{p_thres}{A numeric scalar specifying the threshold value for linear transformation.}
-
-\item{th}{A numeric scholar. A user-provided threshold for a raw expression value for each protein for each sample.}
 }
 \description{
 This function allows you to normalize a Cycif or CycifStack object, either using a simple logarithmic transformation or a more advanced transformation method with optional thresholding and trimming.

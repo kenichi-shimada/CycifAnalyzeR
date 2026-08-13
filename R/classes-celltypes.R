@@ -21,6 +21,8 @@
 #' @details
 #' The \code{CellTypes} class stores information about cell lineage, cell state, markers, and sample-specific details from CyCIF data analysis.
 #'
+#' @param object A CellTypes object (for the \code{show} method).
+#'
 #' @seealso
 #' Other classes: \code{\link{Cycif}}, \code{\link{CycifStack}}
 #'
@@ -86,5 +88,76 @@ setClass("LDCoords",
      ld_params = "list",
      ld_call = "call",
      clust_call = "call"
+   )
+)
+
+#_ -------------------------------------------------------
+
+# class: CellSelection ----
+
+#' @title CellSelection Class
+#'
+#' @description
+#' Records an explicit, reproducible choice of which cells to work with for a
+#' specific downstream analysis (e.g. clustering, a UMAP). Not meant to be
+#' constructed directly -- built by \code{computeSelection()}, and consumed by
+#' \code{subsetCells()}. Centralizes the subsampling logic that used to be
+#' duplicated ad hoc in individual analyses (e.g. computeCN()'s old
+#' n.sampling, or hand-written per-sample sample() calls).
+#'
+#' @section Slots:
+#' \describe{
+#'   \item{\code{used.cts}}{A character vector of eligible cell types.}
+#'   \item{\code{n_per_sample}}{A named numeric vector, one entry per sample, giving the
+#'   cap applied to that sample (after resolving a scalar/percentile default to per-sample values).}
+#'   \item{\code{seed}}{The random seed used.}
+#'   \item{\code{is_used}}{A logical vector, length = nCells(the source CycifStack): TRUE
+#'   for selected cells. This is the actual mask consumed by \code{subsetCells()}.}
+#'   \item{\code{source_samples}}{Character vector of sample names this selection was computed against.}
+#'   \item{\code{call}}{The \code{computeSelection()} call that produced this object, for provenance.}
+#' }
+#'
+#' @seealso \code{\link{computeSelection}}, \code{\link{selectionSummary}}
+#'
+#' @rdname CellSelection
+#' @export
+setClass("CellSelection",
+   slots = c(
+     used.cts = "character",
+     n_per_sample = "numeric",
+     seed = "numeric",
+     is_used = "logical",
+     source_samples = "character",
+     call = "call"
+   )
+)
+
+#_ -------------------------------------------------------
+
+# class: CellFeatures ----
+
+#' @title CellFeatures Class
+#'
+#' @description
+#' A thin, analysis-ready table: one row per selected cell, columns for
+#' center-cell expression, xy coordinates, neighborhood composition/expression
+#' (if available), and clinical metadata -- built once by \code{subsetCells()}
+#' so downstream steps (UMAP, clustering) work off a flat \code{data.table}
+#' rather than re-deriving row alignment against the CycifStack each time.
+#'
+#' @section Slots:
+#' \describe{
+#'   \item{\code{data}}{A data.table, one row per selected cell.}
+#'   \item{\code{selection}}{The CellSelection this table was built from, for provenance.}
+#' }
+#'
+#' @seealso \code{\link{subsetCells}}, \code{\linkS4class{CellSelection}}
+#'
+#' @rdname CellFeatures
+#' @export
+setClass("CellFeatures",
+   slots = c(
+     data = "data.table",
+     selection = "CellSelection"
    )
 )

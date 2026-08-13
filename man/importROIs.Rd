@@ -15,6 +15,8 @@ importROIs(x, ...)
 \arguments{
 \item{x}{A Cycif or CycifStack object.}
 
+\item{...}{Additional arguments (unused).}
+
 \item{exported.rois}{A data frame containing the exported ROIs with columns:
 \itemize{
 \item \code{type}: Type of ROI ('Rectangle', 'Polygon', or 'Ellipse').

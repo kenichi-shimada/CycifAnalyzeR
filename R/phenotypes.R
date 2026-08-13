@@ -7,9 +7,9 @@
 #' These functions allow you to show or set sample metadata for a Cycif or CycifStack object.
 #'
 #' @param x A Cycif or CycifStack object.
-#' @param value For `pData<-`, a data frame containing sample metadata.
-#' @param by (For `pData<-`) The column name in the value data frame that contains sample names.
-#'        This column name should be set as the 'id' for sample identification.
+#' @param value For `pData<-`, a data frame containing sample metadata, with an
+#' \code{id} column matching \code{names(x)}.
+#' @param ... Additional arguments (unused; for `pData<-`).
 #'
 #' @details
 #' - `pData` retrieves and displays the sample metadata associated with the input Cycif or CycifStack object.

@@ -19,7 +19,7 @@
 #' The `Cycif2CycifStack` function handles a special case where a single Cycif object is converted to a CycifStack object.
 #'
 #' @seealso
-#' \code{\link{list2Cycif}}, \code{\link{list2CycifStack}}, \code{\link{Cycif2CycifStack}}, \code{\link{Cycif}}, \code{\link{CycifStack}}, \code{\link{CellTypes}}
+#' \code{\link{list2Cycif}}, \code{\link{list2CycifStack}}, \code{\link{Cycif2CycifStack}}, \code{\link{Cycif}}, \code{\link{CycifStack}}, \code{\linkS4class{CellTypes}}
 setGeneric("list2CycifStack", function(x) standardGeneric("list2CycifStack"))
 
 #' @rdname list2CycifStack
@@ -69,5 +69,9 @@ setGeneric("Cycif2CycifStack", function(x) standardGeneric("Cycif2CycifStack"))
 #' @rdname list2CycifStack
 #' @export
 setMethod("Cycif2CycifStack", "Cycif",function(x){
-  list2CycifStack(list(x))
+  .Defunct(msg=paste(
+    "Cycif2CycifStack() has had zero call sites anywhere across CycifAnalyzeR",
+    "or any downstream project repo (EP, TALAVE, HR-APM). Use",
+    "list2CycifStack(list(x)) directly."
+  ))
 })

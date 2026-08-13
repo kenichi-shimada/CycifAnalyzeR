@@ -18,6 +18,8 @@
 #' @param mask_type Character vector specifying the mask types to use for sample loading.
 #'   Default is c("cellRing", "cell").
 #' @param mcmicro Logical. Whether the input files are from the MCMicro platform. Defaults to FALSE.
+#' @param n_cycles Optional numeric, the number of cycles to fix all samples to (see \code{nCycles<-}).
+#' If missing, each sample keeps its own detected number of cycles.
 #' @param use_scimap Logical. Whether to use scimap for additional processing. Defaults to FALSE.
 #'
 #' @return
@@ -28,9 +30,11 @@
 #' @importFrom magrittr %>%
 #'
 #' @examples
-#' # Example usage:
+#' \dontrun{
+#' # Requires real quantification files on disk -- not runnable as a doc example.
 #' ft_filenames <- c("unmicst-sample1_cellRing.csv", "unmicst-sample2_cell.csv")
 #' stack <- CycifStack(ft_filenames)
+#' }
 #'
 #' @export
 CycifStack <- function(ft_filenames,

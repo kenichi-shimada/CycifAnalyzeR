@@ -14,6 +14,8 @@
 #' @param n.cores Integer, the number of CPU cores to use for parallel processing.
 #' @param ct_name Character, the name of the cell type column (used in \code{cell_types}).
 #' @param verbose Logical, indicating whether to display progress messages.
+#' @param cancer.cts Character vector of cell type(s) treated as tumor cells. Default "Tumor".
+#' @param ... Additional arguments (unused).
 #'
 #' @return A list containing information about tumor bed regions, including distance threshold, cell coordinates, regions within tumor bed, edge points, cell types, clusters, and neighbors.
 #'

@@ -9,33 +9,38 @@
 #' radius 'r'. The RCN analysis can be performed on a single Cycif object or across a CycifStack object.
 #'
 #' @param x A Cycif or CycifStack object.
-#' @param r The radius within which neighboring cells are considered (in 'unit').
-#' @param unit The unit of measurement for the radius ('pixel' or 'um'). If 'um' is specified,
-#' the radius 'r' will be converted to pixels based on the assumed resolution (0.65 um per pixel).
-#' @param cts.in.center A character vector specifying the cell types around which RCN is computed. If not is specified, all available cts are used.
-#' @param cts.in.rcn A character vector specifying the cell types to consider when computing RCN values. If not is specified, all avaialble cts are used.
-#' @param n.sampling The number of cells to randomly sample for RCN analysis.
-#' @param seed The random seed for reproducibility.
+#' @param r_um The radius within which neighboring cells are considered, in micrometers.
+#' @param k The number of nearest neighbors to use when \code{type="knn"}.
+#' @param type Neighbor-graph algorithm: "knn" (\code{\link[dbscan]{kNN}}) or "frnn"
+#' (\code{\link[dbscan]{frNN}}, radius-based). Default "frnn".
+#' @param used.cts A character vector of cell types to consider, both as centers and as
+#' neighbors. If not specified, all available cell types except "outOfROI" are used.
+#' @param ct_name Which cell-typing to use (default "default").
+#' @param off_target A named list of cell type -> antibody vector, marking off-target/
+#' non-expressing antibody-celltype pairs to mask out of the neighbor-averaged expression
+#' (see \code{off_target_mode}). Optional; if NULL (default), no masking is applied.
+#' @param off_target_mode "na" (default) sets off-target values to NA before averaging;
+#' "zero" sets them to 0.
+#' @param mc.cores (CycifStack method only) number of cores for \code{parallel::mclapply}
+#' across samples. Default 1.
+#' @param ... Additional arguments (unused).
 #'
-#' @return A CellNeighborhood object containing the following components:
-#' - 'within.rois': A logical vector indicating whether each cell is within a region of interest (ROI). The length is the same as the number of cells in the dataset.
-#' - 'cts.in.rcn': A character vector specifying the cell types considered when computing cell neighbors, cell type frequency, and expressions.
-#' - 'n.cells.selected': The number of cells selected for RCN analysis, which is the smaller of `n.sampling` and the number of cells within ROIs.
-#' - 'frnn': A list with recurrent Neighborhood information, including 'dist', 'id', 'eps', and 'sort'. The length of 'dist' and 'id' is the same as 'n.cells.selected'.
-#' - 'cn_exp': A data frame containing expression data for selected cells.
-#' - 'is.selected': A logical vector indicating whether each cell is selected for RCN analysis. The sum of the vector is the same as 'n.cells.selected'.
-#' - 'rcn.count': A data frame containing the counts of neighboring cell types.
-#' - 'rcn.freq': A data frame containing the relative frequencies of neighboring cell types.
+#' @return A CellNeighborhood object. Every per-cell slot is computed for EVERY within-ROI
+#' cell belonging to `used.cts` -- computeCN() does not subsample. `is_used` records which
+#' cells that is (eligibility, not a random sample); if you need a smaller working set for
+#' a specific downstream analysis (clustering, plotting), use computeSelection()/
+#' subsetCells() afterward -- that is a separate, explicit, reusable step, not something
+#' computeCN() decides internally.
 #'
 #' @details The RCN analysis is performed as follows:
-#' 1. The function first identifies the cells that are within the ROIs.
-#' 2. It then computes the Recurrent Neighborhood (frNN) for the selected cells using the 'dbscan::frNN' function.
-#' 3. It then computes the RCN values for each cell type based on the relative frequencies of neighboring cell types.
-#' 4. The function returns a list containing the RCN values for each cell type.
+#' 1. The function first identifies the cells that are within the ROIs and belong to `used.cts`.
+#' 2. It then computes the neighbor graph via 'dbscan::frNN' (or 'dbscan::kNN').
+#' 3. It computes neighbor counts/frequencies/density and neighbor-averaged expression
+#' for every such cell.
 #' The RCN analysis can be performed on a single Cycif object or across a CycifStack object.
 #' If the input is a CycifStack object, the RCN analysis is performed on each Cycif object in the stack.
 #'
-#' @seealso \code{\link{cyApply}}, \code{\link{dbscan::frNN}}
+#' @seealso \code{\link{cyApply}}, \code{\link[dbscan]{frNN}}
 #'
 #' @importFrom dbscan frNN
 #' @importFrom data.table := rbindlist setDT melt
@@ -55,12 +60,12 @@ setMethod("computeCN", "Cycif",
   function(x,r_um=20,k=20,
            type=c("knn","frnn"),
            used.cts,
-           n.sampling=1000,
            ct_name="default",
-           seed=123,
            off_target = NULL, #list(Tumor_panCK = c("GrB","PD1"), Fibro = "gH2AX")
            off_target_mode = c("na","zero")
            ){ # only for Cycif, and CycifStack
+    off_target_mode <- match.arg(off_target_mode)
+
     ## find cells within rois - roi is a circle with a fixed radius (r_um)
     if(missing(type)){
       type <- "frnn"
@@ -172,14 +177,14 @@ setMethod("computeCN", "Cycif",
             if (length(ct_to_null) == 0) next
             idx <- combined_df$cell_types %in% ct_to_null
             # set NA
-            set(combined_df, which(idx), ab1, NA_real_)
+            data.table::set(combined_df, which(idx), ab1, NA_real_)
           }
         } else { # "zero"
           for (ab1 in unique(ot_pairs$ab)) {
             ct_to_zero <- ot_pairs[cell_types %in% valid_cts & ab == ab1, unique(cell_types)]
             if (length(ct_to_zero) == 0) next
             idx <- combined_df$cell_types %in% ct_to_zero
-            set(combined_df, which(idx), ab1, 0.0)
+            data.table::set(combined_df, which(idx), ab1, 0.0)
           }
         }
       }
@@ -187,34 +192,17 @@ setMethod("computeCN", "Cycif",
 
     # tapply(combined_df$PD1,combined_df$cell_types,mean,na.rm=T) # sanity check
 
-    # Create a neighborhood data table from nn
-    nmat <- data.table::data.table(
-      cell_id = rep(seq_along(nn$id), lengths(nn$id)),
-      neighbor_id = unlist(nn$id, use.names = FALSE)
-    )
-
-    # Join with combined_df to get cell type and expression data for each neighbor
-    neighborhood <- nmat[
-      combined_df, on = .(neighbor_id = rn), nomatch = 0
-    ]
-
-    # Calculate the average expression per cell type in each neighborhood
-    # Assuming protein columns in combined_df are named "protein1", "protein2", etc.
-
-    exp_per_ct_cn <- neighborhood[, lapply(.SD, mean, na.rm = TRUE), by = .(cell_id, cell_types), .SDcols = protein_columns]
-    exp_per_cn <- neighborhood[, lapply(.SD, mean, na.rm = TRUE), by = .(cell_id), .SDcols = protein_columns]
-
-    # For exp_per_cn: ensure sorted by cell_id
-    data.table::setorder(exp_per_cn, cell_id)
-
-
     if(type=="knn"){
       nn$eps <- -1
     }else if (type=="frnn"){
       nn$k <- -1
     }
 
-    ##  ---- convert nn to nn object (not necessary?)  ----
+    ## Every row of xy1/cts1/df1 already belongs to used.cts + within ROI (the
+    ## `is.used` filter above) -- that IS eligibility. computeCN() computes CN
+    ## stats for every one of them; it does not additionally subsample. (Every
+    ## cell always includes itself as its own neighbor, so lengths(nn$id) is
+    ## always >=1 -- there's no further "has a neighbor" filter needed either.)
     nn1 <- new("NN",
                type = type,
                dist = nn$dist,
@@ -223,175 +211,159 @@ setMethod("computeCN", "Cycif",
                eps = nn$eps,
                sort = nn$sort)
 
-    ##  ---- within positive ROIs + has neighbors ----
-    n.nn <- lengths(nn1@id) # number of neighbors - the same as sum(wr)
+    n.neighbors <- lengths(nn1@id)
 
-    selected.ids1 <- which(n.nn>0 &
-                           sapply(nn.ids,function(ids){
-                             any(cts1$cell_types[ids] %in% used.cts)
-                           })) # cell indices are after ROI filter
+    # Create a neighborhood data table from every eligible cell's neighbor list
+    nmat <- data.table::data.table(
+      cell_id = rep(seq_along(nn1@id), lengths(nn1@id)),
+      neighbor_id = unlist(nn1@id, use.names = FALSE)
+    )
 
-    n.this <- length(selected.ids1)
-    n.cts <- min(n.sampling,n.this)
+    # Join with combined_df to get cell type and expression data for each neighbor
+    # (off-target ab x celltype combinations were already set to NA/0 above, so
+    # both aggregates below inherit that masking)
+    neighborhood <- nmat[
+      combined_df, on = .(neighbor_id = rn), nomatch = 0
+    ]
 
-    ## sampling
-    set.seed(seed)
+    # mean_expr_per_ct_nbhd: mean expression among neighbors, per neighbor cell type
+    mean_expr_per_ct_nbhd <- neighborhood[, lapply(.SD, mean, na.rm = TRUE), by = .(cell_id, cell_types), .SDcols = protein_columns]
+    # mean_expr_per_nbhd: mean expression pooled across all neighbors, any type
+    mean_expr_per_nbhd <- neighborhood[, lapply(.SD, mean, na.rm = TRUE), by = .(cell_id), .SDcols = protein_columns]
+    data.table::setorder(mean_expr_per_nbhd, cell_id)
 
-    # Randomly sample n.cts cells from selected.ids1 (idx after ROI)
-    selected.ids2 <- sample(selected.ids1,n.cts)
+    stopifnot(nrow(mean_expr_per_nbhd) == length(nn1@id)) # one row per selected cell, guaranteed by construction
 
-    ## selected ids among available focused celltypes (eg tumor cells)
-    is.selected <- seq(nn.ids) %in% selected.ids2
+    ## cell type count and frequency in each RCN -- reuses `neighborhood` (the
+    ## same cell_id/cell_types pairs used for mean_expr_per_nbhd above), so
+    ## rows line up by construction. This is a vectorized grouped count instead
+    ## of calling table() once per cell in a loop: table() has real per-call
+    ## overhead (factor coercion + hashing), so for a large eligible population
+    ## one grouped count + reshape is roughly an order of magnitude faster than
+    ## the equivalent sapply(nn1@id, function(ids) table(...)) loop.
+    count_dt <- neighborhood[, .(cell_id, cell_types = factor(cell_types, levels = used.cts))][
+      , .N, by = .(cell_id, cell_types)]
+    ## drop = c(FALSE, FALSE): keep every used.cts column even if some cell type
+    ## never actually occurs as a neighbor for any cell in this sample (small
+    ## samples especially) -- otherwise dcast silently drops that column and the
+    ## dimnames<- assignment below fails since used.cts no longer matches ncol.
+    count_wide <- data.table::dcast(count_dt, cell_id ~ cell_types,
+                                     value.var = "N", fill = 0, drop = c(FALSE, FALSE))
+    data.table::setorder(count_wide, cell_id)
+    stopifnot(nrow(count_wide) == length(nn1@id)) # every eligible cell has >=1 neighbor (itself)
 
-    ## cell type count and frequency in each RCN
-    rcn.freq <- t(sapply(nn1@id,function(ids){
-      ct <- cts1$cell_types[ids]
-      tab <- table(ct)
-      ntab <- tab/sum(tab)
-      return(ntab)
-    }))
-
-    rcn.count <- t(sapply(nn1@id,function(ids){
-      ct <- cts1$cell_types[ids]
-      tab <- table(ct)
-      return(tab)
-    }))
-
-    # For rcn.count: make sure rownames are 1..N in the same order
-    rownames(rcn.freq) <- seq_len(nrow(rcn.freq))
-    rownames(rcn.count) <- seq_len(nrow(rcn.count))
+    neighbor_counts <- as.matrix(count_wide[, -1, with = FALSE])
+    dimnames(neighbor_counts) <- list(seq_len(nrow(neighbor_counts)), used.cts)
+    neighbor_freq <- neighbor_counts / rowSums(neighbor_counts)
 
     if(type=="knn"){
       r <- sapply(nn$dist,function(x)x[k+1])
     }
-    rcn.dens <- rcn.count/(pi*r^2)
+    neighbor_density <- neighbor_counts/(pi*r^2)
+
+    ## is_used: eligibility (within ROI + used.cts), already full-length
+    ## (nCells(x)) and already exactly this population -- no further
+    ## composition needed, since computeCN() doesn't subsample.
+    is_used <- is.used
+
+    stopifnot(sum(is_used) == length(nn1@id))
+
+    smpls <- rep(smpl, length(nn1@id))
 
     cn <- new("CellNeighborhood",
-              within.rois=wr, # logical, within ROIs
-              used.cts=used.cts, # character, cell types to consider
-              n.cells.selected=n.cts, # integer, number of cells selected
-              is.selected = is.selected,
-              smpls = smpl,
-              nn=nn1,
-              n.neighbors = n.nn,
-              exp.per.ct.cn=exp_per_ct_cn,
-              exp.per.cn=exp_per_cn,
-              rcn.count=rcn.count,
-              rcn.dens=rcn.dens,
-              rcn.freq=rcn.freq)
+              is_used = is_used,
+              used.cts = used.cts,
+              smpls = smpls,
+              neighbor_graph = setNames(list(nn1), smpl),
+              n.neighbors = n.neighbors,
+              mean_expr_per_ct_nbhd = mean_expr_per_ct_nbhd,
+              mean_expr_per_nbhd = mean_expr_per_nbhd,
+              neighbor_counts = neighbor_counts,
+              neighbor_density = neighbor_density,
+              neighbor_freq = neighbor_freq)
     return(cn)
 })
 
 #' @rdname computeCN
 #' @export
 setMethod("computeCN", "CycifStack",
-  function(x,r_um = 20,
+  function(x,r_um=20,k=20,
+           type=c("knn","frnn"),
            used.cts,
-           n.sampling,
-           seed=123){ # only for Cycif, and CycifStack
+           ct_name="default",
+           off_target=NULL,
+           off_target_mode=c("na","zero"),
+           mc.cores=1){
 
+    if(missing(type)) type <- "frnn"
+    off_target_mode <- match.arg(off_target_mode)
+
+    ## Each sample's computeCN() is fully independent (neighbor search never
+    ## crosses sample boundaries), so this is embarrassingly parallel. mclapply
+    ## forks per sample when mc.cores>1 (Unix/macOS only, per parallel::mclapply);
+    ## on Windows this silently runs sequentially regardless of mc.cores.
     cat("Get neighbors ...\n")
-    nn1 <- cyApply(x,function(cy){
-      cat(names(cy),"\n")
-      computeCN(x=cy,r=r,unit=c("pixel","um"),
+    lst.cn <- parallel::mclapply(names(x),function(nm){
+      cat(nm,"\n")
+      computeCN(x=x[[nm]],r_um=r_um,k=k,type=type,
         used.cts=used.cts,
-        n.sampling=n.sampling,
-        seed=seed)
-    })
+        ct_name=ct_name,
+        off_target=off_target,
+        off_target_mode=off_target_mode)
+    }, mc.cores=mc.cores)
+
+    is.err <- sapply(lst.cn,function(cn) inherits(cn,"try-error") || is(cn,"condition"))
+    if(any(is.err)){
+      stop("computeCN() failed for sample(s): ", paste(names(x)[is.err], collapse=", "),
+           "\nFirst error: ", conditionMessage(lst.cn[[which(is.err)[1]]]))
+    }
+    names(lst.cn) <- names(x)
 
     cat("Restructure data ...\n")
 
-    ## within.rois
-    within.rois <- unlist(lapply(nn1,function(fr)fr@within.rois)) # same as nCells() for each sample
+    ## is_used: each per-sample cn@is_used has length nCells(that sample); the
+    ## samples are concatenated in names(x) order, matching how exprs(x)/
+    ## cell_types(x) stack cells for a CycifStack -- so c()'ing these gives a
+    ## single mask of length nCells(x), directly indexable against exprs(x).
+    is_used <- unlist(lapply(lst.cn,function(cn)cn@is_used), use.names=FALSE)
+    stopifnot(length(is_used) == sum(nCells(x))) # nCells(CycifStack) is a per-sample vector
 
-    ## n.cells.selected
-    n.cells.selected <- sapply(nn1,function(fr)fr@n.cells.selected)
+    used.cts <- lst.cn[[1]]@used.cts
+    smpls <- unlist(lapply(lst.cn,function(cn)cn@smpls), use.names=FALSE)
+    n.neighbors <- unlist(lapply(lst.cn,function(cn)cn@n.neighbors), use.names=FALSE)
 
-    # is.selected
-    is.selected <- unlist(sapply(nn1, function(fr)fr@is.selected))
+    ## neighbor relationships are sample-local; keep one NN per sample rather
+    ## than attempting to flatten indices into a single cross-sample NN object
+    neighbor_graph <- do.call(c,lapply(lst.cn,function(cn)cn@neighbor_graph))
 
-    if(sum(is.selected) != sum(n.cells.selected)){
-      stop("is.selected and n.cells.selected are not consistent")
-    }
+    mean_expr_per_ct_nbhd <- data.table::rbindlist(lapply(lst.cn,function(cn)cn@mean_expr_per_ct_nbhd), fill=TRUE)
+    mean_expr_per_nbhd <- data.table::rbindlist(lapply(lst.cn,function(cn)cn@mean_expr_per_nbhd), fill=TRUE)
 
-    ## used.cts
-    used.cts <- nn1[[1]]@used.cts
+    neighbor_counts <- as.matrix(data.table::rbindlist(lapply(lst.cn,function(cn)as.data.frame(cn@neighbor_counts)), fill=TRUE))
+    neighbor_density <- as.matrix(data.table::rbindlist(lapply(lst.cn,function(cn)as.data.frame(cn@neighbor_density)), fill=TRUE))
+    neighbor_freq <- as.matrix(data.table::rbindlist(lapply(lst.cn,function(cn)as.data.frame(cn@neighbor_freq)), fill=TRUE))
+    neighbor_counts[is.na(neighbor_counts)] <- 0
+    neighbor_density[is.na(neighbor_density)] <- 0
+    neighbor_freq[is.na(neighbor_freq)] <- 0
 
-    ## smpls
-    n.smpls <- sapply(nn1,function(fr)sum(fr@within.rois))
-    smpls <- rep(names(n.smpls),n.smpls)
-
-    ## nn
-    lst.nn <- lapply(nn1,function(fr)fr@nn)
-
-    ### nn@dists
-    nn.dists <- do.call(c,lapply(lst.nn,function(fr)fr@dist))
-
-    ### nn@id - combine indices so they can specify selected cells in the entire dataset
-    n.nns <- sapply(lst.nn,function(nn)length(nn@id)) # 1325874, all cells, excluding outOfROIs
-    n.nns.pre <- c(0,cumsum(n.nns)[-length(n.nns)])
-    names(n.nns.pre) <- names(x)
-
-    ## nn.ids, nn.ids1, nn.tum.ids - list of neighboring cells ids for tumors used for the nn analysis
-    nn.ids <- lapply(names(x),function(nm){
-      x <- lst.nn[[nm]]
-      n.prior <- n.nns.pre[nm]
-      this.ids <- x@id
-      new.ids <- lapply(this.ids,function(id){
-        new.id <- id + n.prior
-        return(new.id)
-      })
-      return(new.ids)
-    })
-    nn.ids1 <- do.call(c,nn.ids) ## 1325874, now all data are combined - and the indices are after excluding outOfROIs
-
-    ### nn@eps
-    ### nn@sort
-    eps <- unique(sapply(lst.nn,function(nn)nn@eps))
-    sort <- unique(sapply(lst.nn,function(nn)nn@sort))
-
-    ### assemble nn
-    nn1 <- new("NN",
-               type = type,
-               dist = nn$dist,
-               id = nn$id,
-               k = nn$k,
-               eps = nn$eps,
-               sort = nn$sort)
-
-    # n.neighbors
-    n.neighbors <- lengths(nn@id)
-
-    # exp.per.ct.cn
-    exp.per.ct.cn <- data.table::rbindlist(lapply(nn1,function(nn)nn@exp.per.ct.cn))
-
-    # exp.per.cn
-    exp.per.cn <- data.table::rbindlist(lapply(nn1,function(nn)nn@exp.per.cn))
-
-    ## rcn.count
-    rcn.count <- as.matrix(data.table::rbindlist(lapply(nn1,function(fr)as.data.frame(fr@rcn.count))))
-
-    ## rcn.freq
-    rcn.freq <- as.matrix(data.table::rbindlist(lapply(nn1,function(fr)as.data.frame(fr@rcn.freq))))
-
-    ## is.selected
-    mclustda <- list()
-    mclustda$sele <- mclustda$all <- list()
+    stopifnot(sum(is_used) == length(smpls),
+              sum(is_used) == nrow(mean_expr_per_nbhd),
+              sum(is_used) == nrow(neighbor_counts))
 
     cn <- new("CellNeighborhood",
-              within.rois=within.rois,
-              n.cells.selected=n.cells.selected,
-              is.selected=is.selected,
+              is_used=is_used,
               used.cts=used.cts,
               smpls=smpls,
-              nn=nn,
-              exp.per.ct.cn=exp.per.ct.cn,
-              exp.per.cn=exp.per.cn,
-              rcn.count=rcn.count,
-              rcn.freq=rcn.freq,
-              mclustda = mclustda)
+              neighbor_graph=neighbor_graph,
+              n.neighbors=n.neighbors,
+              mean_expr_per_ct_nbhd=mean_expr_per_ct_nbhd,
+              mean_expr_per_nbhd=mean_expr_per_nbhd,
+              neighbor_counts=neighbor_counts,
+              neighbor_density=neighbor_density,
+              neighbor_freq=neighbor_freq)
 
-    return(cn)
+    x@cell_neighborhood <- cn
+    return(x)
   }
 )
 
@@ -403,6 +375,7 @@ setMethod("computeCN", "CycifStack",
 #'
 #' @param x A NN object.
 #' @param value A numeric vector specifying the distance to tumor border for each cell.
+#' @param ... Additional arguments (unused).
 #'
 #' @export
 setGeneric("setDist", function(x,...) standardGeneric("setDist"))
@@ -411,10 +384,134 @@ setGeneric("setDist", function(x,...) standardGeneric("setDist"))
 #' @export
 setMethod("setDist", "CellNeighborhood",
   function(x,value){
-    x@dist2tumorBorder <- value # only for Cycif, and CycifStack
+    x@dist_to_tumor_border <- value # only for Cycif, and CycifStack
     return(x)
   }
 )
+
+#_ -------------------------------
+
+# fun: cell_neighborhood accessors ----
+
+#' Get/set the CellNeighborhood object on a Cycif or CycifStack
+#'
+#' @param x A Cycif or CycifStack object.
+#' @param value A CellNeighborhood object (for the setter).
+#' @param ... Additional arguments (unused).
+#'
+#' @rdname cell_neighborhood
+#' @export
+setGeneric("cell_neighborhood", function(x,...) standardGeneric("cell_neighborhood"))
+
+#' @rdname cell_neighborhood
+#' @export
+setMethod("cell_neighborhood", "Cycif", function(x) x@cell_neighborhood)
+
+#' @rdname cell_neighborhood
+#' @export
+setMethod("cell_neighborhood", "CycifStack", function(x) x@cell_neighborhood)
+
+#' @rdname cell_neighborhood
+#' @export
+setGeneric("cell_neighborhood<-", function(x,value) standardGeneric("cell_neighborhood<-"))
+
+#' @rdname cell_neighborhood
+#' @export
+setReplaceMethod("cell_neighborhood", "Cycif", function(x,value){
+  stopifnot(is(value,"CellNeighborhood"))
+  x@cell_neighborhood <- value
+  x
+})
+
+#' @rdname cell_neighborhood
+#' @export
+setReplaceMethod("cell_neighborhood", "CycifStack", function(x,value){
+  stopifnot(is(value,"CellNeighborhood"))
+  x@cell_neighborhood <- value
+  x
+})
+
+# fun: CellNeighborhood field accessors ----
+
+#' Convenience accessors for CellNeighborhood fields on a Cycif or CycifStack
+#'
+#' Each of these is a thin wrapper around \code{cell_neighborhood(x)@<slot>}.
+#' All are sized \code{sum(is_used(cell_neighborhood(x)))} rows, in the same
+#' order -- see \code{\linkS4class{CellNeighborhood}}.
+#'
+#' @param x A Cycif or CycifStack object with a CellNeighborhood already computed.
+#'
+#' @rdname cell_neighborhood_fields
+#' @export
+setGeneric("neighborCounts", function(x) standardGeneric("neighborCounts"))
+#' @rdname cell_neighborhood_fields
+#' @export
+setMethod("neighborCounts", "ANY", function(x) cell_neighborhood(x)@neighbor_counts)
+
+#' @rdname cell_neighborhood_fields
+#' @export
+setGeneric("neighborFreq", function(x) standardGeneric("neighborFreq"))
+#' @rdname cell_neighborhood_fields
+#' @export
+setMethod("neighborFreq", "ANY", function(x) cell_neighborhood(x)@neighbor_freq)
+
+#' @rdname cell_neighborhood_fields
+#' @export
+setGeneric("neighborDensity", function(x) standardGeneric("neighborDensity"))
+#' @rdname cell_neighborhood_fields
+#' @export
+setMethod("neighborDensity", "ANY", function(x) cell_neighborhood(x)@neighbor_density)
+
+#' @rdname cell_neighborhood_fields
+#' @export
+setGeneric("meanExprPerNbhd", function(x) standardGeneric("meanExprPerNbhd"))
+#' @rdname cell_neighborhood_fields
+#' @export
+setMethod("meanExprPerNbhd", "ANY", function(x) cell_neighborhood(x)@mean_expr_per_nbhd)
+
+#' @rdname cell_neighborhood_fields
+#' @export
+setGeneric("meanExprPerCtNbhd", function(x) standardGeneric("meanExprPerCtNbhd"))
+#' @rdname cell_neighborhood_fields
+#' @export
+setMethod("meanExprPerCtNbhd", "ANY", function(x) cell_neighborhood(x)@mean_expr_per_ct_nbhd)
+
+#' @rdname cell_neighborhood_fields
+#' @export
+setGeneric("distToTumorBorder", function(x) standardGeneric("distToTumorBorder"))
+#' @rdname cell_neighborhood_fields
+#' @export
+setMethod("distToTumorBorder", "ANY", function(x) cell_neighborhood(x)@dist_to_tumor_border)
+
+#' @rdname cell_neighborhood_fields
+#' @export
+setGeneric("neighborGraph", function(x) standardGeneric("neighborGraph"))
+#' @rdname cell_neighborhood_fields
+#' @export
+setMethod("neighborGraph", "ANY", function(x) cell_neighborhood(x)@neighbor_graph)
+
+#' Center-cell expression for the cells stored in a CellNeighborhood
+#'
+#' Not a stored slot -- \code{cell_neighborhood(x)} only ever holds
+#' neighbor-averaged quantities. This reads the center cells' own expression
+#' straight from \code{exprs(x)}, subset to the same rows and row order as
+#' every other CellNeighborhood field (\code{which(is_used)}), so it can be
+#' cbind'ed directly against neighborCounts(x)/meanExprPerNbhd(x)/etc.
+#'
+#' @param x A Cycif or CycifStack object with a CellNeighborhood already computed.
+#' @param norm_type Which expression slot to read: "log" or "logTh".
+#' @param ... Additional arguments (unused).
+#'
+#' @rdname centerCellExpr
+#' @export
+setGeneric("centerCellExpr", function(x,...) standardGeneric("centerCellExpr"))
+#' @rdname centerCellExpr
+#' @export
+setMethod("centerCellExpr", "ANY", function(x,norm_type=c("log","logTh")){
+  norm_type <- match.arg(norm_type)
+  is_used <- cell_neighborhood(x)@is_used
+  exprs(x,type=norm_type)[is_used,,drop=FALSE]
+})
 
 #_ -------------------------------
 # fun: tcnClust ----
@@ -434,6 +531,7 @@ setMethod("setDist", "CellNeighborhood",
 #' @param data.type The type of data to use for clustering: "ct_exp" (cell type and expression data) or "ct" (cell type data only).
 #' @param extrapolate Whether to extrapolate clusters to the entire dataset (TRUE) or not (FALSE).
 #' @param mc.cores The number of CPU cores to use for parallel processing.
+#' @param ... Additional arguments (unused).
 #'
 #' @return An updated 'nn' object with clustering and sorting information.
 #'
@@ -445,11 +543,6 @@ setMethod("setDist", "CellNeighborhood",
 #'
 #' @seealso \code{\link{computeCN}}
 #'
-#' @importFrom mclust Mclust
-#' @importFrom parallel mclapply
-#' @importFrom dbscan  frNN kNN
-#' @importFrom data.table as.data.table rbindlist
-#' @importFrom parallel mclapply
 #' @export
 setGeneric("tcnClust", function(nn,...) standardGeneric("tcnClust"))
 
@@ -465,130 +558,12 @@ setMethod("tcnClust","data.frame",
            data.type=c("ct_exp","ct"),
            extrapolate=FALSE,
            mc.cores=1){
-  mclustda <- nn@mclustda
-
-  exps <- as.matrix(nn@exp)[,-1]
-  exps.imp <- imputeData(exps)
-
-  this.cts <- cts.in.rcn
-
-  mat.count.all <- nn$rcn.count[,this.cts]
-  mat.freq.all <- t(apply(nn$rcn.freq[,this.cts],1,function(x)x/sum(x)))
-
-  is.selected <- mclustda$sele$is.used
-
-  if(missing(data.type)){
-    data.type="ct_exp"
-  }
-
-  if(data.type=="ct"){
-    mat.count.sele <- mat.count.all[is.selected,]
-    mat.freq.sele <- mat.freq.all[is.selected,]
-  }else if(data.type=="ct_exp"){
-    mat.count.sele <- cbind(mat.count.all,exps.imp)[is.selected,]
-    mat.freq.sele <- cbind(mat.freq.all,exps.imp)[is.selected,]
-  }
-
-  ## clustering & classification
-  set.seed(seed)
-
-  cat("Clustering with Mclust ...\n")
-  mem.ori <- mclust::Mclust(data=mat.freq.sele,G=g,modelNames="EII")$classification
-
-  cat("Training MclustDA ...\n")
-  mc1 <- mclust::MclustDA(data=mat.freq.sele,class=mem.ori,
-                          G=g,modelNames="EII",modelType = "EDDA") # 100, EII
-  mem.sele <- factor(predict(mc1)$classification)
-  g1 <- nlevels(mem.sele)
-
-  ## mean counts & frequencies
-
-  mean.count.sele <- sapply(seq(g1),function(i)colMeans(mat.count.sele[mem.sele==i,]))
-  mean.freq.sele <- sapply(seq(g1),function(i)colMeans(mat.freq.sele[mem.sele==i,]))
-  colnames(mean.count.sele) <- colnames(mean.freq.sele) <- seq(g1)
-
-  if(extrapolate){
-    ## extrapolate clusters
-    is.available <- !apply(mat.freq.all,1,function(x)any(is.na(x))) # 8587
-    mat.count.all1 <- mat.count.all[is.available,]
-    mat.freq.all1 <- mat.freq.all[is.available,]
-
-    cat("Applying MclustDA to the entire data ...\n")
-    mc.idx <- sort(rep(seq(mc.cores),length=nrow(mat.freq.all1)))
-
-    mem.all <- parallel::mclapply(seq(mc.cores),function(i){
-      predict(mc1,newdata=mat.freq.all1[mc.idx==i,nn$cts.in.rcn])$classification
-    },mc.cores=mc.cores)
-    mem.all <- do.call(c,mem.all)
-
-    ## update labels
-    mem.all <- factor(mem.all)
-    g1 <- nlevels(mem.all)
-    levels(mem.all) <- seq(g1)
-
-    ## mean counts & frequencies
-    mean.count.all <- sapply(seq(g1),function(i)colMeans(mat.count.all1[mem.all==i,]))
-    mean.freq.all <- sapply(seq(g1),function(i)colMeans(mat.freq.all1[mem.all==i,]))
-
-    colnames(mean.count.all) <- colnames(mean.freq.all) <- seq(g1)
-  }
-
-  ## Sort clusters based on frequency of a cell type (CD8T by default)
-  if(missing(sort.type)){
-    sort.type <- "freq"
-  }
-
-  if(missing(sort.smpls)){
-    if(extrapolate){
-      sort.smpls <- "all"
-    }else{
-      sort.smpls <- "selected"
-    }
-  }
-
-  if(sort.type == "freq" & sort.smpls == "all"){
-    mean.freq <- mean.freq.all
-  }else if(sort.type == "freq" & sort.smpls == "selected"){
-    mean.freq <- mean.freq.sele
-  }else if(sort.type == "count" & sort.smpls == "all"){
-    mean.freq <- mean.count.all
-  }else if(sort.type == "count" & sort.smpls == "selected"){
-    mean.freq <- mean.count.sele
-  }
-
-  if(sort.by=="CD8T"){
-    o <- order(mean.freq["CD8T",],decreasing=T)
-    mean.freq.sele <-  mean.freq.sele[,o]
-    mean.count.sele <-  mean.count.sele[,o]
-    mem.sele <- as.numeric(factor(as.character(mem.sele),levels=as.character(seq(ncol(mean.freq))[o])))
-    colnames(mean.count.sele) <- colnames(mean.freq.sele) <- paste0("Rcn",seq(g1))
-
-    mclustda$sele <- list(is.used = mclustda$sele$is.used,
-                          mem = mem.sele,
-                          mean.freq = mean.freq.sele,
-                          mean.count = mean.count.sele)
-
-    if(extrapolate){
-      mean.freq.all <-  mean.freq.all[,o]
-      mean.count.all <-  mean.count.all[,o]
-      mem.all <- as.numeric(factor(as.character(mem.all),levels=as.character(seq(ncol(mean.freq))[o]))) ## mem redefined
-      colnames(mean.count.all) <- colnames(mean.freq.all) <- paste0("RCN",seq(g1))
-
-      mclustda$all <- list(is.used = is.available,
-                           mem = mem.all,
-                           mean.freq = mean.freq.all,
-                           mean.count = mean.count.all)
-    }
-  }else{
-    stop("Define 'sort.by' first")
-  }
-
-  ##
-  mclustda$g <- g1
-
-  nn$mclustda <- mclustda
-
-  return(nn)
+  .Defunct(msg=paste(
+    "tcnClust() referenced undefined variables (cts.in.rcn) even before the v2",
+    "CellNeighborhood slot rename and was not reachable via any working path.",
+    "Use computeCN() + your own clustering (e.g. clusterCells()) on",
+    "neighborCounts(x)/neighborFreq(x) instead."
+  ))
 })
 
 
@@ -611,15 +586,12 @@ setMethod("tcnClust","data.frame",
 #' @param data.type The type of data to use for clustering: "ct_exp" (cell type and expression data) or "ct" (cell type data only).
 #' @param extrapolate Whether to extrapolate clusters to the entire dataset (TRUE) or not (FALSE).
 #' @param mc.cores The number of CPU cores to use for parallel processing.
+#' @param ... Additional arguments (unused).
 #'
 #' @return An updated 'nn' object with clustering and sorting information.
 #'
 #' @seealso \code{\link{computeCN}}
 #'
-#' @importFrom mclust Mclust
-#' @importFrom parallel mclapply
-#' @importFrom data.table as.data.table rbindlist
-#' @importFrom parallel mclapply
 #' @export
 setGeneric("rcnClust", function(cn,...) standardGeneric("rcnClust"))
 
@@ -635,151 +607,14 @@ setMethod("rcnClust","CellNeighborhood",
                    data.type=c("ct_exp","ct"),
                    extrapolate=FALSE,
                    mc.cores=1){
-
-            mclustda <- cn@mclustda
-            is.selected <- cn@is.selected # n1 = 1325874
-            smpls <- cn@smpls # n1
-
-            ## exps
-            exps <- as.matrix(cn@exp.per.cn)[,-1] # nrow = n1
-            exps.imp <- imputeData(exps)
-
-            ## rcn.freq
-            rcn.freq <- cn@rcn.freq[,cts.in.rcn] # nrow = n1
-            rf <- t(apply(rcn.freq,1,function(x)x/sum(x)))
-
-            ## dist
-            dist <- cn@dist2tumorBorder # length = n1
-
-            ## data type
-            if(missing(data.type)){
-              data.type="ct_exp"
-            }
-
-            if(data.type=="ct"){
-              df <- rcn.freq
-            }else if(data.type=="ct_exp"){
-              ## combine the data
-              # df <- cbind(exps.imp,rcn.freq,dist)
-              df <- cbind(exps.imp,rcn.freq)
-            }
-
-            df.sele <- df[is.selected,]
-            norm.df.sele <- scale(df.sele,center=TRUE,scale=TRUE)
-
-            ## clustering & classification
-            set.seed(seed)
-
-            cat("Clustering with Mclust ...\n")
-            mem.ori <- mclust::Mclust(data=norm.df.sele,G=g,modelNames="EII")$classification
-
-            if(extrapolate){
-              cat("Training MclustDA ...\n")
-              mc1 <- mclust::MclustDA(data=norm.df.sele,class=mem.ori,
-                                      G=g,modelNames="EII",modelType = "EDDA") # 100, EII
-              mem.sele <- factor(predict(mc1)$classification)
-              g1 <- nlevels(mem.sele)
-            }else{
-              mem.sele <- mem.ori
-              g1 <- nlevels(mem.sele)
-            }
-
-            ## mean counts & frequencies
-            df.sele1 <- cbind(dist[is.selected],df.sele)
-            colnames(df.sele1)[1] <- "dist"
-            mean.df.sele <- sapply(seq(g1),function(i)colMeans(df.sele1[mem.sele==i,]))
-            o <- order(mean.df.sele["dist",],decreasing=T)
-
-            ## update labels
-            mem.sele1 <- factor(as.numeric(factor(mem.sele,levels=levels(mem.sele)[o])))
-            mean.df.sele1 <- sapply(seq(g1),function(i)colMeans(df.sele1[mem.sele1==i,]))
-
-            boxplot(df.sele1[,"dist"] ~ mem.sele1,pch=NA)
-            boxplot(df.sele1[,"pTBK1"] ~ mem.sele1,pch=NA)
-
-            par(mfrow=c(2,1))
-            boxplot(df.sele1[,"cCaspase3"] ~ mem.sele1,pch=NA)
-            boxplot(df.sele1[,"CD8T"] ~ mem.sele1,pch=NA)
-            # boxplot(df.sele1[,"pTBK1"] ~ mem.sele1,pch=NA)
-            par(mfrow=c(2,1))
-            boxplot(df.sele1[,"cCaspase3"] ~ mem.sele1,pch=NA)
-            boxplot(df.sele1[,"BCLXL"] ~ mem.sele1,pch=NA)
-
-            plot(t(mean.df.sele1)[,c("cCasepase3","BCLXL")])
-
-            colnames(mean.df.sele1) <- seq(g1)
-
-            heatmap3(mean.df.sele1,Rowv=NA,Colv=NA,scale="row",balanceColor = TRUE)
-            heatmap3(mean.df.sele1[1:9,],Rowv=NA,Colv=NA,scale="row",balanceColor = TRUE)
-            heatmap3(mean.df.sele1[10:18,],Rowv=NA,Colv=NA,scale="none",balanceColor = FALSE)
-
-            if(extrapolate){
-              ## extrapolate clusters
-              is.available <- !apply(df,1,function(x)any(is.na(x))) # 8587
-              df1 <- df[is.available,]
-
-              cat("Applying MclustDA to the entire data ...\n")
-              mc.idx <- sort(rep(seq(mc.cores),length=nrow(df1)))
-
-              mem.all <- parallel::mclapply(seq(mc.cores),function(i){
-                predict(mc1,newdata=df1[mc.idx==i,cn@cts.in.rcn])$classification
-              },mc.cores=mc.cores)
-              mem.all <- do.call(c,mem.all)
-
-              ## update labels
-              mem.all <- factor(mem.all)
-              g1 <- nlevels(mem.all)
-              levels(mem.all) <- seq(g1)
-
-              ## mean counts & frequencies
-              mean.df.all <- sapply(seq(g1),function(i)colMeans(df1[mem.all==i,]))
-              colnames(mean.freq.all) <- seq(g1)
-            }
-
-            ## Sort clusters based on frequency of a cell type (CD8T by default)
-            if(extrapolate){
-              sort.smpls <- "all"
-            }else{
-              sort.smpls <- "selected"
-            }
-
-            if(sort.type == "freq" & sort.smpls == "all"){
-              mean.freq <- mean.freq.all
-            }else if(sort.type == "freq" & sort.smpls == "selected"){
-              mean.freq <- mean.freq.sele
-            }
-
-            if(sort.by=="dist"){
-              o <- order(mean.freq[sort.by,],decreasing=T)
-              mean.freq.sele <-  mean.freq.sele[,o]
-              mean.count.sele <-  mean.count.sele[,o]
-              mem.sele <- as.numeric(factor(as.character(mem.sele),levels=as.character(seq(ncol(mean.freq))[o])))
-              colnames(mean.count.sele) <- colnames(mean.freq.sele) <- paste0("Rcn",seq(g1))
-
-              mclustda$sele <- list(is.used = mclustda$sele$is.used,
-                                    mem = mem.sele,
-                                    mean.freq = mean.freq.sele,
-                                    mean.count = mean.count.sele)
-
-              if(extrapolate){
-                mean.freq.all <-  mean.freq.all[,o]
-                mean.count.all <-  mean.count.all[,o]
-                mem.all <- as.numeric(factor(as.character(mem.all),levels=as.character(seq(ncol(mean.freq))[o]))) ## mem redefined
-                colnames(mean.count.all) <- colnames(mean.freq.all) <- paste0("RCN",seq(g1))
-
-                mclustda$all <- list(is.used = is.available,
-                                     mem = mem.all,
-                                     mean.freq = mean.freq.all,
-                                     mean.count = mean.count.all)
-              }
-            }
-
-            ##
-            mclustda$g <- g1
-
-            cn$mclustda <- mclustda
-
-            return(cn)
+            .Defunct(msg=paste(
+              "rcnClust() referenced undefined variables (cts.in.rcn) and",
+              "hardcoded study-specific marker names in inline boxplot()/heatmap3()",
+              "calls even before the v2 CellNeighborhood slot rename -- it was not",
+              "reachable via any working path. Use computeCN() + your own",
+              "clustering (e.g. clusterCells()) on neighborCounts(x)/neighborFreq(x)",
+              "instead."
+            ))
           })
 #_ -------------------------------
 # fun: meanExpRCN ----
@@ -800,6 +635,7 @@ setMethod("rcnClust","CellNeighborhood",
 #' @param cts.in.rcn A character vector specifying the cell types to include in the RCN analysis.
 #' @param per.ct A logical value indicating whether to compute mean expression profiles per RCN cluster (TRUE) or for the entire dataset (FALSE).
 #' @param extrapolate A logical value indicating whether to extrapolate clustering results to the entire dataset (TRUE) or not (FALSE).
+#' @param ... Additional arguments (unused).
 #'
 #' @return A list of data frames containing mean expression profiles for specified cell types or features within RCN clusters.
 #'
@@ -814,14 +650,6 @@ setMethod("rcnClust","CellNeighborhood",
 #'
 #' @seealso \code{\link{computeCN}}, \code{\link{tcnClust}}
 #'
-#' @importFrom mclust Mclust
-#' @importFrom parallel mclapply
-#' @importFrom data.table rbindlist
-#' @importFrom tibble rowid_to_column
-#' @importFrom dplyr %>% arrange left_join summarize_at mutate_at mutate group_by summarize
-#' @importFrom tidyr spread
-#' @importFrom ggplot2 ggplot aes geom_point geom_line sym syms
-#'
 #' @export
 setGeneric("meanExpRCN", function(x,...) standardGeneric("meanExpRCN"))
 
@@ -834,76 +662,12 @@ setMethod("meanExpRCN","data.frame",
                    cts.in.rcn=levels(cell_types(x)$cell_types)[1:10],
                    per.ct=TRUE,
                    extrapolate=TRUE){
-
-    g <-   nn$mclustda$g
-
-    lin.abs <- names(x@cell_types$default@cell_lineage_def[-(1:2)])
-    cst.abs <- names(x@cell_types$default@cell_state_def)
-    all.abs <- unique(c(lin.abs,cst.abs))
-
-    if(extrapolate){
-      mclustda <- nn$mclustda$all
-    }else{
-      mclustda <- nn$mclustda$sele
-    }
-
-    # clusts <- factor(mclustda$mem)
-    clusts <- factor(paste0("RCN",mclustda$mem),labels=paste0("RCN",seq(g)))
-    df1 <- cell_types(x) %>%
-      filter(nn$within.rois) %>%
-      tibble::rowid_to_column("idx") %>% ## idx is numbered within 'within.rois'
-      dplyr::left_join(
-        data.frame(tcn = clusts) %>%
-          mutate(idx=which(mclustda$is.used)),by="idx") %>%
-      dplyr::arrange(idx) %>%
-      dplyr::left_join(exprs(x,type="log") %>%
-                  filter(nn$within.rois) %>%
-                  tibble::rowid_to_column("idx"),by="idx") %>%
-      rename(idx.all="idx")## 1325874, within ROIs
-
-    idx.nonna.tum <-!is.na(df1$tcn) & df1$cell_types %in% cts.in.center # 471910 / 1325874
-    df.tum <- df1 %>%
-      filter(idx.nonna.tum) %>%
-      tibble::rowid_to_column("idx.tum") # 471910
-
-    ## lst.nn: convert ids in each sample to ids in all samples
-    nn.ids <- nn$nn$id[!is.na(df1$tcn)] # 1325311: 563 don't have proper RCNs.
-    nn.tum.ids <- nn$nn$id[idx.nonna.tum] # 471910
-
-    ## all unique ids per tcn cluster
-    if(per.ct){
-      lst.mean.exp <- tapply(nn.tum.ids,df.tum$tcn,function(this.ids){
-        this.ids1 <- unique(sort(unlist(this.ids)))
-        df.tmp <- df1[this.ids1,] %>%
-          group_by(cell_types) %>%
-          summarize_at(vars(!!!syms(all.abs)),mean,na.rm=TRUE)
-        return(df.tmp)
-      })
-      df.exp <- as.data.frame(data.table::rbindlist(lapply(seq(lst.mean.exp),function(i){
-        lst.mean.exp[[i]] %>%
-          mutate(tcn=paste0("RCN",i))
-      }))) %>%
-        mutate(tcn = factor(tcn,levels=paste0("RCN",seq(g))))
-      mes <- lapply(all.abs,function(ab){
-        df.exp %>%
-          select(cell_types,tcn,!!sym(ab)) %>%
-          tidyr::spread(tcn,!!sym(ab))
-      })
-      names(mes) <- all.abs
-      return(mes)
-    }else{
-      lst.mean.exp <- tapply(nn.tum.ids,df.tum$tcn,function(this.ids){
-        this.ids1 <- unique(sort(unlist(this.ids)))
-        df.tmp <- df1[this.ids1,] %>%
-          group_by() %>%
-          summarize_at(vars(!!!syms(all.abs)),mean,na.rm=TRUE)
-        return(df.tmp)
-      })
-
-      mes <- as.data.frame(do.call(rbind,lst.mean.exp))
-      rownames(mes) <- names(lst.mean.exp)
-      colnames(mes) <- all.abs
-      return(mes)
-    }
+    .Defunct(msg=paste(
+      "meanExpRCN() depended on the rcnClust()/tcnClust() mclustda pathway",
+      "(already .Defunct), used $ instead of @ on an S4 nn object, and default-",
+      "evaluated cts.in.rcn against a bare data.frame with no cell_types() method",
+      "-- it was not reachable via any working path. Use",
+      "meanExprPerNbhd(x)/meanExprPerCtNbhd(x) instead."
+    ))
   }
 )

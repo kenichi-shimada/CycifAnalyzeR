@@ -12,11 +12,14 @@
 #' @param resolution A numeric scalar specifying the granularity of the clustering.
 #' @param algorithm An integer specifying the clustering algorithm to use.
 #' @param with.labels Logical scalar indicating whether to include labels.
+#' @param method Community-detection method passed to \code{Seurat::FindClusters}. Default "igraph".
 #' @param ... Additional arguments passed to the clustering function.
 #'
 #' @return
 #' A modified object with cluster assignments added to the specified layout (for a `matrix` object).
 #' An object of the same class as `x` with cluster assignments added (for a `Cycif` or `CycifStack` object).
+#'
+#' @importFrom Seurat FindNeighbors FindClusters
 #'
 #' @export
 setGeneric("LdClustering", function(x,...) standardGeneric("LdClustering"))
@@ -42,33 +45,13 @@ setMethod("LdClustering", "matrix",
 setMethod("LdClustering", "Cycif",
           function(x,ld_name,k.param = 20,
                    initial.membership,node.sizes,resolution=0.8,algorithm=1,method="igraph", ...){
-            call1 <- sys.calls()[[1]]
-            if(missing(ld_name)){
-              stop("'ld_name' should be specified.")
-            }else if(!ld_name %in% ld_names(x,show=FALSE)){
-              stop("Specified 'ld_name' does not exist.")
-            }
-
-            ## subsetting the expression matrix
-            ld <- ld_coords(x,ld_name)
-            used.cts <- ld@used.cts
-            this.abs <- ld@used.abs
-            is.used <- ld@is_used
-            norm_type <- ld@norm_type
-
-            e <- exprs(x,type=norm_type)
-            e1 <- data.matrix(e[is.used,this.abs])
-            cls <- LdClustering(e1,
-                                k.param = k.param,
-                                initial.membership = initial.membership,
-                                node.sizes = node.sizes,
-                                resolution = resolution,
-                                algorithm = algorithm,
-                                method = method,
-                                ...)
-            x@ld_coords[[ld_name]]@clusters <- cls
-            x@ld_coords[[ld_name]]@clust_call <- call1
-            return(x)
+            .Defunct(msg=paste(
+              "LdClustering(Cycif) has had zero call sites anywhere across",
+              "CycifAnalyzeR or any downstream project repo (EP, TALAVE, HR-APM).",
+              "Use subsetCells() + clusterCells() on a CellFeatures object instead",
+              "(clusterCells() itself still uses LdClustering(\"matrix\", ...) as",
+              "its engine, which remains live)."
+            ))
           }
 )
 
@@ -77,34 +60,13 @@ setMethod("LdClustering", "Cycif",
 setMethod("LdClustering", "CycifStack",
           function(x,ld_name,k.param = 20,
                    initial.membership,node.sizes,resolution=0.8,algorithm=1,method="igraph",...){
-
-            call1 <- sys.calls()[[1]]
-            if(missing(ld_name)){
-              stop("'ld_name' should be specified.")
-            }else if(!ld_name %in% ld_names(x,show=FALSE)){
-              stop("Specified 'ld_name' does not exist.")
-            }
-
-            ## subsetting the expression matrix
-            ld <- ld_coords(x,ld_name)
-            used.cts <- ld@used.cts
-            this.abs <- ld@used.abs
-            is.used <- ld@is_used
-            norm_type <- ld@norm_type
-
-            e <- exprs(x,type=norm_type)
-            e1 <- data.matrix(e[is.used,this.abs])
-            cls <- LdClustering(e1,
-                                k.param = k.param,
-                                initial.membership = initial.membership,
-                                node.sizes = node.sizes,
-                                resolution = resolution,
-                                algorithm = algorithm,
-                                method = method,
-                                ...)
-            x@ld_coords[[ld_name]]@clusters <- cls
-            x@ld_coords[[ld_name]]@clust_call <- call1
-            return(x)
+            .Defunct(msg=paste(
+              "LdClustering(CycifStack) has had zero call sites anywhere across",
+              "CycifAnalyzeR or any downstream project repo (EP, TALAVE, HR-APM).",
+              "Use subsetCells() + clusterCells() on a CellFeatures object instead",
+              "(clusterCells() itself still uses LdClustering(\"matrix\", ...) as",
+              "its engine, which remains live)."
+            ))
           }
 )
 

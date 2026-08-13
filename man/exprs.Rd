@@ -15,11 +15,10 @@ exprs(x, ...)
 \arguments{
 \item{x}{A Cycif or CycifStack object.}
 
+\item{...}{Additional arguments (unused).}
+
 \item{type}{type. If "raw", a raw expression matrix is shown. If "log" or "logTh",
 a log or logTh normalized expression matrix will be shown.}
-
-\item{silent}{logical. If FALSE, the method of normalization was shown in
-the error prompt.}
 }
 \description{
 Show a raw or normalized protein expression matrix

@@ -14,8 +14,8 @@
 #' @param strict Logical, whether to use strict cell type filtering. Default is FALSE.
 #' @param ct_name Character, the name of the cell type for tumor identification. Default is "default".
 #' @param fn Character, the filename for saving the plot. Ignored if plot is FALSE.
-#' @param minPts Integer, the minimum number of points required to form a cluster in DBSCAN.
-#' @param eps Numeric, the maximum distance between two samples for one to be considered as in the neighborhood of the other in DBSCAN.
+#' @param concavity A relative measure of concavity for the concave hull (\code{concaveman}). Default 0.8.
+#' @param ... Additional arguments (unused).
 #'
 #' @return A numeric value representing the computed area of tumor regions in the specified unit.
 #'
@@ -34,8 +34,9 @@
 #' @importFrom sp point.in.polygon
 #' @importFrom dbscan dbscan
 #' @importFrom parallel mclapply detectCores
+#' @importFrom alphahull ashape
 #'
-#' @seealso \code{\link{defineTumorBorder}} for defining tumor regions, \code{\link{concaveman::concaveman}} for concave hull computation, \code{\link{dbscan::dbscan}} for DBSCAN clustering.
+#' @seealso \code{\link{defineTumorBorder}} for defining tumor regions, \code{\link[concaveman]{concaveman}} for concave hull computation, \code{\link[dbscan]{dbscan}} for DBSCAN clustering.
 #'
 #' @rdname computeArea
 #' @export

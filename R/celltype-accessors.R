@@ -23,6 +23,7 @@ setMethod("ct_names", "CycifStack", function(x) names(x@cell_types))
 #_ -------------------------------------------------------
 
 # fun: show CellTypes ----
+#' @rdname CellTypes
 #' @export
 setMethod("show", "CellTypes", function(object){
   nmk <- length(object@markers$ab)
@@ -75,11 +76,12 @@ setMethod("show", "CellTypes", function(object){
 #' @param ct_name Name of the cell type calling method (default is "default").
 #' @param strict Logical, whether to include only strict cell type assignments.
 #' Strict assignment returns NA when more than one cell type can be assigned to a cell, e.g., CD8T cell and Tumor cell  (default is FALSE).
+#' @param ... Additional arguments (unused).
 #'
 #' @return A data frame with cell type information, including sample names and cell types.
 #'
 #' @seealso
-#' \code{\link{Cycif}}, \code{\link{CycifStack}}, \code{\link{CellTypes}}
+#' \code{\link{Cycif}}, \code{\link{CycifStack}}, \code{\linkS4class{CellTypes}}
 #'
 #' @export
 setGeneric("cell_types", function(x,...) standardGeneric("cell_types"))

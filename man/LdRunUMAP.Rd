@@ -59,11 +59,9 @@ LdRunUMAP(x, ...)
 
 \item{n_neighbors}{Numeric specifying the number of neighbors to consider during dimensionality reduction.}
 
+\item{smpl.seed}{Numeric specifying the random seed used for per-sample cell subsampling. Default 123.}
+
 \item{umap.seed}{Numeric specifying the initial seed for reproducible UMAP results.}
-
-\item{smpls}{Character vector specifying the names of samples to be used for analysis.}
-
-\item{save.coords}{Logical indicating whether to save the computed UMAP coordinates in the object. Default is FALSE.}
 }
 \value{
 A Cycif or CycifStack object with added UMAP or t-SNE coordinates and related metadata.
@@ -75,5 +73,5 @@ This function performs dimensionality reduction (t-SNE or U-MAP) on CyCIF data, 
 The \code{LdRunUMAP} function performs dimensionality reduction on CyCIF data using UMAP or t-SNE algorithms, depending on the specified parameters. It generates UMAP or t-SNE coordinates for visualization purposes and adds them to the provided Cycif or CycifStack object. The resulting object contains the computed coordinates, along with metadata such as the type of dimensionality reduction, normalization type, used antibodies, and used cell types.
 }
 \seealso{
-\code{\link{LDCoords}}, \code{\link{Cycif}}, \code{\link{CycifStack}}
+\code{\linkS4class{LDCoords}}, \code{\link{Cycif}}, \code{\link{CycifStack}}
 }

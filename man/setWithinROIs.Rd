@@ -11,6 +11,8 @@ setWithinROIs(x, ...)
 }
 \arguments{
 \item{x}{A Cycif object.}
+
+\item{...}{Additional arguments (unused).}
 }
 \value{
 A Cycif object with cells marked as within or outside ROIs in within_rois slot

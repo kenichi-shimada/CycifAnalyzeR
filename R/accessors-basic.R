@@ -2,9 +2,17 @@
 
 # names Cycif, CycifStack ----
 
+#' Get the name(s) of a Cycif or CycifStack object
+#'
+#' @param x A Cycif or CycifStack object.
+#' @return For a Cycif object, its sample name. For a CycifStack object, the
+#' names of all samples it contains.
+#'
+#' @rdname names
 #' @export
 setMethod("names", "Cycif", function(x) x@name)
 
+#' @rdname names
 #' @export
 setMethod("names", "CycifStack", function(x){
   ori.names <- x@names
@@ -33,7 +41,11 @@ setMethod("names", "CycifStack", function(x){
 #'
 #' @export
 setGeneric("abs_list", function(x) standardGeneric("abs_list"))
+#' @rdname abs_list
+#' @export
 setMethod("abs_list", "Cycif", function(x) x@abs_list)
+#' @rdname abs_list
+#' @export
 setMethod("abs_list", "CycifStack", function(x) x@abs_list)
 
 #_ -------------------------------------------------------
@@ -65,7 +77,14 @@ setMethod("abs_list", "CycifStack", function(x) x@abs_list)
 #' }
 #'
 setGeneric("dna", function(x) standardGeneric("dna"))
-setMethod("dna", "Cycif", function(x) x@dna)
+#' @rdname dna
+#' @export
+setMethod("dna", "Cycif", function(x){
+  .Defunct(msg=paste(
+    "dna() has had zero call sites anywhere across CycifAnalyzeR or any",
+    "downstream project repo (EP, TALAVE, HR-APM). Use x@dna directly."
+  ))
+})
 
 #_ -------------------------------------------------------
 
@@ -90,6 +109,8 @@ setMethod("dna", "Cycif", function(x) x@dna)
 #' \code{\link{length}}: Equivalent to `nSamples` for CycifStack objects.
 #'
 setGeneric("xys", function(x) standardGeneric("xys"))
+#' @rdname xys
+#' @export
 setMethod("xys", "Cycif", function(x) x@xy_coords)
 
 #_ -------------------------------------------------------
@@ -116,7 +137,14 @@ setMethod("xys", "Cycif", function(x) x@xy_coords)
 #' \code{\link{length}}: Equivalent to `nSamples` for CycifStack objects.
 #'
 setGeneric("segProp", function(x) standardGeneric("segProp"))
-setMethod("segProp", "Cycif", function(x) x@segment_property)
+#' @rdname segProp
+#' @export
+setMethod("segProp", "Cycif", function(x){
+  .Defunct(msg=paste(
+    "segProp() has had zero call sites anywhere across CycifAnalyzeR or any",
+    "downstream project repo (EP, TALAVE, HR-APM). Use x@segment_property directly."
+  ))
+})
 
 ## roxygen2 help file for dna_thres()
 #' @title Get the DNA threshold in a Cycif object
@@ -138,6 +166,8 @@ setMethod("segProp", "Cycif", function(x) x@segment_property)
 #' \code{\link{length}}: Equivalent to `nSamples` for CycifStack objects.
 #'
 setGeneric("dna_thres", function(x) standardGeneric("dna_thres"))
+#' @rdname dna_thres
+#' @export
 setMethod("dna_thres", "Cycif", function(x) x@dna_thres)
 
 ## roxygen2 help file for used_cells()
@@ -160,6 +190,8 @@ setMethod("dna_thres", "Cycif", function(x) x@dna_thres)
 #' \code{\link{length}}: Equivalent to `nSamples` for CycifStack objects.
 #'
 setGeneric("used_cells", function(x) standardGeneric("used_cells"))
+#' @rdname used_cells
+#' @export
 setMethod("used_cells", "Cycif", function(x) rowSums(x@used_cells==1)==ncol(x@used_cells))
 
 #' @title Check if samples in a CycifStack are within ROIs
@@ -179,4 +211,6 @@ setMethod("used_cells", "Cycif", function(x) rowSums(x@used_cells==1)==ncol(x@us
 #'
 #' @export
 setGeneric("within_rois", function(x) standardGeneric("within_rois"))
+#' @rdname within_rois
+#' @export
 setMethod("within_rois", "Cycif", function(x) x@within_rois)

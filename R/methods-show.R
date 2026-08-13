@@ -2,6 +2,7 @@
 
 # fun: show Cycif ----
 #' @rdname Cycif
+#' @importFrom methods show
 #' @export
 setMethod("show", "Cycif", function(object) {
   n.ch <- max(table(abs_list(object)$cycle))

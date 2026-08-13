@@ -10,11 +10,10 @@
 #'   output into a CycifStack object.
 #' @param ... Additional arguments passed to sapply/lapply functions.
 #'
-#' @usage
-#' cyApply(x,fun,simplify=FALSE,as.CycifStack=TRUE,...)
-#'
 #' @export
 setGeneric("cyApply", function(x,...) standardGeneric("cyApply"))
+#' @rdname cyApply
+#' @export
 setMethod("cyApply", "CycifStack", function(x,fun,simplify=FALSE,as.CycifStack=TRUE,...){
   if(simplify){
     out <- sapply(x@samples,fun,...)

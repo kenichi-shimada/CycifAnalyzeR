@@ -107,7 +107,7 @@ find_mcmicro_output_path <- function(smpl.path,mask_type=c("cellRing","cell")){
 #' It then creates a Cycif object with the extracted information.
 #'
 #' @seealso
-#' \code{\link{Cycif}}, \code{\link{CycifStack}}, \code{\link{CellTypes}}
+#' \code{\link{Cycif}}, \code{\link{CycifStack}}, \code{\linkS4class{CellTypes}}
 #'
 #' @export
 Cycif <- function(

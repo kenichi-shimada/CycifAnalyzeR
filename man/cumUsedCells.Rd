@@ -7,8 +7,7 @@
 \alias{statUsedCells,Cycif-method}
 \title{Calculate Cumulative and Summary Statistics for Used Cells}
 \usage{
-cumUsedCells(x, use_rois = TRUE)
-statUsedCells(x, cumulative = TRUE, ratio = TRUE, use_rois = TRUE)
+cumUsedCells(x, ...)
 
 \S4method{cumUsedCells}{Cycif}(x, use_rois = TRUE)
 
@@ -18,6 +17,8 @@ statUsedCells(x, ...)
 }
 \arguments{
 \item{x}{A Cycif object.}
+
+\item{...}{Additional arguments (unused).}
 
 \item{use_rois}{Logical. If TRUE, compute available cells within pre-specified ROIs.
 Default is TRUE.}

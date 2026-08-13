@@ -95,6 +95,8 @@ setMethod("nCycles<-", "CycifStack", function(x,value){
 #_ -------------------------------------------------------
 # names<- CycifStack ----
 
+#' @rdname names
+#' @param value Character vector of new sample names.
 #' @export
 setMethod("names<-", "CycifStack", function(x,value){
   ori.names <- x@names
@@ -122,6 +124,7 @@ setMethod("names<-", "CycifStack", function(x,value){
 #' @param x A CycifStack object.
 #'
 #' @param value A character vector containing the new set of antibodies (for `set_abs<-`).
+#' @param ... Additional arguments (unused; for `set_abs<-`).
 #'
 #' @return
 #' For `check_abs`, a warning message is displayed if the samples do not have the same
@@ -135,17 +138,10 @@ setGeneric("check_abs", function(x)standardGeneric("check_abs"))
 #' @rdname check_abs
 #' @export
 setMethod("check_abs", "CycifStack", function(x){
-  abs <- cyApply(x,function(x){
-    ab <- abs_list(x)$ab
-  })
-  n.abs <- sapply(abs,length)
-  if(length(unique(n.abs))>1 | n.abs[1]==0){
-    warning("not all the samples have the same # of abs;\nrun 'barplot(cyApply(x,function(cy)nrow(abs_list(cy)),simplify=T),las=2)'\n")
-    warning("Run nCycles() to set a fixed # of cycles and/or drop samples that don't meet the criteria.")
-  }else if(length(unique(n.abs))>1 | n.abs[1]==0){
-    warning("not all the samples have the same Ab names;\nrun 'apply(do.call(cbind,cyApply(x,function(cy)abs_list(cy)$ab)),1,unique)'\n")
-    warning("Run set_abs() to set the identical names in the Abs.")
-  }
+  .Defunct(msg=paste(
+    "check_abs() has had zero call sites anywhere across CycifAnalyzeR or any",
+    "downstream project repo (EP, TALAVE, HR-APM)."
+  ))
 })
 
 #' @rdname check_abs

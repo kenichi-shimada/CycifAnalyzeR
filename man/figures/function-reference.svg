@@ -1,0 +1,167 @@
+<svg viewBox="0 0 1280 778" xmlns="http://www.w3.org/2000/svg" role="img" font-family="-apple-system,BlinkMacSystemFont,Segoe UI,sans-serif">
+  <title>CycifAnalyzeR exported functions by category, v3</title>
+  <desc>56 actively exported functions in CycifAnalyzeR, grouped into eight categories, including a dedicated Accessors category for functions that only read or write a single slot.</desc>
+  <style>
+    :root {
+      --bg: #ffffff; --border: #d7dce3; --text: #1f2430; --text-dim: #5b6472;
+      --pill-bg: #eaf0ff; --pill-border: #b9cbfb; --pill-text: #24408a;
+      --note-bg: #f8f9fb;
+    }
+    @media (prefers-color-scheme: dark) {
+      :root {
+        --bg: #1b1e26; --border: #3c4250; --text: #e7e9ee; --text-dim: #a1a8b5;
+        --pill-bg: #26314f; --pill-border: #3e5183; --pill-text: #b7cbff;
+        --note-bg: #262a35;
+      }
+    }
+    :root[data-theme="dark"] {
+      --bg: #1b1e26; --border: #3c4250; --text: #e7e9ee; --text-dim: #a1a8b5;
+      --pill-bg: #26314f; --pill-border: #3e5183; --pill-text: #b7cbff;
+      --note-bg: #262a35;
+    }
+    :root[data-theme="light"] {
+      --bg: #ffffff; --border: #d7dce3; --text: #1f2430; --text-dim: #5b6472;
+      --pill-bg: #eaf0ff; --pill-border: #b9cbfb; --pill-text: #24408a;
+      --note-bg: #f8f9fb;
+    }
+    .section { fill: var(--text); font-size: 14px; font-weight: 700; }
+    .count { fill: var(--text-dim); font-size: 11.5px; font-weight: 400; }
+    .pill { fill: var(--pill-bg); stroke: var(--pill-border); stroke-width: 1; }
+    .pilltext { fill: var(--pill-text); font-size: 11.5px; font-family: ui-monospace, Menlo, monospace; }
+    .note { fill: var(--text-dim); font-size: 11px; font-style: italic; }
+  </style>
+  <rect x="0" y="0" width="1280" height="778" fill="var(--bg)"/>
+  <text x="24" y="32" class="section" font-size="17">CycifAnalyzeR -- exported functions by category</text>
+  <text x="24" y="52" class="count">56 active functions across 8 categories.</text>
+  <rect x="24" y="64" width="1232" height="50" rx="6" fill="var(--note-bg)" stroke="var(--border)"/>
+  <text x="36" y="86" class="note">Defunct as of this redesign: LdRunUMAP, LdPlot, ld_coords, ld_names, hist_1d, and LdClustering(Cycif|CycifStack) -- the legacy per-object pathway, zero external call sites.</text>
+  <text x="36" y="102" class="note">LdClustering("matrix", ...) itself is still exported and live -- it is the engine clusterCells() calls internally.</text>
+  <text x="24" y="146" class="section">Constructors &amp; core classes</text>
+  <text x="234.5" y="146" class="count">(5)</text>
+  <rect x="24.0" y="166.0" width="61.0" height="24" rx="12" class="pill"/>
+  <text x="38.0" y="182.0" class="pilltext">Cycif</text>
+  <rect x="93.0" y="166.0" width="94.0" height="24" rx="12" class="pill"/>
+  <text x="107.0" y="182.0" class="pilltext">CycifStack</text>
+  <rect x="195.0" y="166.0" width="80.8" height="24" rx="12" class="pill"/>
+  <text x="209.0" y="182.0" class="pilltext">LDCoords</text>
+  <rect x="283.8" y="166.0" width="113.8" height="24" rx="12" class="pill"/>
+  <text x="297.8" y="182.0" class="pilltext">CellTypeGraph</text>
+  <rect x="405.6" y="166.0" width="133.6" height="24" rx="12" class="pill"/>
+  <text x="419.6" y="182.0" class="pilltext">CellTypeSkeleton</text>
+  <text x="24" y="214" class="section">Accessors (read/write a slot)</text>
+  <text x="249.5" y="214" class="count">(26)</text>
+  <rect x="24.0" y="234.0" width="80.8" height="24" rx="12" class="pill"/>
+  <text x="38.0" y="250.0" class="pilltext">abs_list</text>
+  <rect x="112.8" y="234.0" width="140.2" height="24" rx="12" class="pill"/>
+  <text x="126.8" y="250.0" class="pilltext">cell_neighborhood</text>
+  <rect x="261.0" y="234.0" width="153.4" height="24" rx="12" class="pill"/>
+  <text x="275.0" y="250.0" class="pilltext">cell_neighborhood&lt;-</text>
+  <rect x="422.4" y="234.0" width="94.0" height="24" rx="12" class="pill"/>
+  <text x="436.4" y="250.0" class="pilltext">cell_types</text>
+  <rect x="524.4" y="234.0" width="120.4" height="24" rx="12" class="pill"/>
+  <text x="538.4" y="250.0" class="pilltext">centerCellExpr</text>
+  <rect x="652.8" y="234.0" width="80.8" height="24" rx="12" class="pill"/>
+  <text x="666.8" y="250.0" class="pilltext">ct_names</text>
+  <rect x="741.6" y="234.0" width="74.2" height="24" rx="12" class="pill"/>
+  <text x="755.6" y="250.0" class="pilltext">cyApply</text>
+  <rect x="823.8" y="234.0" width="140.2" height="24" rx="12" class="pill"/>
+  <text x="837.8" y="250.0" class="pilltext">distToTumorBorder</text>
+  <rect x="972.0" y="234.0" width="87.4" height="24" rx="12" class="pill"/>
+  <text x="986.0" y="250.0" class="pilltext">dna_thres</text>
+  <rect x="1067.4" y="234.0" width="61.0" height="24" rx="12" class="pill"/>
+  <text x="1081.4" y="250.0" class="pilltext">exprs</text>
+  <rect x="24.0" y="268.0" width="140.2" height="24" rx="12" class="pill"/>
+  <text x="38.0" y="284.0" class="pilltext">meanExprPerCtNbhd</text>
+  <rect x="172.2" y="268.0" width="127.0" height="24" rx="12" class="pill"/>
+  <text x="186.2" y="284.0" class="pilltext">meanExprPerNbhd</text>
+  <rect x="307.2" y="268.0" width="67.6" height="24" rx="12" class="pill"/>
+  <text x="321.2" y="284.0" class="pilltext">nCells</text>
+  <rect x="382.8" y="268.0" width="74.2" height="24" rx="12" class="pill"/>
+  <text x="396.8" y="284.0" class="pilltext">nCycles</text>
+  <rect x="465.0" y="268.0" width="87.4" height="24" rx="12" class="pill"/>
+  <text x="479.0" y="284.0" class="pilltext">nCycles&lt;-</text>
+  <rect x="560.4" y="268.0" width="80.8" height="24" rx="12" class="pill"/>
+  <text x="574.4" y="284.0" class="pilltext">nSamples</text>
+  <rect x="649.2" y="268.0" width="120.4" height="24" rx="12" class="pill"/>
+  <text x="663.2" y="284.0" class="pilltext">neighborCounts</text>
+  <rect x="777.6" y="268.0" width="127.0" height="24" rx="12" class="pill"/>
+  <text x="791.6" y="284.0" class="pilltext">neighborDensity</text>
+  <rect x="912.6" y="268.0" width="107.2" height="24" rx="12" class="pill"/>
+  <text x="926.6" y="284.0" class="pilltext">neighborFreq</text>
+  <rect x="1027.8" y="268.0" width="113.8" height="24" rx="12" class="pill"/>
+  <text x="1041.8" y="284.0" class="pilltext">neighborGraph</text>
+  <rect x="1149.6" y="268.0" width="61.0" height="24" rx="12" class="pill"/>
+  <text x="1163.6" y="284.0" class="pilltext">pData</text>
+  <rect x="24.0" y="302.0" width="74.2" height="24" rx="12" class="pill"/>
+  <text x="38.0" y="318.0" class="pilltext">pData&lt;-</text>
+  <rect x="106.2" y="302.0" width="87.4" height="24" rx="12" class="pill"/>
+  <text x="120.2" y="318.0" class="pilltext">set_abs&lt;-</text>
+  <rect x="201.6" y="302.0" width="74.2" height="24" rx="12" class="pill"/>
+  <text x="215.6" y="318.0" class="pilltext">setDist</text>
+  <rect x="283.8" y="302.0" width="100.6" height="24" rx="12" class="pill"/>
+  <text x="297.8" y="318.0" class="pilltext">within_rois</text>
+  <rect x="392.4" y="302.0" width="47.8" height="24" rx="12" class="pill"/>
+  <text x="406.4" y="318.0" class="pilltext">xys</text>
+  <text x="24" y="350" class="section">QC &amp; preprocessing</text>
+  <text x="167.0" y="350" class="count">(9)</text>
+  <rect x="24.0" y="370.0" width="87.4" height="24" rx="12" class="pill"/>
+  <text x="38.0" y="386.0" class="pilltext">dnaFilter</text>
+  <rect x="119.4" y="370.0" width="87.4" height="24" rx="12" class="pill"/>
+  <text x="133.4" y="386.0" class="pilltext">rbcFilter</text>
+  <rect x="214.8" y="370.0" width="94.0" height="24" rx="12" class="pill"/>
+  <text x="228.8" y="386.0" class="pilltext">importROIs</text>
+  <rect x="316.8" y="370.0" width="113.8" height="24" rx="12" class="pill"/>
+  <text x="330.8" y="386.0" class="pilltext">setWithinROIs</text>
+  <rect x="438.6" y="370.0" width="87.4" height="24" rx="12" class="pill"/>
+  <text x="452.6" y="386.0" class="pilltext">normalize</text>
+  <rect x="534.0" y="370.0" width="87.4" height="24" rx="12" class="pill"/>
+  <text x="548.0" y="386.0" class="pilltext">transform</text>
+  <rect x="629.4" y="370.0" width="80.8" height="24" rx="12" class="pill"/>
+  <text x="643.4" y="386.0" class="pilltext">trim_fun</text>
+  <rect x="718.2" y="370.0" width="80.8" height="24" rx="12" class="pill"/>
+  <text x="732.2" y="386.0" class="pilltext">getGates</text>
+  <rect x="807.0" y="370.0" width="80.8" height="24" rx="12" class="pill"/>
+  <text x="821.0" y="386.0" class="pilltext">setGates</text>
+  <text x="24" y="418" class="section">Cell typing</text>
+  <text x="114.5" y="418" class="count">(2)</text>
+  <rect x="24.0" y="438.0" width="127.0" height="24" rx="12" class="pill"/>
+  <text x="38.0" y="454.0" class="pilltext">defineCellTypes</text>
+  <rect x="159.0" y="438.0" width="140.2" height="24" rx="12" class="pill"/>
+  <text x="173.0" y="454.0" class="pilltext">cellTypeFrequency</text>
+  <text x="24" y="486" class="section">Spatial &amp; neighborhood analysis</text>
+  <text x="264.5" y="486" class="count">(6)</text>
+  <rect x="24.0" y="506.0" width="87.4" height="24" rx="12" class="pill"/>
+  <text x="38.0" y="522.0" class="pilltext">computeCN</text>
+  <rect x="119.4" y="506.0" width="100.6" height="24" rx="12" class="pill"/>
+  <text x="133.4" y="522.0" class="pilltext">computeArea</text>
+  <rect x="228.0" y="506.0" width="140.2" height="24" rx="12" class="pill"/>
+  <text x="242.0" y="522.0" class="pilltext">defineTumorBorder</text>
+  <rect x="376.2" y="506.0" width="140.2" height="24" rx="12" class="pill"/>
+  <text x="390.2" y="522.0" class="pilltext">defineTumorStroma</text>
+  <rect x="524.4" y="506.0" width="133.6" height="24" rx="12" class="pill"/>
+  <text x="538.4" y="522.0" class="pilltext">ratioTumorStroma</text>
+  <rect x="666.0" y="506.0" width="140.2" height="24" rx="12" class="pill"/>
+  <text x="680.0" y="522.0" class="pilltext">distAdjacentCells</text>
+  <text x="24" y="554" class="section">Selection &amp; features</text>
+  <text x="182.0" y="554" class="count">(3)</text>
+  <rect x="24.0" y="574.0" width="133.6" height="24" rx="12" class="pill"/>
+  <text x="38.0" y="590.0" class="pilltext">computeSelection</text>
+  <rect x="165.6" y="574.0" width="133.6" height="24" rx="12" class="pill"/>
+  <text x="179.6" y="590.0" class="pilltext">selectionSummary</text>
+  <rect x="307.2" y="574.0" width="100.6" height="24" rx="12" class="pill"/>
+  <text x="321.2" y="590.0" class="pilltext">subsetCells</text>
+  <text x="24" y="622" class="section">Dimensionality reduction &amp; clustering</text>
+  <text x="309.5" y="622" class="count">(2)</text>
+  <rect x="24.0" y="642.0" width="74.2" height="24" rx="12" class="pill"/>
+  <text x="38.0" y="658.0" class="pilltext">runUMAP</text>
+  <rect x="106.2" y="642.0" width="107.2" height="24" rx="12" class="pill"/>
+  <text x="120.2" y="658.0" class="pilltext">clusterCells</text>
+  <text x="24" y="690" class="section">Plotting</text>
+  <text x="92.0" y="690" class="count">(3)</text>
+  <rect x="24.0" y="710.0" width="87.4" height="24" rx="12" class="pill"/>
+  <text x="38.0" y="726.0" class="pilltext">slidePlot</text>
+  <rect x="119.4" y="710.0" width="41.2" height="24" rx="12" class="pill"/>
+  <text x="133.4" y="726.0" class="pilltext">h3</text>
+  <rect x="168.6" y="710.0" width="133.6" height="24" rx="12" class="pill"/>
+  <text x="182.6" y="726.0" class="pilltext">barplotCellTypes</text>
+</svg>
