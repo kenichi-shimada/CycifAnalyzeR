@@ -32,7 +32,11 @@ setMethod("selectionSummary", "CycifStack", function(x, used.cts, ct_name="defau
   cts <- cell_types(x, ct_name=ct_name)
   eligible <- cts$cell_types %in% used.cts
 
-  per_sample <- as.data.frame(table(sample = as.character(cts$sample)[eligible]))
+  ## levels=names(x) forced explicitly (rather than letting table() derive levels from the
+  ## filtered data) so the table always has every sample's dimname present, even when `eligible`
+  ## selects zero rows overall -- otherwise as.data.frame(table(character(0))) degenerates to a
+  ## single-column ("Freq" only) data.frame, and the names<- below errors.
+  per_sample <- as.data.frame(table(sample = factor(as.character(cts$sample)[eligible], levels=names(x))))
   names(per_sample) <- c("sample","n_eligible")
 
   ## table() silently omits samples with zero eligible cells -- make sure

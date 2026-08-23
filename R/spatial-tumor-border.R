@@ -57,8 +57,11 @@ setMethod("defineTumorBorder", "Cycif",
     }
 
     xy <- xys(x)
-    ymax <- max(xy$Y_centroid)
-    xy$Y_centroid <- ymax - xy$Y_centroid
+    ## NO Y-flip: only feeds dbscan/concave-hull below, invariant under a uniform reflection --
+    ## and max(Y) here was never a real image height (see setWithinROIs() fix, preprocessing.R).
+    ## Dropped for consistency with the topleft-origin convention.
+    # ymax <- max(xy$Y_centroid)
+    # xy$Y_centroid <- ymax - xy$Y_centroid
 
     this.cts <- cell_types(x,strict=strict,ct_name=ct_name)$cell_types
     if(any(levels(this.cts)!="NA")){

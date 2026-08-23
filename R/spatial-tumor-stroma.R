@@ -123,8 +123,11 @@ setMethod("defineTumorStroma","Cycif",
     this.cts <- cell_types(x,ct_name=ct_name)$cell_types # 89174
 
     xy <- xys(x)
-    ymax <- max(xy$Y_centroid)
-    xy$Y_centroid <- ymax - xy$Y_centroid
+    ## NO Y-flip: only feeds dbscan below, invariant under a uniform reflection -- and max(Y)
+    ## here was never a real image height (see setWithinROIs() fix, preprocessing.R). Dropped
+    ## for consistency with the topleft-origin convention.
+    # ymax <- max(xy$Y_centroid)
+    # xy$Y_centroid <- ymax - xy$Y_centroid
     xy.sf <- st_as_sf(xy, coords = c("X_centroid", "Y_centroid"), crs = NA)
 
     wr <- x@within_rois
@@ -235,8 +238,6 @@ setMethod("defineTumorStroma","Cycif",
       nls3.1 <- unique(cls3.1)
       nls3.1 <- nls3.1[nls3.1!=0]
 
-      cat(" Computing borders ... \n")
-
       borders3 <- parallel::mclapply(seq(nls3.1),function(i){
         xyt <- xy.sf3[cls3.1==nls3.1[i],]
         conc <- concaveman::concaveman(xyt, concavity = concavity, length_threshold = dth)
@@ -253,8 +254,6 @@ setMethod("defineTumorStroma","Cycif",
                borders=NA)
         next
       }
-
-      cat(" Find out overlaps of borders ... \n")
 
       b3 <- do.call(rbind,borders3)
       int3 <- st_intersects(b3,sparse=FALSE)
@@ -276,8 +275,6 @@ setMethod("defineTumorStroma","Cycif",
 
       b3.1 <- do.call(rbind,borders3.1)
       b3.2 <- st_boundary(b3.1)
-
-      cat(" Compute the distance bewteen each point and border of polygons ... \n")
 
       bb3 <- st_make_grid(b3.1,cellsize=1000)
       if(0){

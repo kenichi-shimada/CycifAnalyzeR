@@ -87,13 +87,15 @@ setMethod("setGates", "Cycif", function(x,gates.df,run_normalize=TRUE,p_thres=0.
   this.col <- paste0("gates_",names(x))
   if(length(this.col)!=1 || !this.col %in% names(gates.df)){
     stop("the name of the column should be 'gates_*', where * are sample names")
-  }else if(this.col %in% names(abs_list(x))){
-    stop("Gates, ", this.col," already exists")
   }else{
     gates.df <- gates.df %>% dplyr::select(any_of(c("ab",this.col)))
   }
 
-  x@abs_list <- abs_list(x) %>% dplyr::left_join(gates.df,by="ab")
+  ## If gates_{smpl} already exists on x (e.g. setGates() run again on the same object,
+  ## a rerun within a session), overwrite it rather than erroring -- drop the stale column
+  ## before joining the fresh one in.
+  existing.abs_list <- abs_list(x) %>% dplyr::select(-any_of(this.col))
+  x@abs_list <- existing.abs_list %>% dplyr::left_join(gates.df,by="ab")
 
   if(run_normalize){
     x <- normalize(x,method="logTh",p_thres=p_thres,trim=trim)

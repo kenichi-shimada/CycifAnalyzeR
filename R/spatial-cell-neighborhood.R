@@ -85,8 +85,12 @@ setMethod("computeCN", "Cycif",
 
     ## coordinates: x => xy
     xy <- xys(x)
-    ymax <- max(xy$Y_centroid)
-    xy$Y_centroid <- ymax - xy$Y_centroid
+    ## NO Y-flip: used only for pairwise-distance-based frNN/kNN below, which is invariant
+    ## under a uniform reflection anyway -- but max(Y) here was never a real image height,
+    ## just this sample's own cell-Y max (see setWithinROIs() fix, preprocessing.R), so
+    ## dropping it for consistency with the topleft-origin convention used elsewhere now.
+    # ymax <- max(xy$Y_centroid)
+    # xy$Y_centroid <- ymax - xy$Y_centroid
     # xy.sf <- st_as_sf(xy, coords = c("X_centroid", "Y_centroid"), crs = NA)
 
     wr <- within_rois(x)

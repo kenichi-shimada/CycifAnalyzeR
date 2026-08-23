@@ -50,8 +50,11 @@ setMethod("computeArea", "Cycif",
 
     ## coordinates
     xy <- xys(x)
-    ymax <- max(xy$Y_centroid)
-    xy$Y_centroid <- ymax - xy$Y_centroid
+    ## NO Y-flip: only feeds SpatialPoints/concave-hull area below, invariant under a uniform
+    ## reflection -- and max(Y) here was never a real image height (see setWithinROIs() fix,
+    ## preprocessing.R). Dropped for consistency with the topleft-origin convention.
+    # ymax <- max(xy$Y_centroid)
+    # xy$Y_centroid <- ymax - xy$Y_centroid
     xy.sp <- sp::SpatialPoints(xy)
 
     ##

@@ -174,14 +174,21 @@ setMethod("setWithinROIs", "Cycif",
             ## scratch for every cycle (O(ncycle x n_rois) point.in.polygon calls, each already
             ## vectorized over all cells); computing it once per ROI here and reusing across cycles
             ## drops that to O(n_rois) calls total.
-            ## Y is flipped (max(coords$Y)-coords$Y) for every ROI, positive and negative alike, to
-            ## match the raw (unflipped) ROI polygon coordinates parsed at import time -- restores
-            ## the convention both branches used before commit bff7aca5 ("minor update") accidentally
-            ## dropped the flip from the negative branch only, desyncing negative ROIs from positive
-            ## ROIs and from the stored polygon coordinates.
+            ## NO Y-flip: cell centroids and OMERO-exported ROI polygon coordinates both come from
+            ## the same OME-TIFF pixel grid (topleft origin, Y increasing downward), so they should
+            ## already share the same convention -- compare raw coordinates directly.
+            ## Previously this flipped cell Y by (max(coords$Y)-coords$Y), i.e. against the max Y
+            ## among THIS Cycif's own cells, not any real/fixed image height. That reference drifts
+            ## per sample (e.g. a sample whose cells only span a sub-region of the imaged area), and
+            ## was never applied to the ROI polygon coordinates at import time either -- for at least
+            ## one sample (15632) this desync left ~100% of cells classified outOfROI. Kept as a
+            ## comment (not deleted) in case the flip turns out to be needed after further review of
+            ## the other 4 call sites using the same max(Y)-Y pattern (computeCN, spatial-area.R,
+            ## spatial-tumor-border.R, spatial-tumor-stroma.R).
             membership <- sapply(rois,function(r){
               xys2 <- r$coords
-              sp::point.in.polygon(coords$X,max(coords$Y)-coords$Y,xys2$x,xys2$y)==1
+              # sp::point.in.polygon(coords$X,max(coords$Y)-coords$Y,xys2$x,xys2$y)==1
+              sp::point.in.polygon(coords$X,coords$Y,xys2$x,xys2$y)==1
             })
             membership <- matrix(membership,nrow=nc) # sapply degenerates to a vector if length(rois)==1
 
