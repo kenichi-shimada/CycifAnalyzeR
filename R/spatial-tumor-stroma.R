@@ -163,8 +163,19 @@ setMethod("defineTumorStroma","Cycif",
       conc <- concaveman::concaveman(xyt, concavity = concavity, length_threshold = dth*5)
       return(conc)
     },mc.cores=n.cores)
-    if(class(borders2)=="try-error"){
-      stop("Error in concaveman::concaveman")
+    ## class(borders2)=="try-error" (the previous check here) can never fire -- borders2 is
+    ## always a list (mclapply's return type), never itself a try-error object. A crashed worker
+    ## (e.g. the macOS fork-safety ObjC crash) instead leaves NULL/try-error at that element's
+    ## position while mclapply emits a "did not deliver results" warning and otherwise continues
+    ## silently -- previously that NULL propagated into do.call(rbind, borders2) and failed
+    ## several steps later with an opaque error inside st_intersects(). Check element-wise instead, and
+    ## fail immediately with a clear message naming which segment(s) failed.
+    is.failed2 <- vapply(borders2, function(b) is.null(b) || inherits(b,"try-error"), logical(1))
+    if(any(is.failed2)){
+      stop("concaveman::concaveman() failed for segment(s): ", paste(nls2.1[is.failed2], collapse=", "),
+           " -- a parallel worker likely crashed (see mclapply warning above). If this is the ",
+           "macOS ObjC fork-safety crash, set OBJC_DISABLE_INITIALIZE_FORK_SAFETY=YES in .Renviron ",
+           "and fully restart R (Sys.setenv() from within a running session is too late).")
     }
     names(borders2) <- nls2.1
 
@@ -243,6 +254,16 @@ setMethod("defineTumorStroma","Cycif",
         conc <- concaveman::concaveman(xyt, concavity = concavity, length_threshold = dth)
         return(conc)
       },mc.cores=n.cores)
+      ## Same crashed-worker check as borders2 above -- see that comment for why length(borders3)
+      ## being right (a fixed-length list) isn't enough; a crashed worker leaves NULL/try-error
+      ## in place rather than shortening the list.
+      is.failed3 <- vapply(borders3, function(b) is.null(b) || inherits(b,"try-error"), logical(1))
+      if(any(is.failed3)){
+        stop("concaveman::concaveman() failed for tumor cluster(s): ", paste(nls3.1[is.failed3], collapse=", "),
+             " in segment ", seg.i, " -- a parallel worker likely crashed (see mclapply warning ",
+             "above). If this is the macOS ObjC fork-safety crash, set ",
+             "OBJC_DISABLE_INITIALIZE_FORK_SAFETY=YES in .Renviron and fully restart R.")
+      }
       names(borders3) <- nls3.1
 
       if(length(borders3)==0){
