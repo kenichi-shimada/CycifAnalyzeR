@@ -1,6 +1,6 @@
 Package: CycifAnalyzeR
 Title: A package for containing, pre-processing, and analyzing Cycif data
-Version: 0.0.1
+Version: 0.3.1
 Authors@R: 
     person("Kenichi", "Shimada", , "kenichi_shimada@hms.harvard.edu", role = c("aut", "cre"),
            comment = c(ORCID = "0000-0001-8540-9785"))

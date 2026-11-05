@@ -174,21 +174,22 @@ setMethod("setWithinROIs", "Cycif",
             ## scratch for every cycle (O(ncycle x n_rois) point.in.polygon calls, each already
             ## vectorized over all cells); computing it once per ROI here and reusing across cycles
             ## drops that to O(n_rois) calls total.
-            ## NO Y-flip: cell centroids and OMERO-exported ROI polygon coordinates both come from
-            ## the same OME-TIFF pixel grid (topleft origin, Y increasing downward), so they should
-            ## already share the same convention -- compare raw coordinates directly.
-            ## Previously this flipped cell Y by (max(coords$Y)-coords$Y), i.e. against the max Y
-            ## among THIS Cycif's own cells, not any real/fixed image height. That reference drifts
-            ## per sample (e.g. a sample whose cells only span a sub-region of the imaged area), and
-            ## was never applied to the ROI polygon coordinates at import time either -- for at least
-            ## one sample (15632) this desync left ~100% of cells classified outOfROI. Kept as a
-            ## comment (not deleted) in case the flip turns out to be needed after further review of
-            ## the other 4 call sites using the same max(Y)-Y pattern (computeCN, spatial-area.R,
-            ## spatial-tumor-border.R, spatial-tumor-stroma.R).
-            membership <- sapply(rois,function(r){
-              xys2 <- r$coords
+            ## NO Y-flip: cell centroids and the raw OMERO-exported ROI polygons share the OME-TIFF pixel
+            ## grid (topleft origin, Y increasing downward), so they are compared directly. NOTE: objects
+            ## imported before 2025-11-25 carry polygons that importROIs() had already reflected about
+            ## max(Y) (and flipped the cells to match); their stored polygons are NOT raw, so membership
+            ## must not be recomputed from them -- re-import from the raw ROI export instead.
+            ## Boundary handling (restores v1.0/v2.0 behavior, which the later `!membership` rewrite
+            ## had silently changed): sp::point.in.polygon() returns 1 = strictly inside, 2 = on an
+            ## edge, 3 = on a vertex, 0 = outside. A positive ROI keeps only strictly-inside cells
+            ## (==1); a negative ROI removes every cell that is not strictly outside (!=0), so a cell
+            ## sitting exactly on the edge of an exclusion polygon is excluded, as it was originally
+            ## (`point.in.polygon(...)==0` was the keep-condition for negative ROIs).
+            membership <- sapply(seq_along(rois),function(k){
+              xys2 <- rois[[k]]$coords
               # sp::point.in.polygon(coords$X,max(coords$Y)-coords$Y,xys2$x,xys2$y)==1
-              sp::point.in.polygon(coords$X,coords$Y,xys2$x,xys2$y)==1
+              code <- sp::point.in.polygon(coords$X,coords$Y,xys2$x,xys2$y)
+              if(identical(roi.dirs[[k]],"negative")) code!=0 else code==1
             })
             membership <- matrix(membership,nrow=nc) # sapply degenerates to a vector if length(rois)==1
 
